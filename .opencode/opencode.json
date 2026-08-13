@@ -15,5 +15,19 @@
       }
     }
   },
-  "model": "agentrouter/claude-opus-5"
+  "model": "agentrouter/claude-opus-5",
+   "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-157af518-2494-41dd-94c0-cff5bcc14c08"
+      },
+      "enabled": true
+    }
+  }
+  ,"permission": {
+    "bash": { "*": "ask", "git *": "allow", "npm *": "allow", "rm *": "deny" },
+    "edit": "ask"
+  }
 }

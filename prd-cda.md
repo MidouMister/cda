@@ -148,7 +148,7 @@ Une affaire = un engagement commercial avec un client. Types :
 | Pénalités de retard — taux | % par jour de retard, **paramétrable par affaire** selon le CCAP du marché (pas de taux unique imposé) |
 | Pénalités de retard — base | Montant du marché (modifiable si le CCAP prévoit une autre base) |
 | Pénalités de retard — plafond | % du montant du marché |
-| Intérêts moratoires | Si retard paiement > 30 j — taux paramétrable en M7, génère une **ND proposée** (validation manuelle) |
+| Intérêts moratoires | Si retard paiement > 30 j — **montant saisi directement** sur une **ND proposée** (champ `factures.interets_moratoires_centimes`), pas de taux ni de calcul automatique 📌 (décision 09/08/2026) |
 | Réceptions | 📌 Table (voir §4.1.7bis) — permet réceptions par lot/tranche |
 | Décompte provisoire | Date |
 | Décompte définitif | Date |
@@ -444,7 +444,7 @@ Brouillon → Validée → Imprimée → Envoyée → Payée → Archivée
 | Remboursement avance | 📌 **Calculé automatiquement au prorata** de l'avance sur chaque ST (ajustable manuellement si besoin) |
 | TVA | 19 % (taux unique) |
 | 🆕 **Mode de règlement prévu** | Virement / Chèque / Espèces / Traite / LCN — saisi à la création, modifiable jusqu'à validation. Détermine l'assujettissement au droit de timbre (voir §7.1). Si le règlement effectif diffère (constaté à l'encaissement M5), traité par écart en ND — cas rare, à documenter au manuel utilisateur |
-| Droit de timbre | Calculé automatiquement selon le barème en vigueur (§4.7.3) si Mode de règlement prévu ∈ {Espèces, Chèque, Traite} — **jamais si Virement ou LCN** (règlement dématérialisé, exonéré) ⚠️ *périmètre exact (chèque remis en main propre vs déposé en banque) à confirmer avec le comptable* |
+| Droit de timbre | Calculé automatiquement selon le barème en vigueur (§4.7.3) **uniquement si le Mode de règlement prévu = Espèces** (versement dans la caisse de l'entreprise), plafonné au seuil des espèces paramétré (défaut 1 000 000 DA) — **jamais pour Chèque, Traite, Virement ou LCN** ✅ *déclencheur confirmé par le comptable le 09/08/2026* |
 
 #### 4.4.5 Lignes de facturation
 - Code produit (charge libellé, unité, PU auto)
@@ -706,9 +706,11 @@ Chaque tableau de bord est exportable en PDF/PNG pour partage ou archivage.
 Au tout premier lancement : création du mot de passe, **génération et affichage unique de la phrase de récupération** (§9.1 — à imprimer et conserver par la direction, hors du poste), saisie des paramètres entreprise, proposition d'import initial (M13).
 
 #### 4.7.3 Paramètres entreprise
-Dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, téléphone, fax, email, logo, mention légale pied de page, taux des intérêts moratoires.
+Dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, téléphone, fax, email, logo, mention légale pied de page.
 
-**🆕 Barème du droit de timbre** *(valeurs de départ ci-dessous, issues du barème 2025/2026 en vigueur au moment de la rédaction — table éditable en Paramétrage, jamais figée en dur dans le code — 📌 à valider une dernière fois avec l'expert-comptable EGTO avant mise en production)* :
+**🆕 Seuil maximum du versement en espèces soumis au droit de timbre** : clé `timbre.seuil_max_especes_centimes`, défaut **1 000 000 DA** (décision comptable 09/08/2026).
+
+**🆕 Barème du droit de timbre** *(valeurs de départ ci-dessous, issues du barème 2025/2026 en vigueur au moment de la rédaction — table éditable en Paramétrage (onglet Paramétrage, écran R7), jamais figée en dur dans le code — 📌 valeurs à valider une dernière fois avec l'expert-comptable EGTO avant mise en production ; **déclencheur confirmé** : uniquement pour un versement en **espèces** en caisse, jamais pour chèque, traite, virement ou LCN)* :
 
 | Tranche (montant TTC) | Taux |
 |---|---|
@@ -1226,7 +1228,7 @@ CREATE TABLE audit_log (
 ### 7.1 Synthèse des règles retenues
 | Sujet | Décision finale |
 |---|---|
-| **Droit de timbre** | **Barème à tranches paramétrable en M7 (§4.7.3)** ; déclencheur = mode de règlement prévu ∈ {Espèces, Chèque, Traite} (champ en-tête facture §4.4.4) ; jamais si Virement ou LCN ⚠️ périmètre exact et valeurs à valider en Phase 0 avec l'expert-comptable |
+| **Droit de timbre** | **Barème à tranches paramétrable (§4.7.3)** ; **déclencheur = règlement prévu en Espèces uniquement** (versement en caisse, champ en-tête facture §4.4.4), seuil des espèces 1 000 000 DA paramétré ; **jamais pour Chèque, Traite, Virement ou LCN** ✅ *déclencheur confirmé par le comptable (09/08/2026) — valeurs des tranches à valider* |
 | **TVA** | Taux unique 19 %, **champ verrouillé au niveau produit** 📌 — le pied de facture (§4.4.6) suppose un taux unique ; une évolution multi-taux nécessiterait une refonte de la ventilation HT, explicitement hors périmètre |
 | **État TVA collectée** | Rapport mensuel simple (Total HT vendu / TVA collectée), scope limité aux ventes — la TVA déductible sur achats reste hors périmètre (gérée par la comptabilité générale) |
 | **Numérotation** | Attribuée uniquement à la validation, jamais au brouillon (§5.3) |
@@ -1234,7 +1236,7 @@ CREATE TABLE audit_log (
 | **Mentions légales facture** | Liste exhaustive définie en §5.2 |
 | **TAP** (Taxe sur l'Activité Professionnelle) | Supprimée depuis la loi de finances 2024, toujours abolie sous la LF 2026 — **📌 quasi tranché**, confirmation finale de l'expert-comptable recommandée pour clôturer formellement le point pour la situation spécifique d'EGTO (EPE/SPA, filiale GITRA). Non implémentée par défaut. |
 | **Révision de prix** | Gérée au cas par cas (champ Type de révision par affaire §4.1.4, mécanique de calcul §4.4.7bis) |
-| **Intérêts moratoires** | Pour marché public : taux directeur Banque d'Algérie + 1 point, déclenché après 30 j suivant certification du service fait (base réglementaire à faire confirmer par le fiscaliste). Pour contrat privé sans taux contractuel : taux légal par défaut de l'ordre de 3,5 % — **à faire trancher par le fiscaliste EGTO** avant mise en production. Taux paramétrable en M7, génère une ND proposée (validation manuelle) |
+| **Intérêts moratoires** | **Montant saisi directement** sur une **ND proposée** (`factures.interets_moratoires_centimes`) — pas de calcul automatique ni de taux 📌 (décision 09/08/2026). Références réglementaires indicatives pour évaluer le montant : marché public = taux directeur Banque d'Algérie + 1 point, déclenché après 30 j suivant certification du service fait (base réglementaire à faire confirmer par le fiscaliste) ; contrat privé sans taux contractuel = taux légal par défaut de l'ordre de 3,5 %. |
 | **Pénalités de retard** | Pas de taux unique — paramétrable par affaire selon le CCAP du marché concerné (§4.1.4) |
 | **Retenue à la source sur paiements sous-traitants** | Non traitée, aucun mécanisme prévu dans M8 — à confirmer avec le fiscaliste si applicable aux paiements EGTO → sous-traitants ⚠️ |
 
@@ -1326,7 +1328,7 @@ Voir §4.7.7 (politique fonctionnelle), §9.1 (clés et restaurabilité) et §5.
 | Template Excel GITRA non validé avant développement du rapport mensuel | Reprise coûteuse du module M4.9 | Verrouiller en Phase 0 (dépendance bloquante) |
 | Qualité des données à l'import initial (clients/produits/DQE existants) | Doublons, erreurs de facturation | Assistant d'import avec rapport d'anomalies (M13) |
 | Disponibilité du service commercial pour la recette | Retard de livraison | Planifier les créneaux de recette dès la Phase 0 |
-| Taux réglementaires non confirmés (barème droit de timbre, intérêts moratoires, TAP) | Non-conformité fiscale au lancement | Validation avec le comptable/fiscaliste EGTO avant mise en production (voir §16) |
+| Règles fiscales à valeurs non confirmées (barème droit de timbre, statut TAP) | Non-conformité fiscale au lancement | Validation avec le comptable/fiscaliste EGTO avant mise en production (voir §16) |
 | Perte de la phrase de récupération par la direction | Impossibilité de récupérer l'accès en cas d'oubli du mot de passe ou de panne du poste | Consignation écrite à l'installation (§4.7.2), rappel dans le manuel utilisateur |
 
 ---
@@ -1355,8 +1357,8 @@ Voir §4.7.7 (politique fonctionnelle), §9.1 (clés et restaurabilité) et §5.
 | # | Point ouvert | Statut |
 |---|---|---|
 | 1 | Template Excel du rapport mensuel GITRA | **N'existe pas encore** — à faire produire et valider par GITRA/comptabilité avant le développement de M4.9 |
-| 2 | Droit de timbre | Barème à tranches (1 % / 1,5 % / 2 %, plancher 5 DA, plafond 10 000 DA) proposé en §4.7.3 comme valeur de départ — **à valider définitivement avec le comptable EGTO avant mise en production** |
-| 3 | Intérêts moratoires | Pour marché public : taux directeur Banque d'Algérie + 1 point, déclenché après 30 j suivant certification du service fait (base réglementaire à faire confirmer par le fiscaliste). Pour contrat privé sans taux contractuel : taux légal par défaut de l'ordre de 3,5 % — **à faire trancher par le fiscaliste EGTO** avant mise en production |
+| 2 | Droit de timbre | Barème à tranches (1 % / 1,5 % / 2 %, plancher 5 DA, plafond 10 000 DA) proposé en §4.7.3 comme **valeur de départ** — **valeurs à valider définitivement avec le comptable EGTO avant mise en production**. **Déclencheur et seuil confirmés (09/08/2026)** : espèces uniquement, plafond 1 000 000 DA. ✅ |
+| 3 | Intérêts moratoires | **Tranché (09/08/2026)** : montant saisi directement sur la ND, pas de taux — ✅. Les références réglementaires indicatives (marché public : taux directeur BA + 1 point après 30 j ; privé : ~3,5 %) restent à confirmer par le fiscaliste pour l'évaluation du montant |
 | 4 | TAP | Supprimée depuis la loi de finances 2024, toujours abolie sous la LF 2026 — **📌 quasi tranché**, confirmation finale de l'expert-comptable recommandée pour clôturer formellement le point pour la situation spécifique d'EGTO (EPE/SPA, filiale GITRA) |
 | 5 | Longueur exacte NIF (15) / NIS (11) | À vérifier sur documents réels CNRC d'EGTO (le NIS est parfois annoncé à 15 chiffres selon les sources) |
 | 6 | « Saisie de la déclaration avant le 5 du mois » | Retenu par défaut comme avertissement (non bloquant), cohérent avec le principe général « alerter plutôt que bloquer » — à confirmer explicitement avec le service commercial |

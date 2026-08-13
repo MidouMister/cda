@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGTO — Gestion Commerciale</title>
+<style>
+/* ============================================================
+   RESET
+============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+  font-size:13px;
+  color:var(--text-primary);
+  background:var(--bg-window);
+  transition:background-color .25s ease;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+ul{list-style:none;}
+a{color:inherit;text-decoration:none;}
+svg{display:block;flex-shrink:0;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+[data-theme="dark"] ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);background-clip:padding-box;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+/* ============================================================
+   DESIGN TOKENS — LIGHT
+============================================================ */
+:root{
+  --bg-window:#EDEDEF;
+  --bg-sidebar:#F6F6F8;
+  --bg-topbar:#F6F6F8;
+  --bg-content:#FFFFFF;
+  --bg-card:#FFFFFF;
+  --bg-input:#FFFFFF;
+  --bg-hover:rgba(0,0,0,.045);
+  --bg-active-row:rgba(0,113,227,.08);
+  --text-primary:#1D1D1F;
+  --text-secondary:#6E6E73;
+  --text-tertiary:#A1A1A6;
+  --separator:rgba(0,0,0,.09);
+  --separator-strong:rgba(0,0,0,.14);
+  --accent:#0071E3;
+  --accent-hover:#0077ED;
+  --accent-soft:rgba(0,113,227,.1);
+  --green:#248A3D; --green-soft:rgba(52,199,89,.15);
+  --orange:#C76A00; --orange-soft:rgba(255,149,0,.16);
+  --red:#D70015; --red-soft:rgba(255,59,48,.13);
+  --purple:#8E44C9; --purple-soft:rgba(175,82,222,.14);
+  --gray-soft:rgba(110,110,115,.12);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 6px 20px rgba(0,0,0,.10);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.22);
+  --radius-window:12px;
+  --radius-panel:10px;
+  --radius-ctl:7px;
+  --tl-red:#FF5F57; --tl-yellow:#FEBC2E; --tl-green:#28C840;
+}
+[data-theme="dark"]{
+  --bg-window:#151517;
+  --bg-sidebar:#232326;
+  --bg-topbar:#232326;
+  --bg-content:#1C1C1E;
+  --bg-card:#2A2A2D;
+  --bg-input:#313134;
+  --bg-hover:rgba(255,255,255,.07);
+  --bg-active-row:rgba(10,132,255,.16);
+  --text-primary:#F5F5F7;
+  --text-secondary:#A1A1A6;
+  --text-tertiary:#75757A;
+  --separator:rgba(255,255,255,.09);
+  --separator-strong:rgba(255,255,255,.16);
+  --accent:#0A84FF;
+  --accent-hover:#3399FF;
+  --accent-soft:rgba(10,132,255,.18);
+  --green:#32D74B; --green-soft:rgba(50,215,75,.18);
+  --orange:#FF9F0A; --orange-soft:rgba(255,159,10,.18);
+  --red:#FF453A; --red-soft:rgba(255,69,58,.18);
+  --purple:#BF5AF2; --purple-soft:rgba(191,90,242,.18);
+  --gray-soft:rgba(161,161,166,.16);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 6px 20px rgba(0,0,0,.4);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.55);
+}
+
+/* ============================================================
+   APP SHELL
+============================================================ */
+.app{
+  display:grid;
+  grid-template-columns:250px 1fr;
+  grid-template-rows:52px 1fr 26px;
+  height:100vh; width:100vw;
+  background:var(--bg-content);
+  transition:grid-template-columns .22s cubic-bezier(.32,.72,0,1);
+}
+.app.sidebar-collapsed{grid-template-columns:74px 1fr;}
+.app.sidebar-collapsed .sidebar{opacity:0;pointer-events:none;}
+
+/* ---- Titlebar / Toolbar (macOS : feux tricolores à gauche, fusionnés) ---- */
+.topbar-sidebar-zone{
+  grid-column:1; grid-row:1;
+  display:flex; align-items:center; padding:0 16px;
+  background:color-mix(in srgb,var(--bg-sidebar) 80%,transparent);
+  backdrop-filter:saturate(180%) blur(30px);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);
+  -webkit-app-region:drag;
+}
+.traffic-lights{display:flex; gap:8px;}
+.tl{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15);}
+.tl-red{background:var(--tl-red);} .tl-yellow{background:var(--tl-yellow);} .tl-green{background:var(--tl-green);}
+
+.topbar-content-zone{
+  grid-column:2; grid-row:1;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:0 20px;
+  background:color-mix(in srgb,var(--bg-topbar) 80%,transparent);
+  backdrop-filter:saturate(180%) blur(30px);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border-bottom:1px solid var(--separator);
+}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.view-title{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+.search-field{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg-hover); border-radius:7px;
+  padding:5px 10px; width:230px; color:var(--text-tertiary);
+}
+.search-field input{background:none;border:none;color:var(--text-primary);width:100%;font-size:12.5px;outline:none;}
+.search-field input::placeholder{color:var(--text-tertiary);}
+.search-field svg{width:14px;height:14px;color:var(--text-tertiary);}
+kbd.k{
+  font-family:inherit;font-size:10.5px;color:var(--text-tertiary);
+  border:1px solid var(--separator-strong);border-radius:4px;
+  padding:0 4px;line-height:15px;white-space:nowrap;flex-shrink:0;
+}
+
+.icon-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:7px;color:var(--text-secondary);
+  transition:background-color .12s ease;
+}
+.icon-btn:hover{background:var(--bg-hover);color:var(--text-primary);}
+.icon-btn svg{width:16px;height:16px;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:7px;font-size:12.5px;font-weight:500;
+  transition:background-color .12s ease, opacity .12s ease;
+  white-space:nowrap;
+}
+.btn svg{width:14px;height:14px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-secondary{background:var(--bg-hover);color:var(--text-primary);}
+.btn-secondary:hover{background:var(--separator-strong);}
+.btn-danger{background:var(--red-soft);color:var(--red);}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-ghost{color:var(--text-secondary);}
+.btn-ghost:hover{background:var(--bg-hover);color:var(--text-primary);}
+.btn-sm{padding:3px 9px;font-size:11.5px;}
+.btn:disabled{opacity:.4;cursor:default;}
+
+/* ---- Sidebar (vibrancy) ---- */
+.sidebar{
+  grid-column:1; grid-row:2;
+  background:color-mix(in srgb,var(--bg-sidebar) 80%,transparent);
+  backdrop-filter:saturate(180%) blur(30px);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border-right:1px solid var(--separator);
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+  padding:4px 10px 10px;
+  transition:opacity .16s ease;
+}
+.sidebar-section{margin-top:14px;}
+.sidebar-section:first-child{margin-top:6px;}
+.sidebar-section-title{
+  font-size:11px;font-weight:600;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.03em;padding:4px 10px 5px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:6px 10px;border-radius:7px;
+  font-size:13px;color:var(--text-primary);text-align:left;
+  transition:background-color .1s ease;
+}
+.nav-item svg{width:16px;height:16px;color:var(--text-secondary);flex-shrink:0;}
+.nav-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav-item:hover{background:var(--bg-hover);}
+.nav-item.active{background:var(--accent);color:#fff;}
+.nav-item.active svg{color:#fff;}
+.nav-item .nav-badge{
+  margin-left:auto;font-size:10.5px;font-weight:600;
+  background:var(--red);color:#fff;border-radius:8px;padding:1px 6px;flex-shrink:0;
+}
+.nav-item.active .nav-badge{background:rgba(255,255,255,.3);}
+.sidebar-footer{margin-top:auto;padding-top:10px;border-top:1px solid var(--separator);}
+.user-chip{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;}
+.user-chip:hover{background:var(--bg-hover);}
+.avatar{
+  width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#0071E3,#8E44C9);
+  color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.user-name{font-size:12px;font-weight:600;}
+.user-sub{font-size:11px;color:var(--text-tertiary);}
+
+/* ---- Content ---- */
+.content{grid-column:2; grid-row:2; background:var(--bg-content); overflow-y:auto; position:relative;}
+.view-content{padding:22px 26px 60px;max-width:1400px;}
+.view-content.narrow{max-width:980px;}
+.section-heading{
+  font-size:11px;font-weight:600;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.04em;margin:28px 0 10px;
+}
+.section-heading:first-child{margin-top:0;}
+
+/* ---- Status bar (poste unique, hors ligne, chiffrement) ---- */
+.statusbar{
+  grid-column:1/-1; grid-row:3;
+  display:flex;align-items:center;gap:16px;
+  padding:0 14px;font-size:11px;color:var(--text-tertiary);
+  background:color-mix(in srgb,var(--bg-sidebar) 80%,transparent);
+  backdrop-filter:saturate(180%) blur(30px);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border-top:1px solid var(--separator);
+}
+.statusbar .sb-item{display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.statusbar b{font-weight:600;color:var(--text-secondary);}
+.statusbar .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.statusbar .spacer{margin-left:auto;}
+.segmented{display:flex;background:var(--bg-hover);border-radius:5px;padding:1px;gap:1px;}
+.segmented button{
+  font-size:10.5px;padding:1px 7px;border-radius:4px;color:var(--text-tertiary);line-height:16px;
+}
+.segmented button.active{background:var(--bg-card);color:var(--text-primary);font-weight:600;box-shadow:var(--shadow-sm);}
+</style>
+<style>
+/* ============================================================
+   COMPOSANTS
+============================================================ */
+
+/* Cartes */
+.card{background:var(--bg-card);border:1px solid var(--separator);border-radius:var(--radius-panel);box-shadow:var(--shadow-sm);}
+.card-pad{padding:16px 18px;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.kpi-card{background:var(--bg-card);border:1px solid var(--separator);border-radius:var(--radius-panel);padding:14px 16px 15px;box-shadow:var(--shadow-sm);}
+.kpi-label{font-size:11.5px;color:var(--text-secondary);font-weight:500;margin-bottom:8px;}
+.kpi-value{font-size:21px;font-weight:700;letter-spacing:-.015em;font-variant-numeric:tabular-nums;}
+.kpi-trend{display:flex;align-items:center;gap:4px;margin-top:7px;font-size:11.5px;font-weight:600;}
+.kpi-trend svg{width:12px;height:12px;}
+.trend-up{color:var(--green);} .trend-down{color:var(--red);}
+.kpi-trend .muted{color:var(--text-tertiary);font-weight:400;margin-left:2px;}
+
+/* Badges — fond plein, sans pastille */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2.5px 8px;border-radius:6px;white-space:nowrap;}
+.badge-green{background:var(--green-soft);color:var(--green);}
+.badge-orange{background:var(--orange-soft);color:var(--orange);}
+.badge-red{background:var(--red-soft);color:var(--red);}
+.badge-blue{background:var(--accent-soft);color:var(--accent);}
+.badge-purple{background:var(--purple-soft);color:var(--purple);}
+.badge-gray{background:var(--gray-soft);color:var(--text-secondary);}
+
+/* Tableaux */
+.table-wrap{background:var(--bg-card);border:1px solid var(--separator);border-radius:var(--radius-panel);overflow:hidden;box-shadow:var(--shadow-sm);}
+table.mac-table{width:100%;border-collapse:collapse;}
+.mac-table thead th{
+  text-align:left;font-size:11px;font-weight:600;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.03em;
+  padding:9px 14px;border-bottom:1px solid var(--separator);background:var(--bg-card);
+  position:sticky;top:0;z-index:1;
+}
+.mac-table td{padding:10px 14px;border-bottom:1px solid var(--separator);font-size:12.5px;vertical-align:middle;}
+.mac-table tbody tr{cursor:pointer;transition:background-color .08s ease;}
+.mac-table tbody tr:hover{background:var(--bg-hover);}
+.mac-table tbody tr.is-selected{background:var(--bg-active-row);}
+.mac-table tbody tr:last-child td{border-bottom:none;}
+.mac-table tfoot td{padding:9px 14px;font-size:12px;font-weight:600;background:var(--bg-hover);border-top:1px solid var(--separator);}
+.mac-table .cell-primary{font-weight:600;color:var(--text-primary);}
+.mac-table .cell-muted{color:var(--text-secondary);}
+.mac-table .cell-num,.mini-table .cell-num{font-variant-numeric:tabular-nums;text-align:right;}
+.mac-table th.th-num,.mini-table th.th-num{text-align:right;}
+.mac-table .cell-icon-row{display:flex;align-items:center;gap:9px;}
+.row-avatar{width:24px;height:24px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* Densité compacte (⌘⌥1 / ⌘⌥2) */
+.app.dense .mac-table td{padding:5px 14px;font-size:12px;}
+.app.dense .mac-table thead th{padding:6px 14px;}
+.app.dense .row-avatar{width:20px;height:20px;font-size:9px;}
+
+/* Barre d'outils de liste */
+.list-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+.chip-filters{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;background:var(--bg-hover);color:var(--text-secondary);border:1px solid transparent;}
+.chip.active{background:var(--accent-soft);color:var(--accent);}
+.chip:hover{background:var(--separator-strong);}
+.chip.active:hover{background:var(--accent-soft);}
+
+/* Bandeaux d'alerte non bloquants — disponibles sur toute vue */
+.banner{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:9px;font-size:12.5px;line-height:1.5;margin-bottom:14px;}
+.banner svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.banner .banner-body{flex:1;}
+.banner b{font-weight:700;}
+.banner a{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
+.banner .banner-close{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;opacity:.65;flex-shrink:0;}
+.banner .banner-close:hover{opacity:1;background:rgba(0,0,0,.08);}
+.banner .banner-close svg{width:11px;height:11px;margin:0;}
+.banner-orange{background:var(--orange-soft);color:var(--orange);}
+.banner-red{background:var(--red-soft);color:var(--red);}
+.banner-blue{background:var(--accent-soft);color:var(--accent);}
+.banner-green{background:var(--green-soft);color:var(--green);}
+
+/* Progression */
+.progress-bar{width:70px;height:5px;border-radius:3px;background:var(--gray-soft);overflow:hidden;}
+.progress-bar > div{height:100%;background:var(--accent);border-radius:3px;}
+
+/* État vide */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px;color:var(--text-tertiary);text-align:center;}
+.empty-state svg{width:38px;height:38px;margin-bottom:12px;opacity:.5;}
+.empty-state-title{font-size:13.5px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;}
+.empty-state-sub{font-size:12px;max-width:320px;}
+
+/* Graphiques */
+.chart-card{background:var(--bg-card);border:1px solid var(--separator);border-radius:var(--radius-panel);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.chart-title{font-size:12.5px;font-weight:600;margin-bottom:2px;}
+.chart-sub{font-size:11px;color:var(--text-tertiary);margin-bottom:14px;}
+.bar-chart{display:flex;align-items:flex-end;gap:9px;height:130px;}
+.bar-chart .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+.bar-chart .bar{width:100%;max-width:26px;border-radius:4px 4px 2px 2px;background:var(--accent);transition:height .5s cubic-bezier(.4,0,.2,1);}
+.bar-chart .bar.is-muted{background:var(--gray-soft);}
+.bar-chart .bar-label{font-size:10px;color:var(--text-tertiary);}
+.donut-wrap{display:flex;align-items:center;gap:22px;}
+.donut{width:120px;height:120px;border-radius:50%;flex-shrink:0;
+  -webkit-mask:radial-gradient(circle,transparent 47%,#000 48%);mask:radial-gradient(circle,transparent 47%,#000 48%);}
+.donut-legend{display:flex;flex-direction:column;gap:9px;}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.legend-label{color:var(--text-secondary);min-width:60px;}
+.legend-val{font-weight:600;font-variant-numeric:tabular-nums;}
+
+/* Liste d'alertes du tableau de bord */
+.alert-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--separator);}
+.alert-row:last-child{border-bottom:none;}
+.alert-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.alert-icon svg{width:14px;height:14px;}
+.alert-title{font-size:12.5px;font-weight:600;}
+.alert-sub{font-size:11.5px;color:var(--text-secondary);margin-top:1px;}
+
+/* Grilles */
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.stack{display:flex;flex-direction:column;gap:14px;}
+
+/* Panneau coulissant — pattern de détail unique pour tous les modules */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:40;}
+.overlay.open{opacity:1;pointer-events:auto;}
+.detail-panel{
+  position:fixed;top:0;right:0;bottom:0;width:660px;max-width:92vw;
+  background:var(--bg-content);box-shadow:var(--shadow-lg);
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  z-index:41;display:flex;flex-direction:column;
+}
+.detail-panel.open{transform:translateX(0);}
+.detail-header{padding:16px 22px;border-bottom:1px solid var(--separator);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.detail-title{font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.detail-subtitle{font-size:12px;color:var(--text-secondary);margin-top:3px;}
+.detail-close{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex-shrink:0;}
+.detail-close:hover{background:var(--bg-hover);}
+.detail-close svg{width:14px;height:14px;}
+.detail-tabs{display:flex;padding:0 22px;border-bottom:1px solid var(--separator);overflow-x:auto;}
+.detail-tab{padding:10px 4px;margin-right:20px;font-size:12.5px;font-weight:500;color:var(--text-secondary);border-bottom:2px solid transparent;white-space:nowrap;}
+.detail-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.detail-body{flex:1;overflow-y:auto;padding:20px 22px 40px;}
+.detail-footer{padding:12px 22px;border-top:1px solid var(--separator);display:flex;gap:8px;background:var(--bg-card);}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
+.field{display:flex;flex-direction:column;gap:3px;}
+.field-label{font-size:11px;color:var(--text-tertiary);font-weight:500;}
+.field-value{font-size:13px;font-weight:500;}
+.field-value.mono,.mono{font-variant-numeric:tabular-nums;}
+.field.span-2{grid-column:1/-1;}
+.divider{height:1px;background:var(--separator);margin:18px 0;}
+
+.mini-table{width:100%;border-collapse:collapse;font-size:12px;}
+.mini-table th{text-align:left;font-size:10.5px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.02em;padding:6px 8px;border-bottom:1px solid var(--separator);}
+.mini-table td{padding:8px;border-bottom:1px solid var(--separator);}
+.mini-table tr:last-child td{border-bottom:none;}
+.mini-table tbody tr[onclick]{cursor:pointer;}
+.mini-table tbody tr[onclick]:hover{background:var(--bg-hover);}
+</style>
+<style>
+/* ---- Pied de facture (§4.4.6) ---- */
+.pied{font-size:12.5px;}
+.pied .pl{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:5px 0;color:var(--text-secondary);}
+.pied .pl > span:last-child{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;}
+.pied .pl .hint{font-weight:400;color:var(--text-tertiary);font-size:11px;}
+.pied .pl.sub{color:var(--text-primary);font-weight:600;border-top:1px solid var(--separator);margin-top:3px;padding-top:7px;}
+.pied .pl.sub > span:last-child{font-weight:700;}
+.pied .pnet{
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  margin-top:10px;padding:11px 13px;border-radius:9px;background:var(--bg-hover);
+  border-top:2px solid var(--text-primary);
+}
+.pied .pnet b{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.pied .pnet strong{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+.pied .pnote{font-size:11px;color:var(--text-tertiary);margin-top:8px;line-height:1.5;}
+
+/* ---- Formulaires + validation en ligne ---- */
+.form-row{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.form-row label{font-size:12px;font-weight:600;color:var(--text-secondary);}
+.form-control{
+  background:var(--bg-input);border:1px solid var(--separator-strong);border-radius:7px;
+  padding:7px 10px;font-size:13px;color:var(--text-primary);width:100%;outline:none;
+  transition:border-color .12s ease, box-shadow .12s ease;
+}
+.form-control:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.form-control.mono{font-variant-numeric:tabular-nums;}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.form-hint{font-size:11px;color:var(--text-tertiary);line-height:1.45;}
+.field-error{display:none;align-items:flex-start;gap:5px;font-size:11.5px;color:var(--red);line-height:1.45;}
+.field-error svg{width:12px;height:12px;flex-shrink:0;margin-top:2px;}
+.form-row.invalid .form-control{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft);}
+.form-row.invalid .field-error{display:flex;}
+.form-row.invalid .form-hint{display:none;}
+.form-row.valid .form-control{border-color:var(--green);}
+
+/* ---- Paramétrage ---- */
+.settings-layout{display:grid;grid-template-columns:190px 1fr;gap:24px;}
+.settings-nav{display:flex;flex-direction:column;gap:2px;position:sticky;top:0;align-self:start;}
+.settings-nav button{padding:7px 10px;border-radius:7px;font-size:12.5px;text-align:left;color:var(--text-secondary);}
+.settings-nav button:hover{background:var(--bg-hover);}
+.settings-nav button.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+.settings-group-title{font-size:15px;font-weight:700;margin-bottom:3px;}
+.settings-group-sub{font-size:12px;color:var(--text-secondary);margin-bottom:16px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--separator);gap:16px;}
+.settings-row:last-child{border-bottom:none;}
+.settings-row-label{font-size:13px;font-weight:500;}
+.settings-row-sub{font-size:11.5px;color:var(--text-tertiary);margin-top:2px;}
+.switch{position:relative;width:36px;height:21px;border-radius:11px;background:var(--gray-soft);flex-shrink:0;transition:background-color .15s ease;cursor:pointer;}
+.switch.on{background:var(--green);}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s ease;}
+.switch.on::after{transform:translateX(15px);}
+
+/* ---- Encadrés ---- */
+.callout{display:flex;gap:10px;padding:12px 14px;border-radius:9px;font-size:12.5px;line-height:1.5;}
+.callout svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.callout-blue{background:var(--accent-soft);color:var(--accent);}
+.callout-orange{background:var(--orange-soft);color:var(--orange);}
+.callout-green{background:var(--green-soft);color:var(--green);}
+.callout-red{background:var(--red-soft);color:var(--red);}
+.callout b{font-weight:700;}
+
+/* ---- Modale de confirmation (action irréversible) ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;z-index:60;}
+.modal-overlay.open{display:flex;}
+.modal{
+  width:480px;max-width:calc(100vw - 40px);background:var(--bg-card);
+  border-radius:var(--radius-window);box-shadow:var(--shadow-lg);
+  padding:22px 24px 18px;text-align:center;
+  animation:modalIn .22s cubic-bezier(.32,.72,0,1);
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.96);}}
+.modal-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;background:var(--orange-soft);color:var(--orange);}
+.modal-icon svg{width:22px;height:22px;}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:12.5px;color:var(--text-secondary);line-height:1.55;}
+.modal .modal-detail{margin-top:14px;text-align:left;}
+.modal .modal-actions{display:flex;gap:8px;margin-top:20px;}
+.modal .modal-actions .btn{flex:1;justify-content:center;padding:7px 12px;font-size:13px;}
+
+/* ---- Toast ---- */
+.toast-zone{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+.toast{
+  display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;
+  background:var(--bg-card);border:1px solid var(--separator);box-shadow:var(--shadow-md);
+  font-size:12.5px;font-weight:500;animation:toastIn .2s ease;
+  transition:opacity .3s ease,transform .3s ease;
+}
+.toast svg{width:15px;height:15px;color:var(--green);}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}}
+
+/* ---- Aide clavier ---- */
+.shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;}
+.shortcut-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;}
+.shortcut-row span{color:var(--text-secondary);}
+.shortcut-row kbd{font-family:inherit;font-size:11.5px;font-weight:600;color:var(--text-primary);background:var(--bg-hover);border-radius:5px;padding:2px 7px;white-space:nowrap;}
+
+/* ---- Utilitaires ---- */
+.flex{display:flex;} .flex-col{display:flex;flex-direction:column;}
+.items-center{align-items:center;} .justify-between{justify-content:space-between;}
+.gap-6{gap:6px;} .gap-8{gap:8px;} .gap-10{gap:10px;} .gap-12{gap:12px;}
+.text-secondary{color:var(--text-secondary);} .text-tertiary{color:var(--text-tertiary);}
+.mono-num{font-variant-numeric:tabular-nums;}
+.w-full{width:100%;} .mt-14{margin-top:14px;} .mt-16{margin-top:16px;}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+@media (max-width:1000px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .grid-2,.grid-3,.field-grid,.form-2col,.shortcut-grid{grid-template-columns:1fr;}
+  .settings-layout{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="topbar-sidebar-zone">
+    <div class="traffic-lights"><span class="tl tl-red"></span><span class="tl tl-yellow"></span><span class="tl tl-green"></span></div>
+  </div>
+
+  <div class="topbar-content-zone">
+    <div class="topbar-left"><h1 class="view-title" id="viewTitle">Tableau de bord</h1></div>
+    <div class="topbar-right" id="topbarActions"></div>
+  </div>
+
+  <aside class="sidebar" id="sidebarNav"></aside>
+
+  <main class="content" id="contentScroll">
+    <div class="view-content" id="viewContent"></div>
+  </main>
+
+  <div class="statusbar">
+    <span class="sb-item">Exercice <b>2026</b> — ouvert</span>
+    <span class="sb-item"><span class="dot" style="background:var(--green)"></span>Base chiffrée (SQLCipher) · sauvegarde du 08/08/2026 à 03:00</span>
+    <span class="sb-item"><span class="dot" style="background:var(--text-tertiary)"></span>Hors ligne — poste unique</span>
+    <span class="spacer"></span>
+    <span class="sb-item">Densité</span>
+    <div class="segmented" id="densitySwitch">
+      <button data-density="normal" class="active">Normale</button>
+      <button data-density="dense">Compacte</button>
+    </div>
+    <span class="sb-item" id="sbClock">Sam. 08 août 2026</span>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="detail-panel" id="detailPanel" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox" role="alertdialog" aria-modal="true"></div></div>
+<div class="toast-zone" id="toastZone"></div>
+
+<script>
+/* ============================================================
+   ICÔNES — jeu outline inspiré de SF Symbols
+============================================================ */
+const ICONS = {
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>',
+  affaires:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13.5" rx="2"/><path d="M8 7V5.2A1.7 1.7 0 0 1 9.7 3.5h4.6A1.7 1.7 0 0 1 16 5.2V7"/><path d="M2.5 13h19"/></svg>',
+  devis:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2.5h-7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7.5z"/><path d="M14.5 2.5v5h5"/><path d="M8.5 13h7M8.5 16.7h7M8.5 9.3h3"/></svg>',
+  clients:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.4 21v-1.5A5.2 5.2 0 0 1 7.6 14.3h2.8a5.2 5.2 0 0 1 5.2 5.2V21"/><path d="M16.5 4.8a3.6 3.6 0 0 1 0 7"/><path d="M21.6 21v-1.5a5 5 0 0 0-3.2-4.7"/></svg>',
+  factures:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2.5h15v19l-2.5-1.7-2.3 1.7-2.2-1.7-2.3 1.7-2.2-1.7-2.3 1.7-3.2-1.7z"/><path d="M8 7.8h8M8 11.3h8M8 14.8h5"/></svg>',
+  encaissements:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 9.2h.01M18 14.8h.01"/></svg>',
+  cautions:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.5v6c0 5.2 3.4 8.6 7.5 10.5 4.1-1.9 7.5-5.3 7.5-10.5v-6z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>',
+  retenues:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12.5" r="8.2"/><path d="M12 8v4.7l3.2 2M9 2.5h6"/></svg>',
+  soustraitants:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="1.2"/><path d="M8.3 6.5h1M14.7 6.5h1M8.3 10.5h1M14.7 10.5h1M8.3 14.5h1M14.7 14.5h1"/><path d="M9 21.5v-4h6v4"/></svg>',
+  catalogue:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5 12 3 3 7.5l9 4.5 9-4.5Z"/><path d="M3 7.5v9l9 4.5 9-4.5v-9"/><path d="M12 12v9"/></svg>',
+  parametrage:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.8v2.7M12 18.5v2.7M4.6 4.6l1.9 1.9M17.5 17.5l1.9 1.9M2.8 12h2.7M18.5 12h2.7M4.6 19.4l1.9-1.9M17.5 6.5l1.9-1.9"/></svg>',
+  bl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5 12 2.5l9.5 5v9L12 21.5l-9.5-5z"/><path d="M2.5 7.5 12 12.5l9.5-5M12 12.5v9"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.2"/><path d="m21 21-4.4-4.4"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v15M4.5 12h15"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.3M12 19.2v2.3M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 14.7A8.6 8.6 0 1 1 9.3 3.2a7.2 7.2 0 0 0 11.5 11.5Z"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11.5m0 0 3.7-3.7M12 14.5 8.3 10.8"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9.5m0 0L8.3 13.2M12 9.5l3.7 3.7"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>',
+  alertTriangle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 2.2 20.5h19.6Z"/><path d="M12 9.7v4.3M12 17.6v.1"/></svg>',
+  checkCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.3 12.2 2.6 2.6 5-5.2"/></svg>',
+  clockAlert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M7.8 10.5V7.3a4.2 4.2 0 0 1 8.4 0v3.2"/></svg>',
+  trendUp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 6.5-6.5 4 4L22 5"/><path d="M16 5h6v6"/></svg>',
+  trendDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 6.5 6.5 4-4L22 19"/><path d="M16 19h6v-6"/></svg>',
+  fileEmpty:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2.5h-7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7.5z"/><path d="M14.5 2.5v5h5"/></svg>',
+  shieldCheck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.5v6c0 5.2 3.4 8.6 7.5 10.5 4.1-1.9 7.5-5.3 7.5-10.5v-6z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>',
+  keyboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.2" y="6" width="19.6" height="12" rx="2"/><path d="M6 9.5h.01M9.5 9.5h.01M13 9.5h.01M16.5 9.5h.01M6 12.8h.01M9.5 12.8h.01M13 12.8h.01M16.5 12.8h.01M8 15.8h8"/></svg>',
+  sidebarToggle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="16" rx="2.2"/><path d="M9.2 4v16"/></svg>',
+};
+function icon(name){ return ICONS[name] || ''; }
+
+/* ============================================================
+   HELPERS
+============================================================ */
+const TODAY = new Date('2026-08-08T00:00:00');
+const NBSP = ' '; /* espace fine insécable */
+
+function groupInt(n){
+  const s = String(n); let out = '';
+  for(let i=0;i<s.length;i++){ if(i>0 && (s.length-i)%3===0) out += NBSP; out += s[i]; }
+  return out;
+}
+/* Montants stockés en centimes (§10.3) — affichage 2 décimales sur les documents */
+function fmtDA(cent){
+  const neg = cent < 0; const v = Math.abs(Math.round(cent));
+  return (neg?'− ':'') + groupInt(Math.floor(v/100)) + ',' + String(v%100).padStart(2,'0') + ' DA';
+}
+/* Agrégats de pilotage : arrondi au dinar */
+function fmtDAc(cent){
+  const neg = cent < 0; const v = Math.abs(Math.round(cent/100));
+  return (neg?'− ':'') + groupInt(v) + ' DA';
+}
+function DA(dinars){ return Math.round(dinars*100); } /* saisie des données mock en dinars */
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+function daysUntil(iso){ return Math.round((new Date(iso+'T00:00:00') - TODAY)/86400000); }
+function initials(str){ return str.split(/[\s'’-]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Arrondi 2 décimales half-up, appliqué ligne par ligne puis au total (§10.3) */
+function r2(cent){ return Math.floor(cent + 0.5); }
+
+const STATUS_BADGE = {
+  'Signé':'blue','ODS reçu':'blue','En cours':'orange','Facturé':'purple','Soldé':'green','Archivé':'gray','Résilié':'red',
+  'Brouillon':'gray','Validée':'blue','Imprimée':'blue','Envoyée':'blue','Payée':'green','Archivée':'gray',
+  'Envoyé':'blue','Accepté':'green','Refusé':'red','Expiré':'gray',
+  'Actif':'green','Inactif':'gray','Prospect':'blue','En vigilance':'red',
+  'Active':'blue','Mainlevée obtenue':'green','Mainlevée demandée':'orange','Libérée':'green',
+  'Affecté':'green','À affecter':'orange','Impayé':'red',
+  'Livré':'blue','Facturé partiellement':'orange','Non facturé':'orange',
+};
+function badge(status){ return '<span class="badge badge-'+(STATUS_BADGE[status]||'gray')+'">'+esc(status)+'</span>'; }
+const SCORE_COLOR = {A:'green',B:'blue',C:'orange',D:'red','Protégé':'purple'};
+function scoreBadge(s){ return '<span class="badge badge-'+(SCORE_COLOR[s]||'gray')+'">'+esc(s)+'</span>'; }
+function famBadge(f){ return '<span class="badge badge-'+({NOIR:'gray',BLANC:'blue',AUTRE:'purple'}[f]||'gray')+'">'+f+'</span>'; }
+/* ============================================================
+   DONNÉES DE DÉMONSTRATION
+   E.G.T.O — Entreprise des Grands Travaux de l'Ouest, Oran
+============================================================ */
+const SOCIETE = {
+  nom:'E.G.T.O — Entreprise des Grands Travaux de l’Ouest',
+  forme:'SPA au capital de 250 000 000 DA', groupe:'Filiale du groupe GITRA',
+  adresse:'Zone industrielle Hassi Ameur, Lot n° 47 — 31000 Oran',
+  tel:'041 58 22 17', email:'contact@egto-oran.dz',
+  nif:'000931048726314', nis:'0993104872631', rc:'31/00-0472619 B 14', ai:'31050947216',
+  banque:'BEA — Agence Oran Centre 00047', rib:'002 00047 3100472619 41',
+};
+
+const CLIENTS = [
+  {id:'c1', code:'CLI-2024-0007', nom:'Direction des Travaux Publics d’Oran', sigle:'DTP Oran', secteur:'Public', ville:'Oran',
+   contact:'M. Belkacem Hadjadj', fonction:'Directeur des marchés', tel:'041 33 18 04', email:'marches@dtp-oran.dz',
+   nif:'000431019874521', nis:'0994310198745', rc:'—', adresse:'Boulevard Millénium, Bir El Djir, Oran',
+   statut:'Actif', score:'A', delai:60, plafond:DA(220000000), encours:DA(41894300), depuis:'2024-02-11'},
+  {id:'c2', code:'CLI-2024-0012', nom:'Société de l’Eau et de l’Assainissement d’Oran', sigle:'SEOR', secteur:'Public', ville:'Oran',
+   contact:'Mme Nawel Bensaïd', fonction:'Chef de département travaux', tel:'041 40 77 51', email:'n.bensaid@seor.dz',
+   nif:'000531027741903', nis:'0995310277419', rc:'31/00-0119043 B 09', adresse:'Rue Larbi Ben M’hidi, Oran',
+   statut:'Actif', score:'A', delai:60, plafond:DA(120000000), encours:DA(23760000), depuis:'2024-05-03'},
+  {id:'c3', code:'CLI-2025-0021', nom:'COSIDER Travaux Publics', sigle:'COSIDER TP', secteur:'Public', ville:'Alger',
+   contact:'M. Riad Meziane', fonction:'Directeur de projet Ouest', tel:'023 81 44 20', email:'r.meziane@cosider-tp.dz',
+   nif:'000216004411287', nis:'0992160044112', rc:'16/00-0044112 B 02', adresse:'Route de Baba Ali, Birtouta, Alger',
+   statut:'Actif', score:'B', delai:45, plafond:DA(90000000), encours:DA(0), depuis:'2025-01-19'},
+  {id:'c4', code:'CLI-2023-0003', nom:'SARL Bâtir Ouest', sigle:'Bâtir Ouest', secteur:'Privé', ville:'Sidi Bel Abbès',
+   contact:'M. Yacine Lahmar', fonction:'Gérant', tel:'048 55 12 66', email:'contact@batir-ouest.dz',
+   nif:'000722018834015', nis:'0997220188340', rc:'22/00-0188340 B 16', adresse:'Cité Ennasr, Sidi Bel Abbès',
+   statut:'En vigilance', score:'D', delai:30, plafond:DA(12000000), encours:DA(14205600), depuis:'2023-06-27'},
+  {id:'c5', code:'CLI-2025-0029', nom:'Entreprise Portuaire d’Arzew', sigle:'EPA Arzew', secteur:'Public', ville:'Arzew',
+   contact:'M. Sofiane Gharbi', fonction:'Sous-directeur infrastructures', tel:'041 47 33 90', email:'s.gharbi@portarzew.dz',
+   nif:'000331005519742', nis:'0993310055197', rc:'31/00-0055197 B 88', adresse:'Môle principal, Port d’Arzew',
+   statut:'Actif', score:'A', delai:60, plafond:DA(150000000), encours:DA(19404000), depuis:'2025-03-14'},
+  {id:'c6', code:'CLI-2024-0018', nom:'Wilaya de Mostaganem — DUAC', sigle:'DUAC Mostaganem', secteur:'Public', ville:'Mostaganem',
+   contact:'M. Abdelkader Rahou', fonction:'Directeur de l’urbanisme', tel:'045 21 60 18', email:'duac@wilaya-mostaganem.dz',
+   nif:'000427003310558', nis:'0994270033105', rc:'—', adresse:'Siège de la wilaya, Mostaganem',
+   statut:'Actif', score:'B', delai:90, plafond:DA(70000000), encours:DA(8925000), depuis:'2024-09-02'},
+  {id:'c7', code:'CLI-2026-0034', nom:'SPA Immobilière El Mohandiss', sigle:'El Mohandiss', secteur:'Privé', ville:'Oran',
+   contact:'Mme Sarah Belhadj', fonction:'Directrice technique', tel:'041 29 88 04', email:'technique@elmohandiss.dz',
+   nif:'000631044120876', nis:'0996310441208', rc:'31/00-0441208 B 21', adresse:'Résidence Les Palmiers, Bir El Djir, Oran',
+   statut:'Actif', score:'C', delai:30, plafond:DA(25000000), encours:DA(6188000), depuis:'2026-01-22'},
+  {id:'c8', code:'CLI-2026-0036', nom:'SARL Promo-Habitat SBA', sigle:'Promo-Habitat', secteur:'Privé', ville:'Sidi Bel Abbès',
+   contact:'M. Nadir Cherifi', fonction:'Directeur général', tel:'048 71 04 39', email:'n.cherifi@promohabitat.dz',
+   nif:'000822055710334', nis:'0998220557103', rc:'22/00-0557103 B 24', adresse:'Route de Tlemcen, Sidi Bel Abbès',
+   statut:'Prospect', score:'—', delai:30, plafond:DA(10000000), encours:DA(0), depuis:'2026-06-30'},
+];
+
+const AFFAIRES = [
+  {id:'a1', num:'AFG-2026-00012', intitule:'Réhabilitation de la RN 11 — tronçon Aïn El Turck / Bousfer', clientId:'c1',
+   marche:'Public', typeTravaux:'Enrobés', montant:DA(184500000), avancement:62, statut:'En cours',
+   ods:'2026-02-16', delaiMois:14, finPrevue:'2027-04-16', retenuePct:5, avancePct:10, revision:'TP01 — formule officielle',
+   numMarche:'M/DTPO/2025/117', facture:DA(96420000), encaisse:DA(54620000)},
+  {id:'a2', num:'AFG-2026-00008', intitule:'VRD et assainissement — lotissement Es Sénia 320 logements', clientId:'c2',
+   marche:'Public', typeTravaux:'VRD', montant:DA(78300000), avancement:81, statut:'En cours',
+   ods:'2025-11-04', delaiMois:12, finPrevue:'2026-11-04', retenuePct:5, avancePct:0, revision:'Non révisable',
+   numMarche:'M/SEOR/2025/044', facture:DA(63400000), encaisse:DA(39640000)},
+  {id:'a3', num:'AFG-2025-00047', intitule:'Enrobés voirie interne — zone industrielle Hassi Ameur', clientId:'c3',
+   marche:'Public', typeTravaux:'Enrobés', montant:DA(42600000), avancement:100, statut:'Facturé',
+   ods:'2025-08-18', delaiMois:8, finPrevue:'2026-04-18', retenuePct:5, avancePct:0, revision:'Non révisable',
+   numMarche:'ST/COSIDER/2025/0311', facture:DA(42600000), encaisse:DA(42600000)},
+  {id:'a4', num:'AFG-2026-00015', intitule:'Aménagement et réfection du quai n° 4 — port d’Arzew', clientId:'c5',
+   marche:'Public', typeTravaux:'Génie civil', montant:DA(126800000), avancement:24, statut:'En cours',
+   ods:'2026-05-11', delaiMois:18, finPrevue:'2027-11-11', retenuePct:5, avancePct:10, revision:'TP02 — formule officielle',
+   numMarche:'M/EPA/2026/009', facture:DA(19404000), encaisse:DA(12680000)},
+  {id:'a5', num:'AFG-2025-00039', intitule:'Génie civil — station de pompage de Misserghine', clientId:'c2',
+   marche:'Public', typeTravaux:'Génie civil', montant:DA(31200000), avancement:100, statut:'Soldé',
+   ods:'2025-04-07', delaiMois:9, finPrevue:'2026-01-07', retenuePct:5, avancePct:0, revision:'Non révisable',
+   numMarche:'M/SEOR/2025/012', facture:DA(31200000), encaisse:DA(31200000)},
+  {id:'a6', num:'AFG-2026-00019', intitule:'Voirie et parking — résidence El Mohandiss, Bir El Djir', clientId:'c7',
+   marche:'Privé', typeTravaux:'VRD', montant:DA(18400000), avancement:0, statut:'Signé',
+   ods:null, delaiMois:6, finPrevue:null, retenuePct:5, avancePct:0, revision:'Non révisable',
+   numMarche:'CT/EM/2026/03', facture:DA(0), encaisse:DA(0)},
+  {id:'a7', num:'AFG-2026-00021', intitule:'Réfection chaussée — chemin de wilaya CW 32, Mostaganem', clientId:'c6',
+   marche:'Public', typeTravaux:'Enrobés', montant:DA(24900000), avancement:38, statut:'En cours',
+   ods:'2026-04-02', delaiMois:7, finPrevue:'2026-11-02', retenuePct:5, avancePct:0, revision:'Non révisable',
+   numMarche:'M/DUAC/2026/018', facture:DA(8925000), encaisse:DA(0)},
+];
+
+/* Détail DQE d'une affaire (saisie de masse — AG Grid dans l'application réelle) */
+const DQE = {
+  a1:[
+    {n:'01', des:'Décapage et démolition de la chaussée existante', u:'m²', qte:48200, pu:DA(310), fait:64},
+    {n:'02', des:'Couche de fondation en grave concassée 0/31,5', u:'m³', qte:9640, pu:DA(2850), fait:71},
+    {n:'03', des:'Béton bitumineux 0/14 — couche de roulement', u:'T', qte:6180, pu:DA(8400), fait:58},
+    {n:'04', des:'Grave bitume 0/20 — couche de base', u:'T', qte:7420, pu:DA(7950), fait:66},
+    {n:'05', des:'Bordures de trottoir type A2 préfabriquées', u:'ml', qte:5100, pu:DA(1250), fait:41},
+    {n:'06', des:'Signalisation horizontale — peinture routière', u:'ml', qte:22400, pu:DA(180), fait:12},
+  ],
+};
+
+const PRODUITS = [
+  {code:'VTE-BB014', des:'Béton bitumineux 0/14 — couche de roulement', fam:'Vente', sfam:'Enrobés à chaud', classe:'BLANC', u:'T', pu:DA(8400), actif:true},
+  {code:'VTE-BB011', des:'Béton bitumineux 0/10 — couche de liaison', fam:'Vente', sfam:'Enrobés à chaud', classe:'BLANC', u:'T', pu:DA(8950), actif:true},
+  {code:'VTE-GB020', des:'Grave bitume 0/20 — couche de base', fam:'Vente', sfam:'Enrobés à chaud', classe:'BLANC', u:'T', pu:DA(7950), actif:true},
+  {code:'VTE-EMU', des:'Émulsion bitumineuse d’accrochage 65 %', fam:'Vente', sfam:'Liants hydrocarbonés', classe:'BLANC', u:'L', pu:DA(145), actif:true},
+  {code:'VTE-GRV', des:'Grave concassée 0/31,5 — tout-venant', fam:'Vente', sfam:'Granulats', classe:'NOIR', u:'m³', pu:DA(2850), actif:true},
+  {code:'VTE-SAB', des:'Sable concassé 0/4 lavé', fam:'Vente', sfam:'Granulats', classe:'NOIR', u:'m³', pu:DA(2200), actif:true},
+  {code:'LOC-FIN', des:'Location finisseur avec chauffeur', fam:'Location', sfam:'Matériel d’enrobage', classe:'AUTRE', u:'j', pu:DA(42000), actif:true},
+  {code:'LOC-CYL', des:'Location compacteur tandem 10 T', fam:'Location', sfam:'Matériel de compactage', classe:'AUTRE', u:'j', pu:DA(38000), actif:true},
+  {code:'LOC-CAM', des:'Location camion benne 20 T avec chauffeur', fam:'Location', sfam:'Transport', classe:'AUTRE', u:'j', pu:DA(26000), actif:true},
+  {code:'REA-BT2', des:'Pose de bordures de trottoir type A2', fam:'Réalisation', sfam:'VRD', classe:'BLANC', u:'ml', pu:DA(1250), actif:true},
+  {code:'REA-BOR', des:'Pose de bordures caniveau CS2', fam:'Réalisation', sfam:'VRD', classe:'BLANC', u:'ml', pu:DA(1450), actif:true},
+  {code:'REA-REG', des:'Mise à niveau de regard de visite', fam:'Réalisation', sfam:'Assainissement', classe:'BLANC', u:'u', pu:DA(9800), actif:true},
+  {code:'REA-SIG', des:'Signalisation horizontale — peinture routière', fam:'Réalisation', sfam:'Équipements de la route', classe:'BLANC', u:'ml', pu:DA(180), actif:true},
+  {code:'REA-DEC', des:'Décapage et évacuation de chaussée existante', fam:'Réalisation', sfam:'Terrassements', classe:'NOIR', u:'m²', pu:DA(310), actif:false},
+];
+function produit(code){ return PRODUITS.find(p=>p.code===code); }
+function L(code, qte, remisePct){
+  const p = produit(code) || {des:code, u:'u', pu:0};
+  return {code, des:p.des, u:p.u, qte, pu:p.pu, remisePct:remisePct||0};
+}
+/* ---------- Devis (M9) ---------- */
+const DEVIS = [
+  {id:'d1', num:'DEV-2026-00031', clientId:'c5', objet:'Réfection des voiries de desserte — terminal minéralier', date:'2026-07-21', validite:'2026-09-19',
+   statut:'Envoyé', proba:70, lignes:[L('VTE-BB014',410),L('VTE-GB020',530),L('LOC-FIN',5),L('REA-SIG',3200)], rabaisPct:0, avancePct:0, retenuePct:0, mode:'Virement'},
+  {id:'d2', num:'DEV-2026-00029', clientId:'c7', objet:'Voirie et parking — résidence El Mohandiss', date:'2026-06-12', validite:'2026-08-11',
+   statut:'Accepté', proba:100, lignes:[L('VTE-BB014',180),L('REA-BT2',1450),L('LOC-CYL',4)], rabaisPct:2, avancePct:0, retenuePct:0, mode:'Chèque',
+   affaireId:'a6', converti:'AFG-2026-00019'},
+  {id:'d3', num:'DEV-2026-00027', clientId:'c8', objet:'Plateforme et accès — programme 120 logements SBA', date:'2026-07-02', validite:'2026-08-31',
+   statut:'Envoyé', proba:40, lignes:[L('VTE-GRV',2400),L('VTE-BB011',260),L('LOC-CAM',12)], rabaisPct:0, avancePct:0, retenuePct:0, mode:'Virement'},
+  {id:'d4', num:'DEV-2026-00024', clientId:'c4', objet:'Reprise d’enrobés — lotissement Ennasr tranche 2', date:'2026-05-18', validite:'2026-07-17',
+   statut:'Expiré', proba:10, lignes:[L('VTE-BB014',95),L('LOC-FIN',2)], rabaisPct:0, avancePct:0, retenuePct:0, mode:'Espèces'},
+  {id:'d5', num:'DEV-2026-00022', clientId:'c6', objet:'Purge et rechargement — CW 32 PK 4+200 à PK 7+800', date:'2026-03-09', validite:'2026-05-08',
+   statut:'Accepté', proba:100, lignes:[L('VTE-BB014',290),L('VTE-GRV',1800),L('REA-DEC',9400)], rabaisPct:0, avancePct:0, retenuePct:0, mode:'Virement',
+   affaireId:'a7', converti:'AFG-2026-00021'},
+  {id:'d6', num:'DEV-2026-00019', clientId:'c3', objet:'Fourniture d’enrobés bord d’usine — chantier Sig', date:'2026-02-24', validite:'2026-04-25',
+   statut:'Refusé', proba:0, lignes:[L('VTE-BB011',640),L('VTE-EMU',3800)], rabaisPct:0, avancePct:0, retenuePct:0, mode:'Virement',
+   motifRefus:'Prix concurrent inférieur de 6 % (Sotramo)'},
+];
+
+/* ---------- Factures, acomptes, avoirs, situations (M4) ---------- */
+const FACTURES = [
+  {id:'f1', num:'FA-2026-00042', type:'FA', clientId:'c1', affaireId:'a1', date:'2026-07-28', echeance:'2026-09-26',
+   statut:'Envoyée', mode:'Chèque', rabaisPct:1.5, avancePct:10, retenuePct:5,
+   objet:'Situation n° 5 — travaux du mois de juillet 2026',
+   lignes:[L('VTE-BB014',620,2), L('VTE-EMU',2800), L('LOC-FIN',4), L('REA-BT2',240)]},
+
+  {id:'f2', num:null, type:'FA', clientId:'c5', affaireId:'a4', date:'2026-08-06', echeance:'2026-10-05',
+   statut:'Brouillon', mode:'Virement', rabaisPct:0, avancePct:10, retenuePct:5,
+   objet:'Situation n° 2 — travaux du mois de juillet 2026',
+   lignes:[L('VTE-BB011',380), L('LOC-CYL',6), L('REA-BOR',520), L('REA-REG',18)]},
+
+  {id:'f3', num:'FA-2026-00041', type:'FA', clientId:'c3', affaireId:'a3', date:'2026-07-15', echeance:'2026-08-29',
+   statut:'Payée', mode:'Virement', rabaisPct:0, avancePct:0, retenuePct:5,
+   objet:'Décompte général et définitif — voirie ZI Hassi Ameur',
+   lignes:[L('VTE-BB014',310), L('VTE-GB020',285), L('LOC-FIN',3)]},
+
+  {id:'f4', num:'FA-2026-00036', type:'FA', clientId:'c2', affaireId:'a2', date:'2026-05-22', echeance:'2026-07-21',
+   statut:'Envoyée', mode:'Virement', rabaisPct:0, avancePct:0, retenuePct:5,
+   objet:'Situation n° 7 — VRD lotissement Es Sénia',
+   lignes:[L('VTE-GRV',3100), L('REA-BOR',2250), L('REA-REG',46), L('LOC-CAM',14)]},
+
+  {id:'f5', num:'AC-2026-00004', type:'AC', clientId:'c5', affaireId:'a4', date:'2026-05-28', echeance:'2026-07-27',
+   statut:'Payée', mode:'Virement', rabaisPct:0, avancePct:0, retenuePct:0,
+   objet:'Avance forfaitaire 10 % — marché M/EPA/2026/009',
+   lignes:[{code:'AC-FORF', des:'Avance forfaitaire 10 % du montant du marché', u:'ft', qte:1, pu:DA(12680000), remisePct:0}]},
+
+  {id:'f6', num:'AV-2026-00002', type:'AV', clientId:'c2', affaireId:'a2', date:'2026-06-30', echeance:'2026-06-30',
+   statut:'Validée', mode:'Virement', rabaisPct:0, avancePct:0, retenuePct:0,
+   objet:'Avoir sur FA-2026-00036 — quantités de regards non réalisées',
+   ref:'FA-2026-00036',
+   lignes:[L('REA-REG',-11)]},
+
+  {id:'f7', num:'FS-2026-00003', type:'FS', clientId:'c1', affaireId:'a1', date:'2026-06-25', echeance:'2026-08-24',
+   statut:'Payée', mode:'Virement', rabaisPct:0, avancePct:10, retenuePct:5,
+   objet:'Situation n° 4 — travaux du mois de juin 2026',
+   lignes:[L('VTE-BB014',540), L('VTE-GB020',610), L('LOC-FIN',5), L('REA-BT2',380)]},
+
+  {id:'f8', num:'FA-2026-00039', type:'FA', clientId:'c6', affaireId:'a7', date:'2026-06-18', echeance:'2026-08-17',
+   statut:'Envoyée', mode:'Virement', rabaisPct:0, avancePct:0, retenuePct:5,
+   objet:'Situation n° 1 — purge et rechargement CW 32',
+   lignes:[L('VTE-BB014',290), L('VTE-GRV',1800), L('LOC-CAM',9)]},
+
+  {id:'f9', num:'FA-2026-00040', type:'FA', clientId:'c4', affaireId:null, date:'2026-07-02', echeance:'2026-08-01',
+   statut:'Envoyée', mode:'Espèces', rabaisPct:0, avancePct:0, retenuePct:0,
+   objet:'Fourniture d’enrobés bord d’usine — bon de commande n° 44',
+   lignes:[L('VTE-BB011',128), L('VTE-EMU',900)]},
+
+  {id:'f10', num:'FA-2026-00043', type:'FA', clientId:'c7', affaireId:'a6', date:'2026-08-03', echeance:'2026-09-02',
+   statut:'Validée', mode:'Chèque', rabaisPct:0, avancePct:0, retenuePct:5,
+   objet:'Travaux préparatoires — plateforme parking résidence',
+   lignes:[L('VTE-GRV',980), L('LOC-CAM',6), L('REA-DEC',3400)]},
+];
+
+/* ---------- Barème du droit de timbre (§4.7.3) — paramétrable en base ---------- */
+const BAREME_TIMBRE = {
+  modesSoumis:['Espèces','Chèque','Traite'],
+  tranches:[
+    {jusqua:DA(300), taux:0},
+    {jusqua:DA(30000), taux:1},
+    {jusqua:DA(100000), taux:1.5},
+    {jusqua:null, taux:2},
+  ],
+  plancher:DA(5), plafond:DA(10000),
+};
+function timbreBareme(ttc, mode){
+  if(!BAREME_TIMBRE.modesSoumis.includes(mode)) return 0;
+  if(ttc <= 0) return 0;
+  const t = BAREME_TIMBRE.tranches.find(t => t.jusqua===null || ttc <= t.jusqua);
+  if(!t || t.taux === 0) return 0;
+  let v = r2(ttc * t.taux / 100);
+  if(v < BAREME_TIMBRE.plancher) v = BAREME_TIMBRE.plancher;
+  if(v > BAREME_TIMBRE.plafond) v = BAREME_TIMBRE.plafond;
+  return v;
+}
+const TVA_TAUX = 19;
+
+/* ---------- Pied de facture (§4.4.6) — ordre strict, arrondi ligne puis total ---------- */
+function ligneMontants(l){
+  const brut = r2(l.qte * l.pu);
+  const remise = r2(brut * (l.remisePct||0) / 100);
+  return {brut, remise, net: brut - remise};
+}
+function computePied(doc){
+  let totalBrut = 0, totalRemises = 0;
+  doc.lignes.forEach(l => { const m = ligneMontants(l); totalBrut += m.brut; totalRemises += m.remise; });
+  totalBrut = r2(totalBrut); totalRemises = r2(totalRemises);
+  const apresRemises  = totalBrut - totalRemises;
+  const rabais        = r2(apresRemises * (doc.rabaisPct||0) / 100);
+  const netCommercial = apresRemises - rabais;
+  const avance        = r2(netCommercial * (doc.avancePct||0) / 100);
+  const retenue       = r2(netCommercial * (doc.retenuePct||0) / 100);
+  const totalHT       = netCommercial - avance - retenue;
+  const tva           = r2(totalHT * TVA_TAUX / 100);
+  const ttc           = totalHT + tva;
+  const timbre        = timbreBareme(ttc, doc.mode);
+  return {totalBrut, totalRemises, rabais, netCommercial, avance, retenue, totalHT, tva, ttc, timbre, net: ttc + timbre};
+}
+const facture = id => FACTURES.find(f=>f.id===id);
+const netOf   = id => computePied(facture(id)).net;
+
+/* ---------- Bons de livraison — sous-vue de Facturation (§4.4.11, module M4) ---------- */
+const BONS_LIVRAISON = [
+  {num:'BL-2026-00214', date:'2026-08-06', clientId:'c5', affaireId:'a4', chantier:'Quai n° 4 — port d’Arzew',
+   camion:'31-4471-118', chauffeur:'M. Kaddour Belarbi', statut:'Non facturé',
+   lignes:[L('VTE-BB011',48), L('VTE-EMU',180)]},
+  {num:'BL-2026-00213', date:'2026-08-05', clientId:'c1', affaireId:'a1', chantier:'RN 11 — PK 12+400',
+   camion:'31-9902-118', chauffeur:'M. Larbi Ferhat', statut:'Non facturé',
+   lignes:[L('VTE-BB014',62)]},
+  {num:'BL-2026-00212', date:'2026-08-04', clientId:'c4', affaireId:null, chantier:'Lotissement Ennasr — SBA',
+   camion:'22-3318-116', chauffeur:'M. Omar Sahnoun', statut:'Facturé',
+   lignes:[L('VTE-BB011',24), L('VTE-EMU',140)], factureNum:'FA-2026-00040'},
+  {num:'BL-2026-00211', date:'2026-08-03', clientId:'c1', affaireId:'a1', chantier:'RN 11 — PK 11+900',
+   camion:'31-9902-118', chauffeur:'M. Larbi Ferhat', statut:'Facturé',
+   lignes:[L('VTE-BB014',58), L('VTE-EMU',210)], factureNum:'FA-2026-00042'},
+  {num:'BL-2026-00210', date:'2026-08-02', clientId:'c6', affaireId:'a7', chantier:'CW 32 — PK 5+100',
+   camion:'27-1140-127', chauffeur:'M. Hocine Merabet', statut:'Facturé',
+   lignes:[L('VTE-GRV',210)], factureNum:'FA-2026-00039'},
+  {num:'BL-2026-00209', date:'2026-07-31', clientId:'c2', affaireId:'a2', chantier:'Es Sénia — tranche 3',
+   camion:'31-6604-118', chauffeur:'M. Sid Ahmed Bounoua', statut:'Facturé partiellement',
+   lignes:[L('VTE-GRV',340), L('REA-BOR',180)], factureNum:'FA-2026-00036'},
+];
+
+/* ---------- Encaissements (M5) ---------- */
+const ENCAISSEMENTS = [
+  {num:'ENC-2026-00051', date:'2026-08-05', clientId:'c3', factureId:'f3', mode:'Virement', montant:netOf('f3'),
+   ref:'BEA — avis de crédit n° 44190', statut:'Affecté', banque:'BEA Oran Centre'},
+  {num:'ENC-2026-00050', date:'2026-07-30', clientId:'c1', factureId:'f7', mode:'Virement', montant:netOf('f7'),
+   ref:'BEA — avis de crédit n° 43877', statut:'Affecté', banque:'BEA Oran Centre'},
+  {num:'ENC-2026-00049', date:'2026-07-14', clientId:'c5', factureId:'f5', mode:'Virement', montant:netOf('f5'),
+   ref:'BNA — avis de crédit n° 20114', statut:'Affecté', banque:'BNA Arzew'},
+  {num:'ENC-2026-00048', date:'2026-07-09', clientId:'c2', factureId:'f4', mode:'Chèque', montant:DA(18000000),
+   ref:'Chèque n° 7743119 — CPA', statut:'Affecté', banque:'CPA Oran', partiel:true},
+  {num:'ENC-2026-00047', date:'2026-06-26', clientId:'c4', factureId:null, mode:'Espèces', montant:DA(1400000),
+   ref:'Versement guichet — reçu n° 0312', statut:'À affecter', banque:'Caisse'},
+];
+
+/* ---------- Cautions et garanties bancaires (M11) ---------- */
+const CAUTIONS = [
+  {num:'CAU-2026-0014', type:'Bonne exécution', affaireId:'a1', clientId:'c1', banque:'BEA — Agence Oran Centre',
+   ref:'CB/BEA/2026/0731', montant:DA(9225000), tauxPct:5, emission:'2026-02-20', expiration:'2026-08-21',
+   statut:'Active', commission:DA(184500)},
+  {num:'CAU-2026-0011', type:'Restitution d’avance', affaireId:'a4', clientId:'c5', banque:'BNA — Agence Arzew',
+   ref:'CB/BNA/2026/0219', montant:DA(12680000), tauxPct:10, emission:'2026-05-14', expiration:'2026-09-02',
+   statut:'Mainlevée demandée', commission:DA(253600)},
+  {num:'CAU-2026-0009', type:'Bonne exécution', affaireId:'a4', clientId:'c5', banque:'BNA — Agence Arzew',
+   ref:'CB/BNA/2026/0188', montant:DA(6340000), tauxPct:5, emission:'2026-05-14', expiration:'2027-11-30',
+   statut:'Active', commission:DA(126800)},
+  {num:'CAU-2025-0038', type:'Soumission', affaireId:'a2', clientId:'c2', banque:'CPA — Agence Oran Es Sénia',
+   ref:'CB/CPA/2025/1104', montant:DA(1566000), tauxPct:2, emission:'2025-09-02', expiration:'2026-01-15',
+   statut:'Mainlevée obtenue', commission:DA(31320)},
+  {num:'CAU-2025-0031', type:'Bonne exécution', affaireId:'a3', clientId:'c3', banque:'BEA — Agence Oran Centre',
+   ref:'CB/BEA/2025/0644', montant:DA(2130000), tauxPct:5, emission:'2025-08-20', expiration:'2026-08-30',
+   statut:'Mainlevée demandée', commission:DA(42600)},
+];
+
+/* ---------- Retenues de garantie (M12) — 5 % sur base HT ---------- */
+const RETENUES = [
+  {affaireId:'a1', clientId:'c1', tauxPct:5, retenu:DA(4821000), libere:DA(0),
+   receptionProv:null, receptionDef:null, echeance:'2027-10-16', statut:'Active', remplaceeParCaution:false},
+  {affaireId:'a2', clientId:'c2', tauxPct:5, retenu:DA(3170000), libere:DA(0),
+   receptionProv:'2026-11-20', receptionDef:null, echeance:'2027-11-20', statut:'Active', remplaceeParCaution:false},
+  {affaireId:'a3', clientId:'c3', tauxPct:5, retenu:DA(2130000), libere:DA(1065000),
+   receptionProv:'2026-04-22', receptionDef:'2027-04-22', echeance:'2026-08-22', statut:'Mainlevée demandée', remplaceeParCaution:false},
+  {affaireId:'a5', clientId:'c2', tauxPct:5, retenu:DA(1560000), libere:DA(1560000),
+   receptionProv:'2026-01-10', receptionDef:'2026-07-10', echeance:'2026-07-10', statut:'Libérée', remplaceeParCaution:false},
+  {affaireId:'a7', clientId:'c6', tauxPct:5, retenu:DA(446250), libere:DA(0),
+   receptionProv:null, receptionDef:null, echeance:'2027-11-02', statut:'Active', remplaceeParCaution:false},
+];
+
+/* ---------- Sous-traitance (M8) — numérotation ST par marché ---------- */
+const SOUSTRAITANTS = [
+  {id:'s1', code:'SST-0004', nom:'SARL Terrassements El Anouar', activite:'Terrassements et déblais', ville:'Oran',
+   nif:'000531077411290', rc:'31/00-0774112 B 17', tel:'041 62 08 44', contact:'M. Djamel Ouazani',
+   agrement:'Catégorie III — TP', statut:'Actif',
+   contrats:[
+     {num:'BCST-2026-00017', affaireId:'a1', objet:'Décapage et évacuation — RN 11 PK 8 à PK 14', montant:DA(14940000),
+      retenuePct:5, statut:'En cours', avancement:58,
+      st:[{num:'ST-AFG-2026-00012-003', periode:'Juillet 2026', montant:DA(3120000), statut:'Validée', date:'2026-08-02'},
+          {num:'ST-AFG-2026-00012-002', periode:'Juin 2026', montant:DA(2840000), statut:'Payée', date:'2026-07-03'},
+          {num:'ST-AFG-2026-00012-001', periode:'Mai 2026', montant:DA(2260000), statut:'Payée', date:'2026-06-04'}]}]},
+  {id:'s2', code:'SST-0007', nom:'ETP Bounoua Frères', activite:'Réseaux humides et assainissement', ville:'Es Sénia',
+   nif:'000631022019887', rc:'31/00-0220198 B 19', tel:'041 51 77 12', contact:'M. Kamel Bounoua',
+   agrement:'Catégorie II — Hydraulique', statut:'Actif',
+   contrats:[
+     {num:'BCST-2025-00009', affaireId:'a2', objet:'Pose de canalisations Ø400 et regards — Es Sénia', montant:DA(9880000),
+      retenuePct:5, statut:'En cours', avancement:84,
+      st:[{num:'ST-AFG-2026-00008-006', periode:'Juillet 2026', montant:DA(1240000), statut:'Validée', date:'2026-08-04'},
+          {num:'ST-AFG-2026-00008-005', periode:'Juin 2026', montant:DA(1610000), statut:'Payée', date:'2026-07-06'}]}]},
+  {id:'s3', code:'SST-0011', nom:'SARL Signal Ouest', activite:'Signalisation routière et équipements', ville:'Oran',
+   nif:'000731055602314', rc:'31/00-0556023 B 22', tel:'041 30 91 05', contact:'Mme Amina Terki',
+   agrement:'Catégorie I — Équipements', statut:'Actif',
+   contrats:[
+     {num:'BCST-2026-00021', affaireId:'a1', objet:'Signalisation horizontale et verticale — RN 11', montant:DA(4032000),
+      retenuePct:5, statut:'Signé', avancement:0, st:[]}]},
+  {id:'s4', code:'SST-0002', nom:'Entreprise Hadj Transport', activite:'Transport de matériaux', ville:'Arzew',
+   nif:'000431009918442', rc:'31/00-0099184 B 11', tel:'041 47 12 88', contact:'M. Brahim Hadj',
+   agrement:'—', statut:'Inactif', contrats:[]},
+];
+
+/* ---------- Bandeaux d'alerte non bloquants — disponibles sur toute vue (§5.3) ---------- */
+const BANNIERES = [
+  {id:'b-caution', vues:['v-dashboard','v-cautions','v-affaires'], ton:'orange', ico:'clockAlert',
+   titre:'Caution de bonne exécution CAU-2026-0014 — expiration dans 13 jours',
+   texte:'Affaire AFG-2026-00012 (DTP Oran), BEA Oran Centre, 9 225 000,00 DA. Demander la mainlevée ou la prorogation avant le 21/08/2026.',
+   action:{label:'Ouvrir la caution', vue:'v-cautions', fiche:['caution','CAU-2026-0014']}},
+  {id:'b-retard', vues:['v-dashboard','v-factures','v-encaissements','v-clients'], ton:'red', ico:'alertTriangle',
+   titre:'2 factures échues non réglées — 44 465 400,00 DA',
+   texte:'FA-2026-00036 (SEOR) échue depuis 18 jours et FA-2026-00040 (SARL Bâtir Ouest) depuis 7 jours. Relance de niveau 2 recommandée.',
+   action:{label:'Voir les créances', vue:'v-encaissements'}},
+  {id:'b-vigilance', vues:['v-dashboard','v-clients','v-factures'], ton:'orange', ico:'info',
+   titre:'SARL Bâtir Ouest — encours supérieur au plafond de crédit',
+   texte:'Encours 14 205 600,00 DA pour un plafond de 12 000 000,00 DA. Le client reste facturable : l’application alerte, elle ne bloque pas.',
+   action:{label:'Ouvrir la fiche client', vue:'v-clients', fiche:['client','c4']}},
+  {id:'b-decl', vues:['v-dashboard','v-affaires'], ton:'blue', ico:'info',
+   titre:'Déclaration mensuelle de juillet 2026 — saisie non clôturée',
+   texte:'3 affaires en cours sur 4 ont été déclarées. La saisie reste ouverte : aucune action n’est empêchée, la ligne manquante sera régularisée sur août.',
+   action:null},
+  {id:'b-gitra', vues:['v-parametrage'], ton:'orange', ico:'alertTriangle',
+   titre:'Modèle Excel GITRA du rapport mensuel — non fourni',
+   texte:'Le gabarit de restitution attendu par le groupe n’a pas encore été communiqué (point ouvert §16). L’export Excel du rapport mensuel reste désactivé.',
+   action:null},
+  {id:'b-bareme', vues:['v-parametrage','v-factures'], ton:'blue', ico:'info',
+   titre:'Barème du droit de timbre — valeurs de départ à confirmer',
+   texte:'Les tranches ci-dessous sont paramétrables et doivent être validées par le comptable EGTO avant la mise en production (§4.7.3, §16).',
+   action:null},
+];
+/* ============================================================
+   NAVIGATION — « Bons de livraison » n'est pas un module :
+   il vit comme onglet de Facturation (§4.4.11, module M4)
+============================================================ */
+const NAV = [
+  {section:'Pilotage', items:[
+    {id:'v-dashboard', label:'Tableau de bord', icon:'dashboard', titre:'Tableau de bord'}]},
+  {section:'Commercial', items:[
+    {id:'v-clients', label:'Clients', icon:'clients', titre:'Clients et prospects', badge:()=>CLIENTS.filter(c=>c.statut==='En vigilance').length},
+    {id:'v-devis', label:'Devis', icon:'devis', titre:'Devis', badge:()=>DEVIS.filter(d=>d.statut==='Envoyé').length},
+    {id:'v-affaires', label:'Affaires', icon:'affaires', titre:'Affaires', badge:()=>AFFAIRES.filter(a=>a.statut==='En cours').length}]},
+  {section:'Facturation', items:[
+    {id:'v-factures', label:'Facturation', icon:'factures', titre:'Facturation', badge:()=>FACTURES.filter(f=>f.statut==='Brouillon').length},
+    {id:'v-encaissements', label:'Encaissements', icon:'encaissements', titre:'Encaissements et créances', badge:()=>facturesEchues().length}]},
+  {section:'Garanties', items:[
+    {id:'v-cautions', label:'Cautions', icon:'cautions', titre:'Cautions et garanties bancaires', badge:()=>cautionsAlerte().length},
+    {id:'v-retenues', label:'Retenues de garantie', icon:'retenues', titre:'Retenues de garantie'}]},
+  {section:'Ressources', items:[
+    {id:'v-soustraitants', label:'Sous-traitants', icon:'soustraitants', titre:'Sous-traitance'},
+    {id:'v-catalogue', label:'Catalogue', icon:'catalogue', titre:'Catalogue produits et prestations'}]},
+  {section:'Système', items:[
+    {id:'v-parametrage', label:'Paramétrage', icon:'parametrage', titre:'Paramétrage'}]},
+];
+const NAV_FLAT = NAV.reduce((a,s)=>a.concat(s.items),[]);
+
+/* ---------- Dérivés ---------- */
+function client(id){ return CLIENTS.find(c=>c.id===id) || {nom:'—', sigle:'—'}; }
+function affaire(id){ return AFFAIRES.find(a=>a.id===id) || null; }
+function retardJours(f){ return f.statut==='Payée' || f.statut==='Brouillon' ? 0 : Math.max(0, -daysUntil(f.echeance)); }
+function facturesEchues(){ return FACTURES.filter(f=>f.type!=='AV' && retardJours(f) > 0); }
+function cautionsAlerte(){ return CAUTIONS.filter(c=>c.statut!=='Mainlevée obtenue' && daysUntil(c.expiration) <= 30); }
+function encaissementsDe(fid){ return ENCAISSEMENTS.filter(e=>e.factureId===fid); }
+function resteDu(f){
+  const n = computePied(f).net;
+  const paye = encaissementsDe(f.id).reduce((s,e)=>s+e.montant,0);
+  return n - paye;
+}
+function blDe(affId){ return BONS_LIVRAISON.filter(b=>b.affaireId===affId); }
+
+/* ============================================================
+   ÉTAT DE L'INTERFACE
+============================================================ */
+const state = {
+  vue:'v-dashboard',
+  q:'',
+  filtre:{},
+  onglet:{},                 /* onglet actif par fiche */
+  fiche:null,                /* {type, id} */
+  densite:'normal',
+  theme:'light',
+  sidebar:true,
+  bannieresFermees:new Set(),
+  settingsTab:'societe',
+};
+
+const $  = s => document.querySelector(s);
+const app = $('#app');
+
+/* ============================================================
+   BANDEAUX D'ALERTE NON BLOQUANTS — sur n'importe quelle vue
+============================================================ */
+function renderBannieres(vue){
+  const list = BANNIERES.filter(b => b.vues.includes(vue) && !state.bannieresFermees.has(b.id));
+  if(!list.length) return '';
+  return list.map(b => `
+    <div class="banner banner-${b.ton}" data-banner="${b.id}">
+      ${icon(b.ico)}
+      <div class="banner-body">
+        <b>${esc(b.titre)}</b><br>${esc(b.texte)}
+        ${b.action ? ` <a onclick="bannerAction('${b.id}')">${esc(b.action.label)} →</a>` : ''}
+      </div>
+      <button class="banner-close" onclick="fermerBanniere('${b.id}')" aria-label="Masquer l’alerte">${icon('x')}</button>
+    </div>`).join('');
+}
+function fermerBanniere(id){ state.bannieresFermees.add(id); render(); }
+function bannerAction(id){
+  const b = BANNIERES.find(x=>x.id===id); if(!b || !b.action) return;
+  if(b.action.vue && b.action.vue !== state.vue){ state.vue = b.action.vue; state.q=''; render(); }
+  if(b.action.fiche) setTimeout(()=>openFiche(b.action.fiche[0], b.action.fiche[1]), 60);
+}
+
+/* ============================================================
+   COQUILLE — sidebar, barre d'outils, rendu de vue
+============================================================ */
+function renderSidebar(){
+  const html = NAV.map(sec => `
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">${esc(sec.section)}</div>
+      ${sec.items.map(it => {
+        const n = it.badge ? it.badge() : 0;
+        return `<button class="nav-item ${state.vue===it.id?'active':''}" onclick="goto('${it.id}')" data-vue="${it.id}">
+          ${icon(it.icon)}<span>${esc(it.label)}</span>
+          ${n ? `<span class="nav-badge">${n}</span>` : ''}
+        </button>`;
+      }).join('')}
+    </div>`).join('');
+  $('#sidebarNav').innerHTML = html + `
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">MB</div>
+        <div>
+          <div class="user-name">M. Merabet</div>
+          <div class="user-sub">Poste unique — session locale</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+const SEARCH_PLACEHOLDER = {
+  'v-clients':'Rechercher un client, un NIF…', 'v-devis':'Rechercher un devis…',
+  'v-affaires':'Rechercher une affaire, un marché…', 'v-factures':'Rechercher une facture, un BL…',
+  'v-encaissements':'Rechercher un encaissement…', 'v-cautions':'Rechercher une caution…',
+  'v-retenues':'Rechercher une retenue…', 'v-soustraitants':'Rechercher un sous-traitant…',
+  'v-catalogue':'Rechercher un article…',
+};
+const NEW_LABEL = {
+  'v-clients':'Nouveau client', 'v-devis':'Nouveau devis', 'v-affaires':'Nouvelle affaire',
+  'v-factures':'Nouvelle facture', 'v-encaissements':'Nouvel encaissement',
+  'v-cautions':'Nouvelle caution', 'v-soustraitants':'Nouveau sous-traitant', 'v-catalogue':'Nouvel article',
+};
+function renderTopbar(){
+  const item = NAV_FLAT.find(i=>i.id===state.vue);
+  $('#viewTitle').textContent = item ? item.titre : '';
+  const ph = SEARCH_PLACEHOLDER[state.vue];
+  const nw = NEW_LABEL[state.vue];
+  $('#topbarActions').innerHTML = `
+    ${ph ? `<div class="search-field">${icon('search')}<input id="searchInput" type="search" placeholder="${esc(ph)}" value="${esc(state.q)}" oninput="onSearch(this.value)"><kbd class="k">⌘F</kbd></div>` : ''}
+    ${nw ? `<button class="btn btn-primary" onclick="toast('Création — écran de saisie non implémenté dans la maquette')">${icon('plus')}${esc(nw)}</button>` : ''}
+    <button class="icon-btn" onclick="toggleSidebar()" title="Masquer la barre latérale (⌘B)" aria-label="Barre latérale">${icon('sidebarToggle')}</button>
+    <button class="icon-btn" onclick="openRaccourcis()" title="Raccourcis clavier (⌘/)" aria-label="Raccourcis">${icon('keyboard')}</button>
+    <button class="icon-btn" onclick="toggleTheme()" title="Thème clair / sombre" aria-label="Thème">${icon(state.theme==='light'?'moon':'sun')}</button>`;
+}
+function onSearch(v){ state.q = v; renderContent(); }
+function goto(vue){ if(state.vue===vue) return; state.vue = vue; state.q=''; state.filtre={}; closeFiche(); render(); }
+function renderContent(){
+  const view = VIEWS[state.vue];
+  $('#viewContent').className = 'view-content' + (view.narrow ? ' narrow' : '');
+  $('#viewContent').innerHTML = renderBannieres(state.vue) + view.render();
+}
+function render(){ renderSidebar(); renderTopbar(); renderContent(); $('#contentScroll').scrollTop = 0; }
+
+/* ---------- Recherche générique ---------- */
+function match(obj, keys){
+  const q = state.q.trim().toLowerCase(); if(!q) return true;
+  return keys.some(k => String(k==null?'':k).toLowerCase().includes(q));
+}
+function chips(groupe, valeurs, courant){
+  return `<div class="chip-filters">${valeurs.map(v =>
+    `<button class="chip ${(courant||'Tous')===v?'active':''}" onclick="setFiltre('${groupe}','${v}')">${esc(v)}</button>`).join('')}</div>`;
+}
+function setFiltre(g,v){ state.filtre[g] = v; renderContent(); }
+function fTest(g, val){ const f = state.filtre[g]; return !f || f==='Tous' || f===val; }
+function vide(titre, sub){
+  return `<div class="empty-state">${icon('fileEmpty')}<div class="empty-state-title">${esc(titre)}</div><div class="empty-state-sub">${esc(sub)}</div></div>`;
+}
+function tableWrap(head, rows, foot){
+  if(!rows) return `<div class="table-wrap">${vide('Aucun résultat','Aucune ligne ne correspond à la recherche ou aux filtres actifs.')}</div>`;
+  return `<div class="table-wrap"><table class="mac-table">
+    <thead><tr>${head}</tr></thead><tbody>${rows}</tbody>${foot?`<tfoot><tr>${foot}</tr></tfoot>`:''}</table></div>`;
+}
+
+/* ============================================================
+   PANNEAU COULISSANT — pattern unique de consultation de fiche
+============================================================ */
+function openFiche(type, id){
+  const build = FICHES[type]; if(!build) return;
+  state.fiche = {type, id};
+  const key = type+':'+id;
+  const f = build(id, state.onglet[key] || null);
+  state.onglet[key] = f.ongletActif;
+  $('#detailPanel').innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${f.titre}</div>
+        <div class="detail-subtitle">${f.sousTitre}</div>
+      </div>
+      <button class="detail-close" onclick="closeFiche()" aria-label="Fermer">${icon('x')}</button>
+    </div>
+    ${f.onglets && f.onglets.length>1 ? `<div class="detail-tabs">${f.onglets.map(o=>
+      `<button class="detail-tab ${o===f.ongletActif?'active':''}" onclick="switchOnglet('${esc(o)}')">${esc(o)}</button>`).join('')}</div>` : ''}
+    <div class="detail-body">${f.corps}</div>
+    ${f.pied ? `<div class="detail-footer">${f.pied}</div>` : ''}`;
+  $('#detailPanel').classList.add('open');
+  $('#overlay').classList.add('open');
+}
+function switchOnglet(o){
+  if(!state.fiche) return;
+  state.onglet[state.fiche.type+':'+state.fiche.id] = o;
+  openFiche(state.fiche.type, state.fiche.id);
+}
+function closeFiche(){
+  state.fiche = null;
+  $('#detailPanel').classList.remove('open');
+  $('#overlay').classList.remove('open');
+}
+
+/* ============================================================
+   MODALE DE CONFIRMATION — action irréversible
+============================================================ */
+let modalAction = null;
+function openModal(o){
+  modalAction = o.onConfirm || null;
+  $('#modalBox').innerHTML = `
+    <div class="modal-icon" style="${o.ton==='red'?'background:var(--red-soft);color:var(--red)':''}">${icon(o.ico||'alertTriangle')}</div>
+    <h3>${esc(o.titre)}</h3>
+    <p>${o.texte}</p>
+    ${o.detail ? `<div class="modal-detail">${o.detail}</div>` : ''}
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">${esc(o.annuler||'Annuler')}</button>
+      <button class="btn ${o.ton==='red'?'btn-danger':'btn-primary'}" onclick="confirmModal()">${esc(o.confirmer||'Confirmer')}</button>
+    </div>`;
+  $('#modalOverlay').classList.add('open');
+}
+function closeModal(){ $('#modalOverlay').classList.remove('open'); modalAction = null; }
+function confirmModal(){ const a = modalAction; closeModal(); if(a) a(); }
+
+/* ============================================================
+   TOASTS
+============================================================ */
+function toast(msg){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = icon('checkCircle') + '<span>' + esc(msg) + '</span>';
+  $('#toastZone').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(6px)'; }, 3200);
+  setTimeout(()=>el.remove(), 3600);
+}
+
+/* ============================================================
+   PRÉFÉRENCES — densité, thème, barre latérale
+============================================================ */
+function setDensite(d){
+  state.densite = d;
+  app.classList.toggle('dense', d==='dense');
+  document.querySelectorAll('#densitySwitch button').forEach(b=>b.classList.toggle('active', b.dataset.density===d));
+}
+function toggleTheme(){
+  state.theme = state.theme==='light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  renderTopbar();
+}
+function toggleSidebar(){ state.sidebar = !state.sidebar; app.classList.toggle('sidebar-collapsed', !state.sidebar); }
+
+/* ============================================================
+   RACCOURCIS CLAVIER — conventions macOS (⌘)
+============================================================ */
+const RACCOURCIS = [
+  ['⌘1 … ⌘9','Aller à la Ne entrée de la barre latérale'],
+  ['⌘F','Placer le curseur dans le champ de recherche'],
+  ['⌘N','Créer un élément dans la vue courante'],
+  ['⌘B','Afficher ou masquer la barre latérale'],
+  ['⌘D','Basculer la densité normale / compacte'],
+  ['⌘⇧L','Basculer le thème clair / sombre'],
+  ['⌘/','Afficher cette liste'],
+  ['⎋','Fermer la fiche, la modale ou vider la recherche'],
+];
+function openRaccourcis(){
+  openModal({ico:'keyboard', titre:'Raccourcis clavier', texte:'Les combinaisons suivent les conventions macOS : la touche ⌘ remplace Ctrl.',
+    detail:`<div class="shortcut-grid">${RACCOURCIS.map(([k,l])=>`<div class="shortcut-row"><span>${esc(l)}</span><kbd>${k}</kbd></div>`).join('')}</div>`,
+    annuler:'Fermer', confirmer:'Compris'});
+}
+document.addEventListener('keydown', e => {
+  const cmd = e.metaKey || e.ctrlKey;
+  if(e.key === 'Escape'){
+    if($('#modalOverlay').classList.contains('open')) closeModal();
+    else if(state.fiche) closeFiche();
+    else if(state.q){ state.q=''; render(); }
+    return;
+  }
+  if(!cmd) return;
+  if(e.key >= '1' && e.key <= '9'){
+    const it = NAV_FLAT[parseInt(e.key,10)-1];
+    if(it){ e.preventDefault(); goto(it.id); }
+    return;
+  }
+  const k = e.key.toLowerCase();
+  if(k === 'f'){ const i = $('#searchInput'); if(i){ e.preventDefault(); i.focus(); i.select(); } }
+  else if(k === 'b'){ e.preventDefault(); toggleSidebar(); }
+  else if(k === 'd'){ e.preventDefault(); setDensite(state.densite==='dense'?'normal':'dense'); }
+  else if(k === 'l' && e.shiftKey){ e.preventDefault(); toggleTheme(); }
+  else if(k === 'n'){ e.preventDefault(); const l = NEW_LABEL[state.vue]; if(l) toast(l + ' — écran de saisie non implémenté dans la maquette'); }
+  else if(e.key === '/'){ e.preventDefault(); openRaccourcis(); }
+});
+/* ============================================================
+   VUES
+============================================================ */
+const VIEWS = {};
+
+/* ---------- Tableau de bord (M6) ---------- */
+const CA_MENSUEL = [
+  {m:'Jan', v:DA(8400000)}, {m:'Fév', v:DA(11200000)}, {m:'Mar', v:DA(9600000)}, {m:'Avr', v:DA(14800000)},
+  {m:'Mai', v:DA(12300000)}, {m:'Juin', v:DA(17900000)}, {m:'Juil', v:DA(21400000)}, {m:'Août', v:DA(6200000), partiel:true},
+];
+VIEWS['v-dashboard'] = { render(){
+  const emises   = FACTURES.filter(f=>f.statut!=='Brouillon');
+  const caHT     = emises.reduce((s,f)=>s+computePied(f).netCommercial, 0);
+  const encaisse = ENCAISSEMENTS.reduce((s,e)=>s+e.montant, 0);
+  const echues   = facturesEchues();
+  const creances = echues.reduce((s,f)=>s+resteDu(f), 0);
+  const carnet   = AFFAIRES.filter(a=>['En cours','Signé','ODS reçu'].includes(a.statut))
+                           .reduce((s,a)=>s+(a.montant-a.facture), 0);
+  const maxBar   = Math.max.apply(null, CA_MENSUEL.map(x=>x.v));
+
+  const parNature = {};
+  AFFAIRES.filter(a=>a.statut!=='Archivé').forEach(a=>{ parNature[a.typeTravaux] = (parNature[a.typeTravaux]||0) + a.montant; });
+  const totalNature = Object.values(parNature).reduce((s,v)=>s+v,0);
+  const COULEURS = ['var(--accent)','var(--purple)','var(--green)','var(--orange)'];
+  let acc = 0;
+  const segments = Object.entries(parNature).map(([k,v],i)=>{
+    const from = acc/totalNature*100; acc += v; const to = acc/totalNature*100;
+    return {k, v, pct:(v/totalNature*100), css:`${COULEURS[i%4]} ${from.toFixed(2)}% ${to.toFixed(2)}%`, col:COULEURS[i%4]};
+  });
+
+  const alertes = []
+    .concat(cautionsAlerte().map(c=>({ton:'orange', ico:'clockAlert',
+      t:`${c.num} — ${c.type} · expire dans ${daysUntil(c.expiration)} j`,
+      s:`${affaire(c.affaireId).num} · ${c.banque} · ${fmtDA(c.montant)}`, go:['caution', c.num]})))
+    .concat(echues.map(f=>({ton:'red', ico:'alertTriangle',
+      t:`${f.num} — échue depuis ${retardJours(f)} j`,
+      s:`${client(f.clientId).sigle} · reste dû ${fmtDA(resteDu(f))}`, go:['facture', f.id]})))
+    .concat(RETENUES.filter(r=>r.statut==='Mainlevée demandée').map(r=>({ton:'blue', ico:'info',
+      t:`Retenue de garantie ${affaire(r.affaireId).num} — libération demandée`,
+      s:`Solde retenu ${fmtDA(r.retenu-r.libere)} · réception définitive le ${fmtDate(r.receptionDef)}`, go:['retenue', r.affaireId]})));
+
+  return `
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Chiffre d’affaires HT facturé — 2026</div>
+      <div class="kpi-value">${fmtDAc(caHT)}</div>
+      <div class="kpi-trend trend-up">${icon('trendUp')}+18,4 %<span class="muted">vs 2025</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">Encaissé sur l’exercice</div>
+      <div class="kpi-value">${fmtDAc(encaisse)}</div>
+      <div class="kpi-trend trend-up">${icon('trendUp')}${Math.round(encaisse/caHT*100)} %<span class="muted">du facturé</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">Créances échues</div>
+      <div class="kpi-value" style="color:var(--red)">${fmtDAc(creances)}</div>
+      <div class="kpi-trend trend-down">${icon('trendDown')}${echues.length} facture${echues.length>1?'s':''}<span class="muted">en retard</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">Carnet de commandes restant</div>
+      <div class="kpi-value">${fmtDAc(carnet)}</div>
+      <div class="kpi-trend"><span class="muted">${AFFAIRES.filter(a=>a.statut==='En cours').length} affaires en cours</span></div></div>
+  </div>
+
+  <div class="grid-2 mt-14">
+    <div class="chart-card">
+      <div class="chart-title">Chiffre d’affaires HT facturé</div>
+      <div class="chart-sub">Exercice 2026 — août en cours de saisie</div>
+      <div class="bar-chart">
+        ${CA_MENSUEL.map(x=>`<div class="bar-col">
+          <div class="bar ${x.partiel?'is-muted':''}" style="height:${Math.round(x.v/maxBar*100)}%" title="${fmtDAc(x.v)}"></div>
+          <div class="bar-label">${x.m}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Carnet par nature de travaux</div>
+      <div class="chart-sub">Montants de marché, toutes affaires actives</div>
+      <div class="donut-wrap">
+        <div class="donut" style="background:conic-gradient(${segments.map(s=>s.css).join(',')})"></div>
+        <div class="donut-legend">
+          ${segments.map(s=>`<div class="legend-row">
+            <span class="legend-dot" style="background:${s.col}"></span>
+            <span class="legend-label">${esc(s.k)}</span>
+            <span class="legend-val">${s.pct.toFixed(0)} %</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-14">
+    <div class="card card-pad">
+      <div class="chart-title" style="margin-bottom:6px">Points de vigilance</div>
+      <div class="chart-sub">Signalés, jamais bloquants (§5.3)</div>
+      ${alertes.length ? alertes.map(a=>`
+        <div class="alert-row" style="cursor:pointer" onclick="openFiche('${a.go[0]}','${a.go[1]}')">
+          <div class="alert-icon" style="background:var(--${a.ton==='blue'?'accent':a.ton}-soft);color:var(--${a.ton==='blue'?'accent':a.ton})">${icon(a.ico)}</div>
+          <div><div class="alert-title">${esc(a.t)}</div><div class="alert-sub">${esc(a.s)}</div></div>
+        </div>`).join('') : vide('Aucun point de vigilance','Cautions, échéances et retenues sont à jour.')}
+    </div>
+    <div class="card card-pad">
+      <div class="chart-title" style="margin-bottom:6px">Dernières factures</div>
+      <div class="chart-sub">Toutes séries confondues</div>
+      <table class="mini-table">
+        <thead><tr><th>Document</th><th>Client</th><th class="th-num">Net à payer</th><th>État</th></tr></thead>
+        <tbody>${FACTURES.slice(0,6).map(f=>`
+          <tr onclick="openFiche('facture','${f.id}')">
+            <td class="cell-primary">${esc(f.num || 'Brouillon')}</td>
+            <td class="cell-muted">${esc(client(f.clientId).sigle)}</td>
+            <td class="cell-num">${fmtDA(computePied(f).net)}</td>
+            <td>${badge(f.statut)}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-heading">Affaires en cours</div>
+  ${tableWrap(
+    `<th>N° affaire</th><th>Intitulé</th><th>Client</th><th>Avancement</th><th class="th-num">Montant marché</th><th class="th-num">Reste à facturer</th><th>État</th>`,
+    AFFAIRES.filter(a=>a.statut==='En cours').map(a=>`
+      <tr onclick="openFiche('affaire','${a.id}')">
+        <td class="cell-primary mono-num">${esc(a.num)}</td>
+        <td>${esc(a.intitule)}</td>
+        <td class="cell-muted">${esc(client(a.clientId).sigle)}</td>
+        <td><div class="flex items-center gap-8"><div class="progress-bar"><div style="width:${a.avancement}%"></div></div><span class="mono-num text-secondary">${a.avancement} %</span></div></td>
+        <td class="cell-num">${fmtDAc(a.montant)}</td>
+        <td class="cell-num">${fmtDAc(a.montant-a.facture)}</td>
+        <td>${badge(a.statut)}</td>
+      </tr>`).join(''))}`;
+}};
+
+/* ---------- Clients (M2) ---------- */
+VIEWS['v-clients'] = { render(){
+  const secteur = state.filtre.secteur;
+  const rows = CLIENTS
+    .filter(c => fTest('secteur', c.secteur))
+    .filter(c => match(c,[c.nom,c.sigle,c.code,c.nif,c.ville,c.contact]))
+    .map(c => `
+      <tr onclick="openFiche('client','${c.id}')">
+        <td><div class="cell-icon-row"><div class="row-avatar">${initials(c.sigle)}</div>
+          <div><div class="cell-primary">${esc(c.sigle)}</div><div class="cell-muted" style="font-size:11px">${esc(c.code)}</div></div></div></td>
+        <td class="cell-muted">${esc(c.nom)}</td>
+        <td>${esc(c.secteur)}</td>
+        <td class="cell-muted">${esc(c.ville)}</td>
+        <td>${scoreBadge(c.score)}</td>
+        <td class="cell-num ${c.encours>c.plafond?'':''}" ${c.encours>c.plafond?'style="color:var(--red);font-weight:600"':''}>${fmtDAc(c.encours)}</td>
+        <td class="cell-num">${fmtDAc(c.plafond)}</td>
+        <td>${badge(c.statut)}</td>
+      </tr>`).join('');
+  return `
+    <div class="list-toolbar">
+      ${chips('secteur',['Tous','Public','Privé'], secteur)}
+      <div class="text-tertiary" style="font-size:12px">${CLIENTS.length} clients — encours total ${fmtDAc(CLIENTS.reduce((s,c)=>s+c.encours,0))}</div>
+    </div>
+    ${tableWrap(`<th>Client</th><th>Raison sociale</th><th>Secteur</th><th>Ville</th><th>Score</th><th class="th-num">Encours</th><th class="th-num">Plafond</th><th>État</th>`, rows)}`;
+}};
+
+/* ---------- Devis (M9) ---------- */
+VIEWS['v-devis'] = { render(){
+  const rows = DEVIS
+    .filter(d => fTest('statut', d.statut))
+    .filter(d => match(d,[d.num, d.objet, client(d.clientId).nom, client(d.clientId).sigle]))
+    .map(d => {
+      const p = computePied(d);
+      const exp = daysUntil(d.validite);
+      return `<tr onclick="openFiche('devis','${d.id}')">
+        <td class="cell-primary mono-num">${esc(d.num)}</td>
+        <td class="cell-muted">${fmtDate(d.date)}</td>
+        <td>${esc(client(d.clientId).sigle)}</td>
+        <td>${esc(d.objet)}</td>
+        <td class="cell-num">${fmtDA(p.netCommercial)}</td>
+        <td class="cell-muted">${fmtDate(d.validite)}${d.statut==='Envoyé' && exp<=30 ? ` <span class="badge badge-${exp<0?'red':'orange'}">${exp<0?'expiré':'J-'+exp}</span>`:''}</td>
+        <td class="cell-num">${d.proba} %</td>
+        <td>${badge(d.statut)}</td>
+      </tr>`;
+    }).join('');
+  const enCours = DEVIS.filter(d=>d.statut==='Envoyé');
+  const pondere = enCours.reduce((s,d)=>s+computePied(d).netCommercial*d.proba/100, 0);
+  const tauxOK  = Math.round(DEVIS.filter(d=>d.statut==='Accepté').length / DEVIS.filter(d=>['Accepté','Refusé','Expiré'].includes(d.statut)).length * 100);
+  return `
+    <div class="grid-3">
+      <div class="kpi-card"><div class="kpi-label">Devis en attente de réponse</div><div class="kpi-value">${enCours.length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pipeline pondéré par la probabilité</div><div class="kpi-value">${fmtDAc(pondere)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Taux de transformation</div><div class="kpi-value">${tauxOK} %</div>
+        <div class="kpi-trend"><span class="muted">2 devis convertis en affaire</span></div></div>
+    </div>
+    <div class="list-toolbar mt-16">
+      ${chips('statut',['Tous','Envoyé','Accepté','Refusé','Expiré'], state.filtre.statut)}
+    </div>
+    ${tableWrap(`<th>N° devis</th><th>Date</th><th>Client</th><th>Objet</th><th class="th-num">Montant HT</th><th>Validité</th><th class="th-num">Proba.</th><th>État</th>`, rows)}`;
+}};
+
+/* ---------- Affaires (M1) ---------- */
+VIEWS['v-affaires'] = { render(){
+  const rows = AFFAIRES
+    .filter(a => fTest('statut', a.statut))
+    .filter(a => match(a,[a.num, a.intitule, a.numMarche, client(a.clientId).nom, client(a.clientId).sigle, a.typeTravaux]))
+    .map(a => `
+      <tr onclick="openFiche('affaire','${a.id}')">
+        <td class="cell-primary mono-num">${esc(a.num)}</td>
+        <td>${esc(a.intitule)}<div class="cell-muted" style="font-size:11px">${esc(a.numMarche)} · ${esc(a.typeTravaux)}</div></td>
+        <td class="cell-muted">${esc(client(a.clientId).sigle)}</td>
+        <td>${esc(a.marche)}</td>
+        <td><div class="flex items-center gap-8"><div class="progress-bar"><div style="width:${a.avancement}%"></div></div><span class="mono-num text-secondary">${a.avancement} %</span></div></td>
+        <td class="cell-num">${fmtDAc(a.montant)}</td>
+        <td class="cell-num">${fmtDAc(a.facture)}</td>
+        <td class="cell-muted">${fmtDate(a.finPrevue)}</td>
+        <td>${badge(a.statut)}</td>
+      </tr>`).join('');
+  const total = AFFAIRES.reduce((s,a)=>s+a.montant,0);
+  return `
+    <div class="list-toolbar">
+      ${chips('statut',['Tous','En cours','Signé','Facturé','Soldé'], state.filtre.statut)}
+      <div class="text-tertiary" style="font-size:12px">${AFFAIRES.length} affaires — portefeuille ${fmtDAc(total)}</div>
+    </div>
+    ${tableWrap(`<th>N° affaire</th><th>Intitulé</th><th>Client</th><th>Marché</th><th>Avancement</th><th class="th-num">Montant</th><th class="th-num">Facturé</th><th>Fin prévue</th><th>État</th>`, rows,
+      `<td colspan="5">Total portefeuille</td><td class="cell-num">${fmtDAc(total)}</td><td class="cell-num">${fmtDAc(AFFAIRES.reduce((s,a)=>s+a.facture,0))}</td><td colspan="2"></td>`)}`;
+}};
+/* ---------- Facturation (M4) — les bons de livraison sont un onglet, pas un module ---------- */
+const TYPE_LABEL = {FA:'Facture', AC:'Acompte', AV:'Avoir', FS:'Situation', ND:'Note de débit'};
+VIEWS['v-factures'] = { render(){
+  const sous = state.filtre.sousvue || 'Factures et avoirs';
+  const head = `
+    <div class="list-toolbar">
+      ${chips('sousvue',['Factures et avoirs','Bons de livraison'], sous)}
+      ${sous==='Factures et avoirs' ? chips('statut',['Tous','Brouillon','Validée','Envoyée','Payée'], state.filtre.statut) : ''}
+    </div>`;
+
+  if(sous === 'Bons de livraison'){
+    const rows = BONS_LIVRAISON
+      .filter(b => match(b,[b.num, b.chantier, b.camion, b.chauffeur, client(b.clientId).sigle, b.factureNum]))
+      .map(b => {
+        const t = b.lignes.reduce((s,l)=>s+ligneMontants(l).net, 0);
+        return `<tr onclick="openFiche('bl','${b.num}')">
+          <td class="cell-primary mono-num">${esc(b.num)}</td>
+          <td class="cell-muted">${fmtDate(b.date)}</td>
+          <td>${esc(client(b.clientId).sigle)}</td>
+          <td>${esc(b.chantier)}</td>
+          <td class="cell-muted mono-num">${esc(b.camion)}</td>
+          <td class="cell-num">${fmtDA(t)}</td>
+          <td class="cell-muted mono-num">${esc(b.factureNum || '—')}</td>
+          <td>${badge(b.statut)}</td>
+        </tr>`;
+      }).join('');
+    return head + `
+      <div class="callout callout-blue" style="margin-bottom:14px">${icon('info')}
+        <div>Le bon de livraison n’est pas un module autonome : il appartient à la facturation (§4.4.11).
+        Un BL non facturé peut être repris tel quel dans une facture de vente ou dans une situation de travaux.</div>
+      </div>
+      ${tableWrap(`<th>N° BL</th><th>Date</th><th>Client</th><th>Chantier</th><th>Camion</th><th class="th-num">Montant HT</th><th>Facture</th><th>État</th>`, rows)}`;
+  }
+
+  const rows = FACTURES
+    .filter(f => fTest('statut', f.statut))
+    .filter(f => match(f,[f.num, f.objet, client(f.clientId).sigle, client(f.clientId).nom, (affaire(f.affaireId)||{}).num]))
+    .map(f => {
+      const p = computePied(f); const r = retardJours(f);
+      return `<tr onclick="openFiche('facture','${f.id}')">
+        <td class="cell-primary mono-num">${f.num ? esc(f.num) : '<span class="text-tertiary">— non attribué —</span>'}</td>
+        <td><span class="badge badge-${f.type==='AV'?'purple':'gray'}">${TYPE_LABEL[f.type]}</span></td>
+        <td class="cell-muted">${fmtDate(f.date)}</td>
+        <td>${esc(client(f.clientId).sigle)}</td>
+        <td class="cell-muted mono-num">${esc((affaire(f.affaireId)||{num:'—'}).num)}</td>
+        <td class="cell-muted">${f.statut==='Brouillon' ? '—' : fmtDate(f.echeance)}${r>0?` <span class="badge badge-red">+${r} j</span>`:''}</td>
+        <td class="cell-num">${fmtDA(p.net)}</td>
+        <td class="cell-num">${f.statut==='Brouillon' ? '—' : fmtDA(resteDu(f))}</td>
+        <td>${badge(f.statut)}</td>
+      </tr>`;
+    }).join('');
+  const emises = FACTURES.filter(f=>f.statut!=='Brouillon');
+  return head + tableWrap(
+    `<th>N° document</th><th>Type</th><th>Date</th><th>Client</th><th>Affaire</th><th>Échéance</th><th class="th-num">Net à payer</th><th class="th-num">Reste dû</th><th>État</th>`,
+    rows,
+    `<td colspan="6">${emises.length} documents émis</td>
+     <td class="cell-num">${fmtDA(emises.reduce((s,f)=>s+computePied(f).net,0))}</td>
+     <td class="cell-num">${fmtDA(emises.reduce((s,f)=>s+resteDu(f),0))}</td><td></td>`);
+}};
+
+/* ---------- Encaissements et créances (M5) ---------- */
+VIEWS['v-encaissements'] = { render(){
+  const rows = ENCAISSEMENTS
+    .filter(e => fTest('statut', e.statut))
+    .filter(e => match(e,[e.num, e.ref, e.banque, client(e.clientId).sigle, (facture(e.factureId)||{}).num]))
+    .map(e => `
+      <tr onclick="openFiche('encaissement','${e.num}')">
+        <td class="cell-primary mono-num">${esc(e.num)}</td>
+        <td class="cell-muted">${fmtDate(e.date)}</td>
+        <td>${esc(client(e.clientId).sigle)}</td>
+        <td class="cell-muted mono-num">${esc((facture(e.factureId)||{num:'—'}).num || 'Brouillon')}</td>
+        <td>${esc(e.mode)}</td>
+        <td class="cell-muted">${esc(e.ref)}</td>
+        <td class="cell-num">${fmtDA(e.montant)}</td>
+        <td>${badge(e.statut)}${e.partiel?' <span class="badge badge-orange">partiel</span>':''}</td>
+      </tr>`).join('');
+
+  const echues = facturesEchues();
+  const balance = [
+    {t:'Non échu', v:FACTURES.filter(f=>f.statut!=='Brouillon' && f.type!=='AV' && retardJours(f)===0 && resteDu(f)>0).reduce((s,f)=>s+resteDu(f),0), c:'var(--green)'},
+    {t:'1 à 30 jours', v:echues.filter(f=>retardJours(f)<=30).reduce((s,f)=>s+resteDu(f),0), c:'var(--orange)'},
+    {t:'31 à 60 jours', v:echues.filter(f=>retardJours(f)>30&&retardJours(f)<=60).reduce((s,f)=>s+resteDu(f),0), c:'var(--red)'},
+    {t:'Plus de 60 jours', v:echues.filter(f=>retardJours(f)>60).reduce((s,f)=>s+resteDu(f),0), c:'var(--purple)'},
+  ];
+  return `
+    <div class="grid-2">
+      <div class="card card-pad">
+        <div class="chart-title" style="margin-bottom:6px">Balance âgée des créances</div>
+        <div class="chart-sub">Reste dû par ancienneté d’échéance au 08/08/2026</div>
+        ${balance.map(b=>`<div class="alert-row" style="border-bottom:none;padding:7px 0">
+          <span class="legend-dot" style="background:${b.c};margin-top:5px"></span>
+          <div style="flex:1"><div class="alert-title">${esc(b.t)}</div></div>
+          <div class="mono-num" style="font-weight:600">${fmtDA(b.v)}</div>
+        </div>`).join('')}
+      </div>
+      <div class="card card-pad">
+        <div class="chart-title" style="margin-bottom:6px">Factures en retard de règlement</div>
+        <div class="chart-sub">Alerte visuelle — aucune action n’est bloquée (§5.3)</div>
+        <table class="mini-table">
+          <thead><tr><th>Facture</th><th>Client</th><th class="th-num">Reste dû</th><th class="th-num">Retard</th></tr></thead>
+          <tbody>${echues.map(f=>`<tr onclick="openFiche('facture','${f.id}')">
+            <td class="cell-primary">${esc(f.num)}</td>
+            <td class="cell-muted">${esc(client(f.clientId).sigle)}</td>
+            <td class="cell-num">${fmtDA(resteDu(f))}</td>
+            <td class="cell-num"><span class="badge badge-red">+${retardJours(f)} j</span></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="list-toolbar mt-16">
+      ${chips('statut',['Tous','Affecté','À affecter'], state.filtre.statut)}
+      <div class="text-tertiary" style="font-size:12px">Total encaissé ${fmtDA(ENCAISSEMENTS.reduce((s,e)=>s+e.montant,0))}</div>
+    </div>
+    ${tableWrap(`<th>N° encaissement</th><th>Date</th><th>Client</th><th>Facture</th><th>Mode</th><th>Référence</th><th class="th-num">Montant</th><th>Affectation</th>`, rows)}`;
+}};
+
+/* ---------- Cautions et garanties bancaires (M11) ---------- */
+VIEWS['v-cautions'] = { render(){
+  const rows = CAUTIONS
+    .filter(c => fTest('type', c.type))
+    .filter(c => match(c,[c.num, c.type, c.banque, c.ref, client(c.clientId).sigle, (affaire(c.affaireId)||{}).num]))
+    .map(c => {
+      const j = daysUntil(c.expiration);
+      const alerte = c.statut!=='Mainlevée obtenue' && j<=30;
+      return `<tr onclick="openFiche('caution','${c.num}')">
+        <td class="cell-primary mono-num">${esc(c.num)}</td>
+        <td>${esc(c.type)}</td>
+        <td class="cell-muted mono-num">${esc((affaire(c.affaireId)||{num:'—'}).num)}</td>
+        <td class="cell-muted">${esc(c.banque)}</td>
+        <td class="cell-num">${fmtDA(c.montant)}</td>
+        <td class="cell-muted">${fmtDate(c.emission)}</td>
+        <td class="cell-muted">${fmtDate(c.expiration)}${alerte?` <span class="badge badge-${j<=15?'red':'orange'}">${j<0?'échue':'J-'+j}</span>`:''}</td>
+        <td>${badge(c.statut)}</td>
+      </tr>`;
+    }).join('');
+  const enCours = CAUTIONS.filter(c=>c.statut!=='Mainlevée obtenue');
+  return `
+    <div class="grid-3">
+      <div class="kpi-card"><div class="kpi-label">Engagements bancaires en cours</div><div class="kpi-value">${fmtDAc(enCours.reduce((s,c)=>s+c.montant,0))}</div>
+        <div class="kpi-trend"><span class="muted">${enCours.length} cautions actives</span></div></div>
+      <div class="kpi-card"><div class="kpi-label">Commissions bancaires de l’exercice</div><div class="kpi-value">${fmtDAc(CAUTIONS.reduce((s,c)=>s+c.commission,0))}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Échéances sous 30 jours</div><div class="kpi-value" style="color:var(--orange)">${cautionsAlerte().length}</div>
+        <div class="kpi-trend"><span class="muted">alertes J-30 puis J-15 (§4.11.3)</span></div></div>
+    </div>
+    <div class="list-toolbar mt-16">
+      ${chips('type',['Tous','Soumission','Restitution d’avance','Bonne exécution'], state.filtre.type)}
+    </div>
+    ${tableWrap(`<th>N° caution</th><th>Type</th><th>Affaire</th><th>Banque</th><th class="th-num">Montant</th><th>Émission</th><th>Expiration</th><th>État</th>`, rows)}`;
+}};
+
+/* ---------- Retenues de garantie (M12) ---------- */
+VIEWS['v-retenues'] = { render(){
+  const rows = RETENUES
+    .filter(r => fTest('statut', r.statut))
+    .filter(r => match(r,[(affaire(r.affaireId)||{}).num, (affaire(r.affaireId)||{}).intitule, client(r.clientId).sigle]))
+    .map(r => {
+      const a = affaire(r.affaireId); const solde = r.retenu - r.libere;
+      const j = daysUntil(r.echeance);
+      return `<tr onclick="openFiche('retenue','${r.affaireId}')">
+        <td class="cell-primary mono-num">${esc(a.num)}</td>
+        <td>${esc(a.intitule)}</td>
+        <td class="cell-muted">${esc(client(r.clientId).sigle)}</td>
+        <td class="cell-num">${r.tauxPct} %</td>
+        <td class="cell-num">${fmtDA(r.retenu)}</td>
+        <td class="cell-num">${fmtDA(r.libere)}</td>
+        <td class="cell-num" style="font-weight:600">${fmtDA(solde)}</td>
+        <td class="cell-muted">${fmtDate(r.echeance)}${solde>0 && j<=60 ? ` <span class="badge badge-${j<0?'green':'orange'}">${j<0?'libérable':'J-'+j}</span>`:''}</td>
+        <td>${badge(r.statut)}</td>
+      </tr>`;
+    }).join('');
+  const retenu = RETENUES.reduce((s,r)=>s+r.retenu,0), libere = RETENUES.reduce((s,r)=>s+r.libere,0);
+  return `
+    <div class="callout callout-blue" style="margin-bottom:14px">${icon('info')}
+      <div>La retenue de garantie est prélevée au taux de <b>5 % sur la base HT</b> de chaque facture, marchés publics comme privés,
+      avec surcharge possible au niveau de l’affaire. Elle se libère à la réception provisoire puis définitive (§4.12.2),
+      ou se remplace par une caution de retenue de garantie.</div>
+    </div>
+    <div class="grid-3">
+      <div class="kpi-card"><div class="kpi-label">Retenues prélevées</div><div class="kpi-value">${fmtDAc(retenu)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Déjà libérées</div><div class="kpi-value" style="color:var(--green)">${fmtDAc(libere)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Solde immobilisé</div><div class="kpi-value">${fmtDAc(retenu-libere)}</div></div>
+    </div>
+    <div class="list-toolbar mt-16">
+      ${chips('statut',['Tous','Active','Mainlevée demandée','Libérée'], state.filtre.statut)}
+    </div>
+    ${tableWrap(`<th>Affaire</th><th>Intitulé</th><th>Client</th><th class="th-num">Taux</th><th class="th-num">Retenu</th><th class="th-num">Libéré</th><th class="th-num">Solde</th><th>Échéance</th><th>État</th>`, rows,
+      `<td colspan="4">Total</td><td class="cell-num">${fmtDA(retenu)}</td><td class="cell-num">${fmtDA(libere)}</td><td class="cell-num">${fmtDA(retenu-libere)}</td><td colspan="2"></td>`)}`;
+}};
+
+/* ---------- Sous-traitance (M8) ---------- */
+VIEWS['v-soustraitants'] = { render(){
+  const rows = SOUSTRAITANTS
+    .filter(s => fTest('statut', s.statut))
+    .filter(s => match(s,[s.nom, s.code, s.activite, s.ville, s.contact, s.nif]))
+    .map(s => {
+      const engage = s.contrats.reduce((t,c)=>t+c.montant, 0);
+      const paye   = s.contrats.reduce((t,c)=>t+c.st.filter(x=>x.statut==='Payée').reduce((u,x)=>u+x.montant,0), 0);
+      return `<tr onclick="openFiche('soustraitant','${s.id}')">
+        <td><div class="cell-icon-row"><div class="row-avatar">${initials(s.nom)}</div>
+          <div><div class="cell-primary">${esc(s.nom)}</div><div class="cell-muted" style="font-size:11px">${esc(s.code)}</div></div></div></td>
+        <td class="cell-muted">${esc(s.activite)}</td>
+        <td class="cell-muted">${esc(s.ville)}</td>
+        <td class="cell-num">${s.contrats.length}</td>
+        <td class="cell-num">${fmtDAc(engage)}</td>
+        <td class="cell-num">${fmtDAc(paye)}</td>
+        <td>${badge(s.statut)}</td>
+      </tr>`;
+    }).join('');
+  const stValidees = SOUSTRAITANTS.flatMap(s=>s.contrats).flatMap(c=>c.st).filter(x=>x.statut==='Validée');
+  return `
+    <div class="callout callout-blue" style="margin-bottom:14px">${icon('info')}
+      <div>Les situations de travaux sous-traitées sont numérotées <b>par marché</b> et non par exercice :
+      <span class="mono-num">ST-&lt;n° affaire&gt;-NNN</span>, par exemple <span class="mono-num">ST-AFG-2026-00012-003</span>.
+      Une ST validée ne se modifie pas — la régularisation passe par des lignes négatives sur la période suivante.</div>
+    </div>
+    <div class="list-toolbar">
+      ${chips('statut',['Tous','Actif','Inactif'], state.filtre.statut)}
+      <div class="text-tertiary" style="font-size:12px">${stValidees.length} situation${stValidees.length>1?'s':''} validée${stValidees.length>1?'s':''} en attente de règlement</div>
+    </div>
+    ${tableWrap(`<th>Sous-traitant</th><th>Activité</th><th>Ville</th><th class="th-num">Contrats</th><th class="th-num">Engagé</th><th class="th-num">Payé</th><th>État</th>`, rows)}`;
+}};
+
+/* ---------- Catalogue (M3) ---------- */
+VIEWS['v-catalogue'] = { render(){
+  const rows = PRODUITS
+    .filter(p => fTest('fam', p.fam))
+    .filter(p => match(p,[p.code, p.des, p.fam, p.sfam, p.classe]))
+    .map(p => `
+      <tr onclick="openFiche('produit','${p.code}')">
+        <td class="cell-primary mono-num">${esc(p.code)}</td>
+        <td>${esc(p.des)}</td>
+        <td class="cell-muted">${esc(p.fam)}</td>
+        <td class="cell-muted">${esc(p.sfam)}</td>
+        <td>${famBadge(p.classe)}</td>
+        <td class="cell-muted">${esc(p.u)}</td>
+        <td class="cell-num">${fmtDA(p.pu)}</td>
+        <td class="cell-num">${TVA_TAUX} %</td>
+        <td>${p.actif ? badge('Actif') : badge('Inactif')}</td>
+      </tr>`).join('');
+  const parClasse = {NOIR:0, BLANC:0, AUTRE:0};
+  PRODUITS.forEach(p=>parClasse[p.classe]++);
+  return `
+    <div class="callout callout-orange" style="margin-bottom:14px">${icon('alertTriangle')}
+      <div>La classification <b>Noir / Blanc / Autre</b> de la sous-famille est recopiée en <b>instantané</b> sur chaque ligne de déclaration
+      mensuelle au moment de la saisie. Modifier une sous-famille ici ne réécrit jamais l’historique déjà déclaré.</div>
+    </div>
+    <div class="list-toolbar">
+      ${chips('fam',['Tous','Vente','Location','Réalisation'], state.filtre.fam)}
+      <div class="text-tertiary" style="font-size:12px">${PRODUITS.length} articles — ${parClasse.BLANC} blanc · ${parClasse.NOIR} noir · ${parClasse.AUTRE} autre</div>
+    </div>
+    ${tableWrap(`<th>Code</th><th>Désignation</th><th>Famille</th><th>Sous-famille</th><th>Classe</th><th>Unité</th><th class="th-num">Prix unitaire HT</th><th class="th-num">TVA</th><th>État</th>`, rows)}`;
+}};
+/* ---------- Paramétrage (M7) ---------- */
+const SETTINGS_TABS = [
+  ['societe','Société'], ['fiscal','Facturation et fiscalité'], ['numero','Numérotation'],
+  ['securite','Sécurité et sauvegarde'], ['apparence','Apparence'],
+];
+const SWITCHES = {
+  timbreAuto:true, alerteCaution:true, alertePlafond:true, relanceAuto:false,
+  sauvegardeAuto:true, zipChiffre:true, journal:true, animations:true,
+};
+function setSettingsTab(t){ state.settingsTab = t; renderContent(); }
+function toggleSwitch(k, el){ SWITCHES[k] = !SWITCHES[k]; el.classList.toggle('on', SWITCHES[k]); toast('Préférence enregistrée'); }
+function sw(k){ return `<div class="switch ${SWITCHES[k]?'on':''}" role="switch" aria-checked="${SWITCHES[k]}" tabindex="0" onclick="toggleSwitch('${k}',this)"></div>`; }
+function srow(label, sub, right){
+  return `<div class="settings-row"><div><div class="settings-row-label">${label}</div>${sub?`<div class="settings-row-sub">${sub}</div>`:''}</div><div>${right}</div></div>`;
+}
+
+/* Validation en ligne — NIF algérien : 15 chiffres exactement */
+function validerNIF(el){
+  const row = el.closest('.form-row');
+  const v = el.value.replace(/\s/g,'');
+  row.classList.remove('invalid','valid');
+  const msg = row.querySelector('.field-error span');
+  if(v === '') return;
+  if(!/^\d+$/.test(v)){ msg.textContent = 'Le NIF ne doit contenir que des chiffres — caractère non numérique détecté.'; row.classList.add('invalid'); return; }
+  if(v.length !== 15){ msg.textContent = `Le NIF doit comporter exactement 15 chiffres — ${v.length} saisi${v.length>1?'s':''}.`; row.classList.add('invalid'); return; }
+  row.classList.add('valid');
+}
+function validerNIS(el){
+  const row = el.closest('.form-row'); const v = el.value.replace(/\s/g,'');
+  row.classList.remove('invalid','valid');
+  if(v === '') return;
+  if(!/^\d{13}$/.test(v)){ row.querySelector('.field-error span').textContent = `Le NIS doit comporter exactement 13 chiffres — ${v.length} saisi${v.length>1?'s':''}.`; row.classList.add('invalid'); return; }
+  row.classList.add('valid');
+}
+const errIco = `<div class="field-error">${icon('alertTriangle')}<span></span></div>`;
+
+VIEWS['v-parametrage'] = { narrow:true, render(){
+  const t = state.settingsTab;
+  let corps = '';
+
+  if(t === 'societe'){
+    corps = `
+      <div class="settings-group-title">Identification de la société</div>
+      <div class="settings-group-sub">Ces informations alimentent l’en-tête et les mentions légales de tous les documents imprimés (§5.2).</div>
+      <div class="form-2col">
+        <div class="form-row"><label for="s-nom">Raison sociale</label>
+          <input class="form-control" id="s-nom" value="${esc(SOCIETE.nom)}"></div>
+        <div class="form-row"><label for="s-forme">Forme juridique et capital</label>
+          <input class="form-control" id="s-forme" value="${esc(SOCIETE.forme)}"></div>
+      </div>
+      <div class="form-row"><label for="s-adr">Adresse du siège</label>
+        <input class="form-control" id="s-adr" value="${esc(SOCIETE.adresse)}"></div>
+      <div class="form-2col">
+        <div class="form-row"><label for="s-nif">NIF — numéro d’identification fiscale</label>
+          <input class="form-control mono" id="s-nif" value="${esc(SOCIETE.nif)}" maxlength="15" oninput="validerNIF(this)">
+          <div class="form-hint">15 chiffres, sans espace ni séparateur. Longueur à confirmer auprès du comptable (§16).</div>
+          ${errIco}</div>
+        <div class="form-row"><label for="s-nis">NIS — numéro d’identification statistique</label>
+          <input class="form-control mono" id="s-nis" value="${esc(SOCIETE.nis)}" maxlength="13" oninput="validerNIS(this)">
+          <div class="form-hint">13 chiffres, sans espace ni séparateur.</div>
+          ${errIco}</div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><label for="s-rc">Registre de commerce</label>
+          <input class="form-control mono" id="s-rc" value="${esc(SOCIETE.rc)}"></div>
+        <div class="form-row"><label for="s-ai">Article d’imposition</label>
+          <input class="form-control mono" id="s-ai" value="${esc(SOCIETE.ai)}"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><label for="s-bq">Domiciliation bancaire</label>
+          <input class="form-control" id="s-bq" value="${esc(SOCIETE.banque)}"></div>
+        <div class="form-row"><label for="s-rib">RIB</label>
+          <input class="form-control mono" id="s-rib" value="${esc(SOCIETE.rib)}"></div>
+      </div>
+      <div class="callout callout-blue">${icon('info')}
+        <div><b>Saisissez un NIF de longueur incorrecte</b> pour voir la validation en ligne : le champ passe en rouge et affiche le motif
+        sous le libellé, sans jamais empêcher la poursuite de la saisie.</div>
+      </div>`;
+  }
+
+  if(t === 'fiscal'){
+    corps = `
+      <div class="settings-group-title">Taxes et pied de facture</div>
+      <div class="settings-group-sub">Le taux de TVA est unique et verrouillé au niveau de l’article. Le multi-taux est hors périmètre.</div>
+      ${srow('Taux de TVA applicable','Taux unique appliqué à l’ensemble du catalogue', `<span class="badge badge-blue">${TVA_TAUX} %</span>`)}
+      ${srow('Retenue de garantie par défaut','Base HT, marchés publics comme privés — surchargeable par affaire','<span class="badge badge-blue">5 %</span>')}
+      ${srow('Droit de timbre calculé automatiquement','Uniquement pour les règlements en espèces, par chèque ou par traite', sw('timbreAuto'))}
+
+      <div class="section-heading">Barème du droit de timbre (§4.7.3)</div>
+      <div class="table-wrap">
+        <table class="mac-table">
+          <thead><tr><th>Tranche de montant TTC</th><th class="th-num">Taux</th><th>Observation</th></tr></thead>
+          <tbody>
+            <tr><td>Jusqu’à 300,00 DA</td><td class="cell-num">—</td><td class="cell-muted">Exonéré</td></tr>
+            <tr><td>De 300,01 à 30 000,00 DA</td><td class="cell-num">1 %</td><td class="cell-muted">Minimum de perception 5,00 DA</td></tr>
+            <tr><td>De 30 000,01 à 100 000,00 DA</td><td class="cell-num">1,5 %</td><td class="cell-muted">—</td></tr>
+            <tr><td>Au-delà de 100 000,00 DA</td><td class="cell-num">2 %</td><td class="cell-muted">Plafonné à 10 000,00 DA</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="3">Modes de règlement soumis : espèces, chèque, traite. Le virement et le LCN ne supportent jamais le droit de timbre.</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="section-heading">Alertes commerciales</div>
+      ${srow('Alerter à l’approche de l’expiration d’une caution','Premier signalement à J-30, second à J-15', sw('alerteCaution'))}
+      ${srow('Alerter au dépassement du plafond de crédit client','Badge visuel sur la fiche et la liste — la facturation reste possible', sw('alertePlafond'))}
+      ${srow('Proposer une relance automatique des impayés','Génère un brouillon de courrier, jamais un envoi direct', sw('relanceAuto'))}`;
+  }
+
+  if(t === 'numero'){
+    const series = [
+      ['AFG-YYYY-NNNNN','Affaires','AFG-2026-00021'],['DEV-YYYY-NNNNN','Devis','DEV-2026-00031'],
+      ['FA-YYYY-NNNNN','Factures de vente','FA-2026-00043'],['FS-YYYY-NNNNN','Situations de travaux','FS-2026-00003'],
+      ['AC-YYYY-NNNNN','Acomptes','AC-2026-00004'],['AV-YYYY-NNNNN','Avoirs','AV-2026-00002'],
+      ['ND-YYYY-NNNNN','Notes de débit','—'],['BL-YYYY-NNNNN','Bons de livraison','BL-2026-00214'],
+      ['CLI-YYYY-NNNN','Clients','CLI-2026-0036'],['ENC-YYYY-NNNNN','Encaissements','ENC-2026-00051'],
+      ['AVT-YYYY-NNNNN','Avenants','—'],['BCST-YYYY-NNNNN','Contrats de sous-traitance','BCST-2026-00021'],
+      ['ST-&lt;n° affaire&gt;-NNN','Situations sous-traitées','ST-AFG-2026-00012-003'],
+      ['DCS-YYYY-NNNNN','Registre des consultations','—'],['PAY-SST-YYYY-NNNNN','Paiements sous-traitants','—'],
+    ];
+    corps = `
+      <div class="settings-group-title">Séries de numérotation</div>
+      <div class="settings-group-sub">Un numéro n’est attribué qu’à la validation du document, jamais au brouillon, et devient définitif.</div>
+      <div class="callout callout-orange" style="margin-bottom:16px">${icon('lock')}
+        <div>Supprimer un brouillon ne consomme aucun numéro : la séquence des documents validés reste continue.
+        Les compteurs ci-dessous ne sont pas modifiables une fois l’exercice ouvert.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="mac-table">
+          <thead><tr><th>Format</th><th>Série</th><th>Dernier numéro attribué</th></tr></thead>
+          <tbody>${series.map(([f,l,d])=>`<tr><td class="cell-primary mono-num">${f}</td><td>${esc(l)}</td><td class="cell-muted mono-num">${esc(d)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <div class="section-heading">Exercice comptable</div>
+      ${srow('Exercice courant','Du 01/01/2026 au 31/12/2026','<span class="badge badge-green">Ouvert</span>')}
+      ${srow('Exercice 2025','Clôturé le 14/02/2026 — écritures figées','<span class="badge badge-gray">Clôturé</span>')}`;
+  }
+
+  if(t === 'securite'){
+    corps = `
+      <div class="settings-group-title">Chiffrement et sauvegarde</div>
+      <div class="settings-group-sub">Poste unique, utilisateur unique, fonctionnement entièrement hors ligne.</div>
+      <div class="callout callout-green" style="margin-bottom:16px">${icon('shieldCheck')}
+        <div>La base est chiffrée par une clé de données aléatoire de 256 bits, elle-même enveloppée deux fois :
+        par votre mot de passe et par la <b>phrase de récupération</b> conservée hors du poste par la direction.
+        Changer de mot de passe rechiffre l’enveloppe seule, jamais la base.</div>
+      </div>
+      ${srow('Base de données','SQLCipher · journalisation WAL · Documents/EGTO/egto.db','<span class="badge badge-green">Chiffrée</span>')}
+      ${srow('Dernière sauvegarde','08/08/2026 à 03:00 — 41,8 Mo, archive vérifiée','<span class="badge badge-green">Conforme</span>')}
+      ${srow('Sauvegarde automatique quotidienne','Tous les jours à 03:00, rotation sur 30 jours', sw('sauvegardeAuto'))}
+      ${srow('Chiffrer les exports ZIP par mot de passe','Mot de passe d’archive à confirmer par la direction (§16)', sw('zipChiffre'))}
+      ${srow('Journal d’audit','Alimenté par déclencheurs SQLite, en lecture seule, rétention illimitée', sw('journal'))}
+      <div class="section-heading">Actions</div>
+      <div class="flex gap-8" style="flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="toast('Sauvegarde manuelle lancée — archive écrite dans Documents/EGTO/sauvegardes')">${icon('download')}Sauvegarder maintenant</button>
+        <button class="btn btn-secondary" onclick="toast('Sélection d’une archive — restauration non implémentée dans la maquette')">${icon('upload')}Restaurer une sauvegarde</button>
+        <button class="btn btn-danger" onclick="confirmerPhrase()">${icon('lock')}Régénérer la phrase de récupération</button>
+      </div>`;
+  }
+
+  if(t === 'apparence'){
+    corps = `
+      <div class="settings-group-title">Apparence et confort de lecture</div>
+      <div class="settings-group-sub">Les préférences d’affichage restent locales au poste.</div>
+      ${srow('Thème', 'Clair, sombre — le thème sombre reprend la palette système',
+        `<div class="segmented"><button class="${state.theme==='light'?'active':''}" onclick="if(state.theme!=='light')toggleTheme()">Clair</button><button class="${state.theme==='dark'?'active':''}" onclick="if(state.theme!=='dark')toggleTheme()">Sombre</button></div>`)}
+      ${srow('Densité des tableaux','Compacte pour afficher davantage de lignes — également accessible par ⌘D et depuis la barre d’état',
+        `<div class="segmented"><button class="${state.densite==='normal'?'active':''}" onclick="setDensite('normal');renderContent()">Normale</button><button class="${state.densite==='dense'?'active':''}" onclick="setDensite('dense');renderContent()">Compacte</button></div>`)}
+      ${srow('Animations d’interface','Transitions des panneaux et des feuilles', sw('animations'))}
+      ${srow('Format des dates','Format algérien, non modifiable','<span class="badge badge-gray">JJ/MM/AAAA</span>')}
+      ${srow('Devise et séparateurs','Dinar algérien, séparateur de milliers par espace fine','<span class="badge badge-gray">1 234 567,89 DA</span>')}
+      <div class="section-heading">Raccourcis clavier</div>
+      <div class="shortcut-grid">${RACCOURCIS.map(([k,l])=>`<div class="shortcut-row"><span>${esc(l)}</span><kbd>${k}</kbd></div>`).join('')}</div>`;
+  }
+
+  return `<div class="settings-layout">
+    <div class="settings-nav">
+      ${SETTINGS_TABS.map(([id,l])=>`<button class="${t===id?'active':''}" onclick="setSettingsTab('${id}')">${esc(l)}</button>`).join('')}
+    </div>
+    <div>${corps}</div>
+  </div>`;
+}};
+
+function confirmerPhrase(){
+  openModal({ton:'red', ico:'alertTriangle', titre:'Régénérer la phrase de récupération ?',
+    texte:'L’ancienne phrase cessera immédiatement de fonctionner. Sans la nouvelle phrase, <b>aucun accès de secours à la base n’est possible</b> — pas même par l’utilitaire <span class="mono-num">egto-admin-reset</span>.',
+    detail:`<div class="callout callout-orange">${icon('lock')}<div>La nouvelle phrase de 24 mots ne sera affichée <b>qu’une seule fois</b>. Transcrivez-la et remettez-la à la direction avant de fermer la fenêtre.</div></div>`,
+    annuler:'Annuler', confirmer:'Régénérer la phrase',
+    onConfirm:()=>toast('Nouvelle phrase de récupération générée — enveloppe de recours réécrite')});
+}
+/* ============================================================
+   FICHES — panneau coulissant unique pour tous les modules
+============================================================ */
+function fields(items){
+  return `<div class="field-grid">${items.map(([l,v,span])=>
+    `<div class="field ${span?'span-2':''}"><span class="field-label">${l}</span><span class="field-value">${v==null||v===''?'—':v}</span></div>`).join('')}</div>`;
+}
+function sousTitre(txt){ return `<div class="settings-group-title" style="font-size:12.5px;margin:22px 0 10px">${esc(txt)}</div>`; }
+
+/* Tableau des lignes d'un document de vente */
+function lignesHTML(doc){
+  const rows = doc.lignes.map(l => {
+    const m = ligneMontants(l);
+    return `<tr>
+      <td class="cell-primary mono-num">${esc(l.code)}</td>
+      <td>${esc(l.des)}</td>
+      <td class="cell-muted">${esc(l.u)}</td>
+      <td class="cell-num">${groupInt(Math.abs(l.qte))}${l.qte<0?' −':''}</td>
+      <td class="cell-num">${fmtDA(l.pu)}</td>
+      <td class="cell-num">${l.remisePct ? l.remisePct+' %' : '—'}</td>
+      <td class="cell-num" style="font-weight:600">${fmtDA(m.net)}</td>
+    </tr>`;
+  }).join('');
+  const p = computePied(doc);
+  return `<table class="mini-table">
+    <thead><tr><th>Code</th><th>Désignation</th><th>U.</th><th class="th-num">Quantité</th><th class="th-num">P.U. HT</th><th class="th-num">Remise</th><th class="th-num">Montant HT</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="6" style="font-weight:600;padding-top:9px">Total HT des lignes, remises déduites</td>
+      <td class="cell-num" style="font-weight:700;padding-top:9px">${fmtDA(p.totalBrut - p.totalRemises)}</td></tr></tfoot>
+  </table>`;
+}
+
+/* Pied de facture — ordre strict du §4.4.6, remise ligne et rabais global distincts */
+function piedHTML(doc){
+  const p = computePied(doc);
+  const soumis = BAREME_TIMBRE.modesSoumis.includes(doc.mode);
+  const plafonne = soumis && p.timbre === BAREME_TIMBRE.plafond;
+  return `<div class="pied" style="max-width:420px;margin-left:auto">
+    <div class="pl"><span>Total HT des lignes</span><span>${fmtDA(p.totalBrut)}</span></div>
+    <div class="pl"><span>− Remises sur lignes <span class="hint">accordées ligne par ligne</span></span><span>${fmtDA(p.totalRemises)}</span></div>
+    <div class="pl"><span>− Rabais global ${doc.rabaisPct?`<span class="hint">${String(doc.rabaisPct).replace('.',',')} %</span>`:''}</span><span>${fmtDA(p.rabais)}</span></div>
+    <div class="pl sub"><span>= Net commercial HT</span><span>${fmtDA(p.netCommercial)}</span></div>
+    <div class="pl"><span>− Remboursement d’avance ${doc.avancePct?`<span class="hint">prorata ${doc.avancePct} %</span>`:''}</span><span>${fmtDA(p.avance)}</span></div>
+    <div class="pl"><span>− Retenue de garantie ${doc.retenuePct?`<span class="hint">${doc.retenuePct} % sur base HT</span>`:''}</span><span>${fmtDA(p.retenue)}</span></div>
+    <div class="pl sub"><span>= Total HT facture</span><span>${fmtDA(p.totalHT)}</span></div>
+    <div class="pl"><span>+ TVA <span class="hint">${TVA_TAUX} %</span></span><span>${fmtDA(p.tva)}</span></div>
+    <div class="pl sub"><span>= Total TTC</span><span>${fmtDA(p.ttc)}</span></div>
+    <div class="pl"><span>+ Droit de timbre <span class="hint">${soumis ? esc(doc.mode.toLowerCase()) + (plafonne?' — plafond atteint':'') : 'non applicable au '+esc(doc.mode.toLowerCase())}</span></span><span>${fmtDA(p.timbre)}</span></div>
+    <div class="pnet"><b>Net à payer</b><strong>${fmtDA(p.net)}</strong></div>
+    <div class="pnote">Montants arrondis à deux décimales ligne par ligne puis au total du document.
+    ${soumis ? 'Droit de timbre liquidé selon le barème paramétrable §4.7.3.' : 'Le virement et le LCN ne supportent jamais le droit de timbre.'}</div>
+  </div>`;
+}
+
+function validerFacture(id){
+  const f = facture(id);
+  const suivants = FACTURES.filter(x=>x.num && x.type==='FA').map(x=>parseInt(x.num.slice(-5),10));
+  const num = 'FA-2026-' + String(Math.max.apply(null, suivants) + 1).padStart(5,'0');
+  const p = computePied(f);
+  openModal({
+    ton:'orange', ico:'lock', titre:'Valider définitivement cette facture ?',
+    texte:'La validation attribue le numéro de série et <b>le verrouille définitivement</b>. Le document ne pourra plus être modifié ni supprimé : toute correction passera par un avoir.',
+    detail:`<div class="callout callout-blue">${icon('info')}<div>
+        Numéro qui sera attribué : <b class="mono-num">${num}</b><br>
+        Client : ${esc(client(f.clientId).sigle)} · Net à payer : <b class="mono-num">${fmtDA(p.net)}</b><br>
+        Tant que la facture reste au brouillon, aucun numéro n’est consommé.
+      </div></div>`,
+    annuler:'Rester en brouillon', confirmer:'Valider et attribuer le numéro',
+    onConfirm:()=>{
+      f.num = num; f.statut = 'Validée';
+      render(); openFiche('facture', id);
+      toast('Facture ' + num + ' validée — numéro attribué définitivement');
+    }});
+}
+
+const FICHES = {};
+
+/* ---------- Fiche client ---------- */
+FICHES.client = (id, onglet) => {
+  const c = client(id);
+  const onglets = ['Identité','Encours et règlements','Documents'];
+  const act = onglets.includes(onglet) ? onglet : onglets[0];
+  const fs = FACTURES.filter(f=>f.clientId===id);
+  const as = AFFAIRES.filter(a=>a.clientId===id);
+  let corps = '';
+
+  if(act === 'Identité'){
+    corps = fields([
+      ['Code client', `<span class="mono-num">${esc(c.code)}</span>`],
+      ['Statut', badge(c.statut)],
+      ['Raison sociale', esc(c.nom), true],
+      ['Secteur', esc(c.secteur)], ['Ville', esc(c.ville)],
+      ['NIF', `<span class="mono-num">${esc(c.nif)}</span>`], ['NIS', `<span class="mono-num">${esc(c.nis)}</span>`],
+      ['Registre de commerce', `<span class="mono-num">${esc(c.rc)}</span>`], ['Client depuis', fmtDate(c.depuis)],
+      ['Adresse', esc(c.adresse), true],
+    ]) + sousTitre('Interlocuteur') + fields([
+      ['Contact', esc(c.contact)], ['Fonction', esc(c.fonction)],
+      ['Téléphone', `<span class="mono-num">${esc(c.tel)}</span>`], ['Courriel', esc(c.email)],
+    ]);
+    if(c.statut === 'En vigilance'){
+      corps += `<div class="divider"></div><div class="callout callout-red">${icon('alertTriangle')}
+        <div><b>Client placé en vigilance.</b> Deux règlements sont intervenus avec plus de 45 jours de retard sur les douze derniers mois.
+        La facturation et la livraison restent possibles : l’application signale, elle ne bloque pas.</div></div>`;
+    }
+  }
+
+  if(act === 'Encours et règlements'){
+    const depasse = c.encours > c.plafond;
+    corps = fields([
+      ['Score de solvabilité', scoreBadge(c.score)], ['Délai de règlement contractuel', c.delai + ' jours'],
+      ['Encours actuel', `<span class="mono-num" ${depasse?'style="color:var(--red);font-weight:700"':''}>${fmtDA(c.encours)}</span>`],
+      ['Plafond de crédit', `<span class="mono-num">${fmtDA(c.plafond)}</span>`],
+    ]);
+    if(depasse){
+      corps += `<div class="divider"></div><div class="callout callout-orange">${icon('alertTriangle')}
+        <div><b>Plafond de crédit dépassé de ${fmtDA(c.encours - c.plafond)}.</b>
+        Signalement visuel uniquement — la création de nouveaux documents reste autorisée (§5.3).</div></div>`;
+    }
+    corps += sousTitre('Documents de vente') + (fs.length ? `<table class="mini-table">
+      <thead><tr><th>Document</th><th>Date</th><th class="th-num">Net à payer</th><th class="th-num">Reste dû</th><th>État</th></tr></thead>
+      <tbody>${fs.map(f=>`<tr onclick="openFiche('facture','${f.id}')">
+        <td class="cell-primary mono-num">${esc(f.num||'Brouillon')}</td><td class="cell-muted">${fmtDate(f.date)}</td>
+        <td class="cell-num">${fmtDA(computePied(f).net)}</td>
+        <td class="cell-num">${f.statut==='Brouillon'?'—':fmtDA(resteDu(f))}</td>
+        <td>${badge(f.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun document émis.</div>`);
+  }
+
+  if(act === 'Documents'){
+    corps = sousTitre('Affaires') + (as.length ? `<table class="mini-table">
+      <thead><tr><th>Affaire</th><th>Intitulé</th><th class="th-num">Montant</th><th>État</th></tr></thead>
+      <tbody>${as.map(a=>`<tr onclick="openFiche('affaire','${a.id}')">
+        <td class="cell-primary mono-num">${esc(a.num)}</td><td>${esc(a.intitule)}</td>
+        <td class="cell-num">${fmtDAc(a.montant)}</td><td>${badge(a.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucune affaire rattachée.</div>`);
+    const ds = DEVIS.filter(d=>d.clientId===id);
+    corps += sousTitre('Devis') + (ds.length ? `<table class="mini-table">
+      <thead><tr><th>Devis</th><th>Objet</th><th class="th-num">Montant HT</th><th>État</th></tr></thead>
+      <tbody>${ds.map(d=>`<tr onclick="openFiche('devis','${d.id}')">
+        <td class="cell-primary mono-num">${esc(d.num)}</td><td>${esc(d.objet)}</td>
+        <td class="cell-num">${fmtDA(computePied(d).netCommercial)}</td><td>${badge(d.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun devis.</div>`);
+  }
+
+  return {titre:esc(c.sigle), sousTitre:`${esc(c.code)} · ${esc(c.nom)}`, onglets, ongletActif:act, corps,
+    pied:`<button class="btn btn-primary" onclick="toast('Modification — écran de saisie non implémenté')">Modifier</button>
+          <button class="btn btn-secondary" onclick="toast('Relevé de compte client généré dans Documents/EGTO')">${icon('download')}Relevé de compte</button>`};
+};
+
+/* ---------- Fiche affaire ---------- */
+FICHES.affaire = (id, onglet) => {
+  const a = affaire(id); const c = client(a.clientId);
+  const onglets = ['Synthèse','Devis quantitatif','Facturation','Garanties'];
+  const act = onglets.includes(onglet) ? onglet : onglets[0];
+  let corps = '';
+
+  if(act === 'Synthèse'){
+    corps = fields([
+      ['N° affaire', `<span class="mono-num">${esc(a.num)}</span>`], ['État', badge(a.statut)],
+      ['Intitulé', esc(a.intitule), true],
+      ['Client', esc(c.nom)], ['Nature du marché', esc(a.marche) + ' — ' + esc(a.typeTravaux)],
+      ['N° de marché', `<span class="mono-num">${esc(a.numMarche)}</span>`], ['Montant du marché', `<span class="mono-num">${fmtDA(a.montant)}</span>`],
+      ['Ordre de service', fmtDate(a.ods)], ['Délai contractuel', a.delaiMois + ' mois'],
+      ['Fin prévisionnelle', fmtDate(a.finPrevue)], ['Révision des prix', esc(a.revision)],
+      ['Avance forfaitaire', a.avancePct ? a.avancePct + ' %' : 'Aucune'], ['Retenue de garantie', a.retenuePct + ' % sur base HT'],
+    ]);
+    corps += sousTitre('Avancement') + `
+      <div class="flex items-center gap-12" style="margin-bottom:14px">
+        <div class="progress-bar" style="width:180px;height:7px"><div style="width:${a.avancement}%"></div></div>
+        <span class="mono-num" style="font-weight:600">${a.avancement} %</span>
+      </div>` + fields([
+      ['Facturé à ce jour', `<span class="mono-num">${fmtDA(a.facture)}</span>`],
+      ['Encaissé à ce jour', `<span class="mono-num">${fmtDA(a.encaisse)}</span>`],
+      ['Reste à facturer', `<span class="mono-num">${fmtDA(a.montant - a.facture)}</span>`],
+      ['Reste à encaisser', `<span class="mono-num">${fmtDA(a.facture - a.encaisse)}</span>`],
+    ]);
+    if(!a.ods){
+      corps += `<div class="divider"></div><div class="callout callout-blue">${icon('info')}
+        <div>Marché signé, <b>ordre de service non encore notifié</b>. Le décompte du délai contractuel ne démarre qu’à réception de l’ODS.</div></div>`;
+    }
+  }
+
+  if(act === 'Devis quantitatif'){
+    const d = DQE[id];
+    corps = d ? `
+      <div class="callout callout-blue" style="margin-bottom:14px">${icon('info')}
+        <div>Saisie de masse : dans l’application, ce tableau est édité en grille avec saisie au clavier, copier-coller depuis Excel et recalcul immédiat.</div></div>
+      <table class="mini-table">
+        <thead><tr><th>N°</th><th>Désignation</th><th>U.</th><th class="th-num">Quantité</th><th class="th-num">P.U. HT</th><th class="th-num">Montant HT</th><th class="th-num">Réalisé</th></tr></thead>
+        <tbody>${d.map(l=>`<tr>
+          <td class="cell-primary mono-num">${l.n}</td><td>${esc(l.des)}</td><td class="cell-muted">${l.u}</td>
+          <td class="cell-num">${groupInt(l.qte)}</td><td class="cell-num">${fmtDA(l.pu)}</td>
+          <td class="cell-num" style="font-weight:600">${fmtDA(r2(l.qte*l.pu))}</td>
+          <td class="cell-num">${l.fait} %</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="5" style="font-weight:600;padding-top:9px">Total du devis quantitatif estimatif</td>
+          <td class="cell-num" style="font-weight:700;padding-top:9px">${fmtDA(d.reduce((s,l)=>s+r2(l.qte*l.pu),0))}</td><td></td></tr></tfoot>
+      </table>` : `<div class="text-tertiary" style="font-size:12px">Aucun devis quantitatif saisi pour cette affaire.</div>`;
+  }
+
+  if(act === 'Facturation'){
+    const fs = FACTURES.filter(f=>f.affaireId===id);
+    const bs = blDe(id);
+    corps = (fs.length ? `<table class="mini-table">
+      <thead><tr><th>Document</th><th>Objet</th><th>Date</th><th class="th-num">Net à payer</th><th>État</th></tr></thead>
+      <tbody>${fs.map(f=>`<tr onclick="openFiche('facture','${f.id}')">
+        <td class="cell-primary mono-num">${esc(f.num||'Brouillon')}</td><td>${esc(f.objet)}</td>
+        <td class="cell-muted">${fmtDate(f.date)}</td><td class="cell-num">${fmtDA(computePied(f).net)}</td>
+        <td>${badge(f.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun document de vente rattaché.</div>`);
+    corps += sousTitre('Bons de livraison') + (bs.length ? `<table class="mini-table">
+      <thead><tr><th>N° BL</th><th>Date</th><th>Chantier</th><th class="th-num">Montant HT</th><th>État</th></tr></thead>
+      <tbody>${bs.map(b=>`<tr onclick="openFiche('bl','${b.num}')">
+        <td class="cell-primary mono-num">${esc(b.num)}</td><td class="cell-muted">${fmtDate(b.date)}</td>
+        <td>${esc(b.chantier)}</td><td class="cell-num">${fmtDA(b.lignes.reduce((s,l)=>s+ligneMontants(l).net,0))}</td>
+        <td>${badge(b.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun bon de livraison.</div>`);
+  }
+
+  if(act === 'Garanties'){
+    const cs = CAUTIONS.filter(x=>x.affaireId===id);
+    const r  = RETENUES.find(x=>x.affaireId===id);
+    corps = sousTitre('Cautions bancaires') + (cs.length ? `<table class="mini-table">
+      <thead><tr><th>N°</th><th>Type</th><th class="th-num">Montant</th><th>Expiration</th><th>État</th></tr></thead>
+      <tbody>${cs.map(x=>`<tr onclick="openFiche('caution','${x.num}')">
+        <td class="cell-primary mono-num">${esc(x.num)}</td><td>${esc(x.type)}</td>
+        <td class="cell-num">${fmtDA(x.montant)}</td><td class="cell-muted">${fmtDate(x.expiration)}</td>
+        <td>${badge(x.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucune caution.</div>`);
+    corps += sousTitre('Retenue de garantie') + (r ? fields([
+      ['Taux appliqué', r.tauxPct + ' % sur base HT'], ['État', badge(r.statut)],
+      ['Montant retenu', `<span class="mono-num">${fmtDA(r.retenu)}</span>`],
+      ['Montant libéré', `<span class="mono-num">${fmtDA(r.libere)}</span>`],
+      ['Solde immobilisé', `<span class="mono-num" style="font-weight:700">${fmtDA(r.retenu-r.libere)}</span>`],
+      ['Échéance de libération', fmtDate(r.echeance)],
+    ]) : `<div class="text-tertiary" style="font-size:12px">Aucune retenue.</div>`);
+    const st = SOUSTRAITANTS.flatMap(s=>s.contrats.filter(ct=>ct.affaireId===id).map(ct=>({s,ct})));
+    corps += sousTitre('Sous-traitance') + (st.length ? `<table class="mini-table">
+      <thead><tr><th>Contrat</th><th>Sous-traitant</th><th class="th-num">Montant</th><th>État</th></tr></thead>
+      <tbody>${st.map(({s,ct})=>`<tr onclick="openFiche('soustraitant','${s.id}')">
+        <td class="cell-primary mono-num">${esc(ct.num)}</td><td>${esc(s.nom)}</td>
+        <td class="cell-num">${fmtDA(ct.montant)}</td><td>${badge(ct.statut)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun contrat de sous-traitance.</div>`);
+  }
+
+  return {titre:esc(a.num), sousTitre:esc(a.intitule), onglets, ongletActif:act, corps,
+    pied:`<button class="btn btn-primary" onclick="toast('Création d’une situation de travaux — écran non implémenté')">Nouvelle situation</button>
+          <button class="btn btn-secondary" onclick="toast('Fiche affaire exportée en PDF dans Documents/EGTO')">${icon('download')}Fiche PDF</button>`};
+};
+/* ---------- Fiche devis ---------- */
+FICHES.devis = (id, onglet) => {
+  const d = DEVIS.find(x=>x.id===id); const c = client(d.clientId);
+  const onglets = ['Détail','Lignes et totaux'];
+  const act = onglets.includes(onglet) ? onglet : onglets[1];
+  const exp = daysUntil(d.validite);
+  let corps = '';
+
+  if(act === 'Détail'){
+    corps = fields([
+      ['N° devis', `<span class="mono-num">${esc(d.num)}</span>`], ['État', badge(d.statut)],
+      ['Objet', esc(d.objet), true],
+      ['Client', esc(c.nom)], ['Interlocuteur', esc(c.contact)],
+      ['Date d’émission', fmtDate(d.date)], ['Valable jusqu’au', fmtDate(d.validite)],
+      ['Probabilité de conclusion', d.proba + ' %'], ['Mode de règlement prévu', esc(d.mode)],
+    ]);
+    if(d.converti){
+      corps += `<div class="divider"></div><div class="callout callout-green">${icon('checkCircle')}
+        <div>Devis accepté et <b>converti en affaire ${esc(d.converti)}</b>. Les lignes ont été reprises telles quelles dans le devis quantitatif estimatif.</div></div>`;
+    } else if(d.motifRefus){
+      corps += `<div class="divider"></div><div class="callout callout-red">${icon('x')}
+        <div><b>Devis refusé.</b> Motif consigné : ${esc(d.motifRefus)}.</div></div>`;
+    } else if(d.statut === 'Envoyé' && exp <= 30){
+      corps += `<div class="divider"></div><div class="callout callout-orange">${icon('clockAlert')}
+        <div>${exp < 0 ? `Validité dépassée depuis ${-exp} jours.` : `La validité expire dans ${exp} jours.`} Une relance de l’interlocuteur est recommandée.</div></div>`;
+    }
+  }
+
+  if(act === 'Lignes et totaux'){
+    corps = lignesHTML(d) + `<div class="divider"></div>` + piedHTML(d);
+  }
+
+  return {titre:esc(d.num), sousTitre:`${esc(c.sigle)} · ${esc(d.objet)}`, onglets, ongletActif:act, corps,
+    pied: d.statut === 'Accepté' && !d.converti
+      ? `<button class="btn btn-primary" onclick="toast('Conversion en affaire — écran non implémenté')">Convertir en affaire</button>
+         <button class="btn btn-secondary" onclick="toast('Devis imprimé dans Documents/EGTO')">${icon('download')}Imprimer</button>`
+      : `<button class="btn btn-secondary" onclick="toast('Devis imprimé dans Documents/EGTO')">${icon('download')}Imprimer le devis</button>
+         <button class="btn btn-ghost" onclick="toast('Duplication — écran non implémenté')">Dupliquer</button>`};
+};
+
+/* ---------- Fiche facture — même panneau coulissant que partout ailleurs ---------- */
+FICHES.facture = (id, onglet) => {
+  const f = facture(id); const c = client(f.clientId); const a = affaire(f.affaireId);
+  const onglets = ['Lignes et pied de facture','Détail','Règlements','Traçabilité'];
+  const act = onglets.includes(onglet) ? onglet : onglets[0];
+  const brouillon = f.statut === 'Brouillon';
+  const p = computePied(f);
+  let corps = '';
+
+  if(brouillon){
+    corps += `<div class="callout callout-orange" style="margin-bottom:16px">${icon('lock')}
+      <div><b>Brouillon — aucun numéro attribué.</b> Le numéro de série n’est délivré qu’à la validation :
+      supprimer ce brouillon ne créera aucun trou dans la séquence des documents validés (§4.4.2).</div></div>`;
+  }
+  const retard = retardJours(f);
+  if(retard > 0){
+    corps += `<div class="callout callout-red" style="margin-bottom:16px">${icon('alertTriangle')}
+      <div><b>Échéance dépassée de ${retard} jours.</b> Reste dû ${fmtDA(resteDu(f))} — relance recommandée, aucune action n’est bloquée.</div></div>`;
+  }
+
+  if(act === 'Lignes et pied de facture'){
+    corps += lignesHTML(f) + `<div class="divider"></div>` + piedHTML(f);
+  }
+
+  if(act === 'Détail'){
+    corps += fields([
+      ['N° document', f.num ? `<span class="mono-num">${esc(f.num)}</span>` : '<span class="text-tertiary">non attribué</span>'],
+      ['Type', TYPE_LABEL[f.type]],
+      ['Objet', esc(f.objet), true],
+      ['Client', esc(c.nom)], ['NIF client', `<span class="mono-num">${esc(c.nif)}</span>`],
+      ['Affaire', a ? `<span class="mono-num">${esc(a.num)}</span> — ${esc(a.intitule)}` : 'Vente hors marché', true],
+      ['Date du document', fmtDate(f.date)], ['Échéance de règlement', brouillon ? '—' : fmtDate(f.echeance)],
+      ['Mode de règlement', esc(f.mode)], ['État', badge(f.statut)],
+      ['Rabais global', f.rabaisPct ? String(f.rabaisPct).replace('.',',') + ' %' : 'Aucun'],
+      ['Retenue de garantie', f.retenuePct ? f.retenuePct + ' % sur base HT' : 'Aucune'],
+      ['Remboursement d’avance', f.avancePct ? 'Prorata ' + f.avancePct + ' %' : 'Aucun'],
+      ['Référence', f.ref ? `<span class="mono-num">${esc(f.ref)}</span>` : '—'],
+    ]);
+    corps += `<div class="divider"></div><div class="callout callout-blue">${icon('info')}
+      <div>Mentions portées au document imprimé : ${esc(SOCIETE.forme)} · NIF ${esc(SOCIETE.nif)} · NIS ${esc(SOCIETE.nis)} ·
+      RC ${esc(SOCIETE.rc)} · article d’imposition ${esc(SOCIETE.ai)} · ${esc(SOCIETE.banque)}.</div></div>`;
+  }
+
+  if(act === 'Règlements'){
+    const es = encaissementsDe(f.id);
+    corps += fields([
+      ['Net à payer', `<span class="mono-num" style="font-weight:700">${fmtDA(p.net)}</span>`],
+      ['Reste dû', `<span class="mono-num" style="font-weight:700;${resteDu(f)>0?'color:var(--red)':'color:var(--green)'}">${fmtDA(resteDu(f))}</span>`],
+    ]);
+    corps += sousTitre('Encaissements affectés') + (es.length ? `<table class="mini-table">
+      <thead><tr><th>N°</th><th>Date</th><th>Mode</th><th>Référence</th><th class="th-num">Montant</th></tr></thead>
+      <tbody>${es.map(e=>`<tr onclick="openFiche('encaissement','${e.num}')">
+        <td class="cell-primary mono-num">${esc(e.num)}</td><td class="cell-muted">${fmtDate(e.date)}</td>
+        <td>${esc(e.mode)}</td><td class="cell-muted">${esc(e.ref)}</td>
+        <td class="cell-num">${fmtDA(e.montant)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun encaissement enregistré sur ce document.</div>`);
+    if(f.retenuePct){
+      corps += sousTitre('Retenue de garantie prélevée') + `<div class="callout callout-blue">${icon('info')}
+        <div>${fmtDA(p.retenue)} ont été retenus sur cette facture au titre de la garantie ${f.retenuePct} %.
+        Cette somme n’est pas une créance échue : elle se libère à la réception (§4.12.2).</div></div>`;
+    }
+  }
+
+  if(act === 'Traçabilité'){
+    const bs = BONS_LIVRAISON.filter(b=>b.factureNum === f.num);
+    const evts = [
+      {d:f.date, t:'Création du brouillon', s:'Saisie manuelle — poste unique'},
+      f.num ? {d:f.date, t:'Validation et attribution du numéro ' + f.num, s:'Numéro verrouillé, document non modifiable'} : null,
+      f.statut === 'Envoyée' || f.statut === 'Payée' ? {d:f.date, t:'Impression et envoi au client', s:'PDF écrit dans Documents/EGTO/factures'} : null,
+      f.statut === 'Payée' ? {d:(encaissementsDe(f.id)[0]||{}).date, t:'Règlement intégral constaté', s:'Rapprochement automatique du reste dû'} : null,
+    ].filter(Boolean);
+    corps += `<div class="callout callout-blue" style="margin-bottom:14px">${icon('shieldCheck')}
+      <div>Le journal d’audit est alimenté par déclencheurs de base de données, jamais par le code applicatif :
+      aucune écriture ne peut échapper à la trace.</div></div>`;
+    corps += evts.map(e=>`<div class="alert-row">
+      <div class="alert-icon" style="background:var(--accent-soft);color:var(--accent)">${icon('checkCircle')}</div>
+      <div><div class="alert-title">${esc(e.t)}</div><div class="alert-sub">${fmtDate(e.d)} · ${esc(e.s)}</div></div></div>`).join('');
+    corps += sousTitre('Bons de livraison repris') + (bs.length ? `<table class="mini-table">
+      <thead><tr><th>N° BL</th><th>Date</th><th>Chantier</th><th class="th-num">Montant HT</th></tr></thead>
+      <tbody>${bs.map(b=>`<tr onclick="openFiche('bl','${b.num}')">
+        <td class="cell-primary mono-num">${esc(b.num)}</td><td class="cell-muted">${fmtDate(b.date)}</td>
+        <td>${esc(b.chantier)}</td><td class="cell-num">${fmtDA(b.lignes.reduce((s,l)=>s+ligneMontants(l).net,0))}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="text-tertiary" style="font-size:12px">Aucun bon de livraison repris.</div>`);
+  }
+
+  const pied = brouillon
+    ? `<button class="btn btn-primary" onclick="validerFacture('${f.id}')">${icon('lock')}Valider la facture</button>
+       <button class="btn btn-secondary" onclick="toast('Modification du brouillon — écran non implémenté')">Modifier</button>
+       <button class="btn btn-danger" onclick="supprimerBrouillon('${f.id}')">Supprimer</button>`
+    : `<button class="btn btn-primary" onclick="toast('${esc(f.num)} imprimée dans Documents/EGTO/factures')">${icon('download')}Imprimer le PDF</button>
+       ${f.statut!=='Payée' && f.type!=='AV' ? `<button class="btn btn-secondary" onclick="toast('Saisie d’un encaissement — écran non implémenté')">Enregistrer un règlement</button>` : ''}
+       <button class="btn btn-ghost" onclick="toast('Duplication — écran non implémenté')">Dupliquer</button>`;
+
+  return {titre: f.num ? esc(f.num) : 'Facture au brouillon',
+    sousTitre:`${esc(c.sigle)} · ${esc(f.objet)}`, onglets, ongletActif:act, corps, pied};
+};
+
+function supprimerBrouillon(id){
+  const f = facture(id);
+  openModal({ton:'red', ico:'alertTriangle', titre:'Supprimer ce brouillon ?',
+    texte:'Le document sera marqué comme supprimé sans jamais être effacé physiquement de la base — il reste consultable dans le journal d’audit.',
+    detail:`<div class="callout callout-blue">${icon('info')}<div>Aucun numéro n’ayant été attribué, la suppression <b>ne consomme pas de numéro</b> et laisse la séquence des documents validés intacte.</div></div>`,
+    annuler:'Conserver', confirmer:'Supprimer le brouillon',
+    onConfirm:()=>{ closeFiche(); toast('Brouillon supprimé — aucun numéro consommé'); }});
+}
+
+/* ---------- Fiche bon de livraison ---------- */
+FICHES.bl = (num) => {
+  const b = BONS_LIVRAISON.find(x=>x.num===num); const c = client(b.clientId); const a = affaire(b.affaireId);
+  const total = b.lignes.reduce((s,l)=>s+ligneMontants(l).net, 0);
+  const corps = fields([
+    ['N° BL', `<span class="mono-num">${esc(b.num)}</span>`], ['État', badge(b.statut)],
+    ['Date de livraison', fmtDate(b.date)], ['Client', esc(c.sigle)],
+    ['Chantier', esc(b.chantier), true],
+    ['Affaire', a ? `<span class="mono-num">${esc(a.num)}</span>` : 'Vente hors marché'],
+    ['Facture de reprise', b.factureNum ? `<span class="mono-num">${esc(b.factureNum)}</span>` : '<span class="text-tertiary">non facturé</span>'],
+    ['Immatriculation', `<span class="mono-num">${esc(b.camion)}</span>`], ['Chauffeur', esc(b.chauffeur)],
+  ]) + sousTitre('Quantités livrées') + `<table class="mini-table">
+    <thead><tr><th>Code</th><th>Désignation</th><th>U.</th><th class="th-num">Quantité</th><th class="th-num">P.U. HT</th><th class="th-num">Montant HT</th></tr></thead>
+    <tbody>${b.lignes.map(l=>`<tr><td class="cell-primary mono-num">${esc(l.code)}</td><td>${esc(l.des)}</td>
+      <td class="cell-muted">${esc(l.u)}</td><td class="cell-num">${groupInt(l.qte)}</td>
+      <td class="cell-num">${fmtDA(l.pu)}</td><td class="cell-num" style="font-weight:600">${fmtDA(ligneMontants(l).net)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="5" style="font-weight:600;padding-top:9px">Total livré HT</td>
+      <td class="cell-num" style="font-weight:700;padding-top:9px">${fmtDA(total)}</td></tr></tfoot></table>`
+  + `<div class="divider"></div><div class="callout callout-blue">${icon('info')}
+      <div>Le bon de livraison ne porte ni TVA, ni droit de timbre, ni retenue : il constate une livraison.
+      La liquidation fiscale intervient sur la facture qui le reprend.</div></div>`;
+  return {titre:esc(b.num), sousTitre:`${esc(c.sigle)} · ${esc(b.chantier)}`, onglets:[], ongletActif:null, corps,
+    pied: b.statut === 'Facturé'
+      ? `<button class="btn btn-secondary" onclick="toast('Bon de livraison imprimé dans Documents/EGTO')">${icon('download')}Imprimer le BL</button>`
+      : `<button class="btn btn-primary" onclick="toast('Reprise du BL dans une facture — écran non implémenté')">Facturer ce bon</button>
+         <button class="btn btn-secondary" onclick="toast('Bon de livraison imprimé dans Documents/EGTO')">${icon('download')}Imprimer</button>`};
+};
+
+/* ---------- Fiche encaissement ---------- */
+FICHES.encaissement = (num) => {
+  const e = ENCAISSEMENTS.find(x=>x.num===num); const c = client(e.clientId); const f = facture(e.factureId);
+  let corps = fields([
+    ['N° encaissement', `<span class="mono-num">${esc(e.num)}</span>`], ['Affectation', badge(e.statut)],
+    ['Date de valeur', fmtDate(e.date)], ['Client', esc(c.sigle)],
+    ['Mode de règlement', esc(e.mode)], ['Domiciliation', esc(e.banque)],
+    ['Référence', esc(e.ref), true],
+    ['Montant encaissé', `<span class="mono-num" style="font-weight:700">${fmtDA(e.montant)}</span>`],
+    ['Document soldé', f ? `<span class="mono-num">${esc(f.num)}</span>` : '<span class="text-tertiary">non affecté</span>'],
+  ]);
+  if(f){
+    corps += sousTitre('Document réglé') + `<table class="mini-table">
+      <thead><tr><th>Document</th><th>Objet</th><th class="th-num">Net à payer</th><th class="th-num">Reste dû</th></tr></thead>
+      <tbody><tr onclick="openFiche('facture','${f.id}')">
+        <td class="cell-primary mono-num">${esc(f.num)}</td><td>${esc(f.objet)}</td>
+        <td class="cell-num">${fmtDA(computePied(f).net)}</td><td class="cell-num">${fmtDA(resteDu(f))}</td></tr></tbody></table>`;
+    if(e.partiel){
+      corps += `<div class="divider"></div><div class="callout callout-orange">${icon('info')}
+        <div><b>Règlement partiel.</b> Le solde de ${fmtDA(resteDu(f))} reste dû sur ${esc(f.num)}.</div></div>`;
+    }
+  } else {
+    corps += `<div class="divider"></div><div class="callout callout-orange">${icon('alertTriangle')}
+      <div><b>Encaissement non affecté.</b> Le versement a été constaté sans document de référence : à rapprocher d’une facture du client ${esc(c.sigle)}.</div></div>`;
+  }
+  return {titre:esc(e.num), sousTitre:`${esc(c.sigle)} · ${esc(e.mode)} · ${fmtDate(e.date)}`, onglets:[], ongletActif:null, corps,
+    pied: e.factureId
+      ? `<button class="btn btn-secondary" onclick="toast('Reçu imprimé dans Documents/EGTO')">${icon('download')}Imprimer le reçu</button>`
+      : `<button class="btn btn-primary" onclick="toast('Affectation à une facture — écran non implémenté')">Affecter à une facture</button>`};
+};
+/* ---------- Fiche caution ---------- */
+FICHES.caution = (num) => {
+  const k = CAUTIONS.find(x=>x.num===num); const a = affaire(k.affaireId); const c = client(k.clientId);
+  const j = daysUntil(k.expiration);
+  let corps = '';
+  if(k.statut !== 'Mainlevée obtenue' && j <= 30){
+    corps += `<div class="callout callout-${j<=15?'red':'orange'}" style="margin-bottom:16px">${icon('clockAlert')}
+      <div><b>${j < 0 ? `Caution expirée depuis ${-j} jours.` : `Expiration dans ${j} jours.`}</b>
+      Le signalement intervient à J-30 puis à J-15 (§4.11.3). Demander la mainlevée au maître de l’ouvrage
+      ou solliciter une prorogation auprès de ${esc(k.banque.split('—')[0].trim())}.</div></div>`;
+  }
+  corps += fields([
+    ['N° caution', `<span class="mono-num">${esc(k.num)}</span>`], ['État', badge(k.statut)],
+    ['Type de garantie', esc(k.type)], ['Taux appliqué', k.tauxPct + ' % du marché'],
+    ['Affaire', `<span class="mono-num">${esc(a.num)}</span> — ${esc(a.intitule)}`, true],
+    ['Bénéficiaire', esc(c.nom)], ['Banque émettrice', esc(k.banque)],
+    ['Référence bancaire', `<span class="mono-num">${esc(k.ref)}</span>`],
+    ['Montant garanti', `<span class="mono-num" style="font-weight:700">${fmtDA(k.montant)}</span>`],
+    ['Date d’émission', fmtDate(k.emission)], ['Date d’expiration', fmtDate(k.expiration)],
+    ['Commission bancaire', `<span class="mono-num">${fmtDA(k.commission)}</span>`],
+    ['Jours restants', k.statut === 'Mainlevée obtenue' ? '—' : (j < 0 ? `échue depuis ${-j} j` : j + ' jours')],
+  ]);
+  corps += sousTitre('Cycle de vie') + [
+    {t:'Émission de la caution', d:k.emission, ok:true},
+    {t:'Alerte J-30', d:null, ok:j<=30},
+    {t:'Alerte J-15', d:null, ok:j<=15},
+    {t:'Demande de mainlevée', d:null, ok:['Mainlevée demandée','Mainlevée obtenue'].includes(k.statut)},
+    {t:'Mainlevée obtenue — engagement soldé', d:null, ok:k.statut==='Mainlevée obtenue'},
+  ].map(e=>`<div class="alert-row">
+      <div class="alert-icon" style="background:var(--${e.ok?'green':'gray'}-soft);color:var(--${e.ok?'green':'text-tertiary'})">${icon(e.ok?'checkCircle':'clockAlert')}</div>
+      <div><div class="alert-title" ${e.ok?'':'style="color:var(--text-tertiary)"'}>${esc(e.t)}</div>
+      ${e.d?`<div class="alert-sub">${fmtDate(e.d)}</div>`:''}</div></div>`).join('');
+  return {titre:esc(k.num), sousTitre:`${esc(k.type)} · ${esc(a.num)}`, onglets:[], ongletActif:null, corps,
+    pied: k.statut === 'Mainlevée obtenue'
+      ? `<button class="btn btn-secondary" onclick="toast('Attestation de mainlevée imprimée')">${icon('download')}Attestation</button>`
+      : `<button class="btn btn-primary" onclick="toast('Courrier de demande de mainlevée généré dans Documents/EGTO')">Demander la mainlevée</button>
+         <button class="btn btn-secondary" onclick="toast('Demande de prorogation générée')">Proroger</button>`};
+};
+
+/* ---------- Fiche retenue de garantie ---------- */
+FICHES.retenue = (affaireId) => {
+  const r = RETENUES.find(x=>x.affaireId===affaireId); const a = affaire(affaireId); const c = client(r.clientId);
+  const solde = r.retenu - r.libere; const j = daysUntil(r.echeance);
+  let corps = '';
+  if(solde > 0 && j <= 60){
+    corps += `<div class="callout callout-${j<0?'green':'orange'}" style="margin-bottom:16px">${icon(j<0?'checkCircle':'clockAlert')}
+      <div><b>${j < 0 ? 'Retenue libérable.' : `Échéance de libération dans ${j} jours.`}</b>
+      Solde immobilisé de ${fmtDA(solde)} à réclamer au maître de l’ouvrage (§4.12.2).</div></div>`;
+  }
+  corps += fields([
+    ['Affaire', `<span class="mono-num">${esc(a.num)}</span>`], ['État', badge(r.statut)],
+    ['Intitulé', esc(a.intitule), true],
+    ['Client', esc(c.nom)], ['Taux de retenue', r.tauxPct + ' % sur base HT'],
+    ['Montant retenu à ce jour', `<span class="mono-num">${fmtDA(r.retenu)}</span>`],
+    ['Montant déjà libéré', `<span class="mono-num">${fmtDA(r.libere)}</span>`],
+    ['Solde immobilisé', `<span class="mono-num" style="font-weight:700">${fmtDA(solde)}</span>`],
+    ['Remplacée par une caution', r.remplaceeParCaution ? 'Oui' : 'Non'],
+    ['Réception provisoire', fmtDate(r.receptionProv)], ['Réception définitive', fmtDate(r.receptionDef)],
+    ['Échéance de libération', fmtDate(r.echeance)],
+  ]);
+  corps += sousTitre('Échéancier de libération') + `<table class="mini-table">
+    <thead><tr><th>Étape</th><th>Fait générateur</th><th class="th-num">Quote-part</th><th class="th-num">Montant</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td class="cell-primary">Première moitié</td><td class="cell-muted">Réception provisoire — ${fmtDate(r.receptionProv)}</td>
+        <td class="cell-num">50 %</td><td class="cell-num">${fmtDA(r2(r.retenu/2))}</td>
+        <td>${badge(r.libere >= r2(r.retenu/2) ? 'Libérée' : 'Active')}</td></tr>
+      <tr><td class="cell-primary">Seconde moitié</td><td class="cell-muted">Réception définitive — ${fmtDate(r.receptionDef)}</td>
+        <td class="cell-num">50 %</td><td class="cell-num">${fmtDA(r.retenu - r2(r.retenu/2))}</td>
+        <td>${badge(r.libere >= r.retenu ? 'Libérée' : 'Active')}</td></tr>
+    </tbody></table>`;
+  const fs = FACTURES.filter(f=>f.affaireId===affaireId && f.retenuePct);
+  corps += sousTitre('Factures ayant supporté la retenue') + (fs.length ? `<table class="mini-table">
+    <thead><tr><th>Document</th><th>Date</th><th class="th-num">Base HT</th><th class="th-num">Retenue</th></tr></thead>
+    <tbody>${fs.map(f=>{const p=computePied(f); return `<tr onclick="openFiche('facture','${f.id}')">
+      <td class="cell-primary mono-num">${esc(f.num||'Brouillon')}</td><td class="cell-muted">${fmtDate(f.date)}</td>
+      <td class="cell-num">${fmtDA(p.netCommercial)}</td><td class="cell-num">${fmtDA(p.retenue)}</td></tr>`;}).join('')}</tbody></table>`
+    : `<div class="text-tertiary" style="font-size:12px">Aucune facture rattachée.</div>`);
+  return {titre:'Retenue — ' + esc(a.num), sousTitre:`${esc(c.sigle)} · solde ${fmtDA(solde)}`, onglets:[], ongletActif:null, corps,
+    pied: solde > 0
+      ? `<button class="btn btn-primary" onclick="toast('Courrier de demande de libération généré dans Documents/EGTO')">Demander la libération</button>
+         <button class="btn btn-secondary" onclick="toast('Substitution par caution — écran non implémenté')">Remplacer par une caution</button>`
+      : `<button class="btn btn-secondary" onclick="toast('Justificatif de libération imprimé')">${icon('download')}Justificatif</button>`};
+};
+
+/* ---------- Fiche sous-traitant ---------- */
+FICHES.soustraitant = (id, onglet) => {
+  const s = SOUSTRAITANTS.find(x=>x.id===id);
+  const onglets = ['Identité','Contrats et situations'];
+  const act = onglets.includes(onglet) ? onglet : onglets[1];
+  let corps = '';
+
+  if(act === 'Identité'){
+    corps = fields([
+      ['Code', `<span class="mono-num">${esc(s.code)}</span>`], ['État', badge(s.statut)],
+      ['Raison sociale', esc(s.nom), true],
+      ['Activité', esc(s.activite)], ['Ville', esc(s.ville)],
+      ['NIF', `<span class="mono-num">${esc(s.nif)}</span>`], ['Registre de commerce', `<span class="mono-num">${esc(s.rc)}</span>`],
+      ['Contact', esc(s.contact)], ['Téléphone', `<span class="mono-num">${esc(s.tel)}</span>`],
+      ['Agrément', esc(s.agrement), true],
+    ]);
+  }
+
+  if(act === 'Contrats et situations'){
+    corps = s.contrats.length ? s.contrats.map(ct => {
+      const a = affaire(ct.affaireId);
+      const paye = ct.st.filter(x=>x.statut==='Payée').reduce((t,x)=>t+x.montant, 0);
+      return `
+      ${sousTitre(ct.num + ' — ' + a.num)}
+      ${fields([
+        ['Objet', esc(ct.objet), true],
+        ['Montant du contrat', `<span class="mono-num">${fmtDA(ct.montant)}</span>`], ['État', badge(ct.statut)],
+        ['Retenue de garantie', ct.retenuePct + ' %'], ['Avancement', ct.avancement + ' %'],
+      ])}
+      ${ct.st.length ? `<table class="mini-table" style="margin-top:12px">
+        <thead><tr><th>N° situation</th><th>Période</th><th>Date</th><th class="th-num">Montant</th><th>État</th></tr></thead>
+        <tbody>${ct.st.map(x=>`<tr>
+          <td class="cell-primary mono-num">${esc(x.num)}</td><td>${esc(x.periode)}</td>
+          <td class="cell-muted">${fmtDate(x.date)}</td><td class="cell-num">${fmtDA(x.montant)}</td>
+          <td>${badge(x.statut)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3" style="font-weight:600;padding-top:9px">Réglé au titre de ce contrat</td>
+          <td class="cell-num" style="font-weight:700;padding-top:9px">${fmtDA(paye)}</td><td></td></tr></tfoot>
+      </table>` : `<div class="text-tertiary" style="font-size:12px;margin-top:8px">Aucune situation saisie sur ce contrat.</div>`}`;
+    }).join('<div class="divider"></div>')
+      : `<div class="text-tertiary" style="font-size:12px">Aucun contrat de sous-traitance.</div>`;
+    corps += `<div class="divider"></div><div class="callout callout-orange">${icon('lock')}
+      <div>Une situation sous-traitée validée ne se modifie jamais : la correction se fait par <b>lignes négatives sur la période suivante</b>,
+      afin que l’historique déclaré reste intact.</div></div>`;
+  }
+
+  return {titre:esc(s.nom), sousTitre:`${esc(s.code)} · ${esc(s.activite)}`, onglets, ongletActif:act, corps,
+    pied:`<button class="btn btn-primary" onclick="toast('Nouvelle situation sous-traitée — écran non implémenté')">Nouvelle situation</button>
+          <button class="btn btn-secondary" onclick="toast('Contrat imprimé dans Documents/EGTO')">${icon('download')}Imprimer le contrat</button>`};
+};
+
+/* ---------- Fiche article de catalogue ---------- */
+FICHES.produit = (code) => {
+  const p = produit(code);
+  const usages = FACTURES.filter(f=>f.lignes.some(l=>l.code===code));
+  let corps = fields([
+    ['Code article', `<span class="mono-num">${esc(p.code)}</span>`], ['État', p.actif ? badge('Actif') : badge('Inactif')],
+    ['Désignation', esc(p.des), true],
+    ['Famille', esc(p.fam)], ['Sous-famille', esc(p.sfam)],
+    ['Classification', famBadge(p.classe)], ['Unité de mesure', esc(p.u)],
+    ['Prix unitaire HT', `<span class="mono-num" style="font-weight:700">${fmtDA(p.pu)}</span>`],
+    ['Taux de TVA', TVA_TAUX + ' % — verrouillé au niveau de l’article'],
+  ]);
+  corps += `<div class="divider"></div><div class="callout callout-blue">${icon('info')}
+    <div>La classification <b>${p.classe}</b> provient de la sous-famille « ${esc(p.sfam)} ». Elle est recopiée en instantané
+    sur chaque ligne de déclaration mensuelle : une modification ici n’altère aucune période déjà déclarée.</div></div>`;
+  if(!p.actif){
+    corps += `<div class="callout callout-orange" style="margin-top:12px">${icon('alertTriangle')}
+      <div>Article désactivé : il n’apparaît plus dans les listes de saisie mais reste lisible sur tous les documents historiques.</div></div>`;
+  }
+  corps += sousTitre('Documents utilisant cet article') + (usages.length ? `<table class="mini-table">
+    <thead><tr><th>Document</th><th>Client</th><th class="th-num">Quantité</th><th class="th-num">Montant HT</th></tr></thead>
+    <tbody>${usages.map(f=>{ const l = f.lignes.find(x=>x.code===code); return `<tr onclick="openFiche('facture','${f.id}')">
+      <td class="cell-primary mono-num">${esc(f.num||'Brouillon')}</td><td class="cell-muted">${esc(client(f.clientId).sigle)}</td>
+      <td class="cell-num">${groupInt(Math.abs(l.qte))} ${esc(l.u)}</td>
+      <td class="cell-num">${fmtDA(ligneMontants(l).net)}</td></tr>`; }).join('')}</tbody></table>`
+    : `<div class="text-tertiary" style="font-size:12px">Cet article n’a encore été utilisé sur aucun document.</div>`);
+  return {titre:esc(p.code), sousTitre:esc(p.des), onglets:[], ongletActif:null, corps,
+    pied:`<button class="btn btn-primary" onclick="toast('Modification de l’article — écran non implémenté')">Modifier</button>
+          ${p.actif ? `<button class="btn btn-danger" onclick="toast('Article désactivé — jamais supprimé physiquement')">Désactiver</button>`
+                    : `<button class="btn btn-secondary" onclick="toast('Article réactivé')">Réactiver</button>`}`};
+};
+
+/* ============================================================
+   DÉMARRAGE
+============================================================ */
+document.querySelectorAll('#densitySwitch button').forEach(b =>
+  b.addEventListener('click', () => setDensite(b.dataset.density)));
+$('#overlay').addEventListener('click', closeFiche);
+$('#modalOverlay').addEventListener('click', e => { if(e.target.id === 'modalOverlay') closeModal(); });
+document.querySelectorAll('.traffic-lights .tl').forEach(t =>
+  t.addEventListener('click', () => toast('Contrôle de fenêtre — inactif dans la maquette')));
+
+setDensite('normal');
+render();
+</script>
+</body>
+</html>

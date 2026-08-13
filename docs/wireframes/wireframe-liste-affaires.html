@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wireframe J0 — Liste des affaires</title>
+<style>
+  body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f5f5f5;color:#222}
+  .note{background:#eef;border-bottom:2px solid #99c;padding:8px 16px;font-size:12px}
+  .app{max-width:1100px;margin:16px auto;background:#fff;border:1px solid #ccc}
+  .barre{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #ddd}
+  .rech{flex:1;border:1px dashed #999;padding:7px 10px;color:#888;background:#fafafa}
+  .btn{border:1px solid #999;padding:6px 12px;font-size:12px;color:#444;background:#fff}
+  .btn.primary{border-color:#4682b4;background:#4682b4;color:#fff}
+  .filtres{padding:8px 14px;border-bottom:1px solid #eee}
+  .chip{display:inline-block;border:1px dashed #aaa;padding:3px 10px;font-size:12px;margin:0 6px 4px 0;color:#666}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#f0f0f0;text-align:left;padding:8px;border-bottom:1px solid #ccc;color:#666}
+  td{padding:8px;border-bottom:1px solid #eee}
+  .badge{border:1px solid #999;padding:1px 8px;font-size:11px;border-radius:10px}
+  .ph{background:#e8e8e8;height:10px;border-radius:4px}
+  .bandeau{background:#fdf6d8;border-bottom:1px solid #e0c95f;padding:7px 14px;font-size:12px}
+  .ind{width:60px;height:10px;border-radius:4px;background:#c00}
+  .ind.o{background:#e0a020}
+  .ind.v{background:#3a7}
+</style>
+</head>
+<body>
+<div class="note">Wireframe basse fidélité — Jalon 0 — Écran : <strong>Liste des affaires</strong> (M1 §4.1.13) — validation de l'ERD</div>
+<div class="app">
+  <div class="barre">
+    <div class="rech">Recherche (référence, objet, client…)</div>
+    <div class="btn">Filtres</div>
+    <div class="btn primary">+ Nouvelle affaire</div>
+  </div>
+  <div class="filtres">
+    <span class="chip">Statut : Tous</span><span class="chip">Type : Tous</span><span class="chip">Délais : Tous</span>
+  </div>
+  <div class="bandeau">3 affaires en dépassement · 2 alertes J-15 · 1 réception provisoire à programmer (informatif)</div>
+  <table>
+    <thead><tr>
+      <th>Référence</th><th>Objet</th><th>Client</th><th>Type</th><th>Montant HT</th>
+      <th>Fin contractuelle</th><th>Délai</th><th>Statut</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>AFG-2026-00012</td><td><div class="ph" style="width:180px"></div></td><td><div class="ph" style="width:120px"></div></td><td>Marché public</td><td>96 420 000</td><td>15/09/2026</td><td><span class="ind"></span> J-7</td><td><span class="badge">En cours</span></td></tr>
+      <tr><td>AFG-2026-00008</td><td><div class="ph" style="width:160px"></div></td><td><div class="ph" style="width:110px"></div></td><td>Marché public</td><td>63 400 000</td><td>20/08/2026</td><td><span class="ind o"></span> 50 %</td><td><span class="badge">ODS reçu</span></td></tr>
+      <tr><td>AFG-2026-00015</td><td><div class="ph" style="width:170px"></div></td><td><div class="ph" style="width:130px"></div></td><td>Contrat privé</td><td>19 404 000</td><td>01/12/2026</td><td><span class="ind v"></span> OK</td><td><span class="badge">Signé</span></td></tr>
+      <tr><td>AFG-2025-00047</td><td><div class="ph" style="width:150px"></div></td><td><div class="ph" style="width:100px"></div></td><td>BC</td><td>42 600 000</td><td>—</td><td><span class="ind v"></span> OK</td><td><span class="badge">Soldé</span></td></tr>
+    </tbody>
+  </table>
+  <div style="padding:10px 14px;font-size:12px;color:#888;border-top:1px solid #ddd">Colonnes dérivées de la fiche affaire (§4.1.3) — montants affichés en DA, calculés en centimes.</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wireframe J0 — Fiche facture</title>
+<style>
+  body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f5f5f5;color:#222}
+  .note{background:#eef;border-bottom:2px solid #99c;padding:8px 16px;font-size:12px}
+  .app{max-width:1000px;margin:16px auto;background:#fff;border:1px solid #ccc}
+  .entete{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #ddd;flex-wrap:wrap}
+  .titre{font-size:16px;font-weight:bold;flex:1}
+  .btn{border:1px solid #999;padding:6px 12px;font-size:12px;color:#444;background:#fff}
+  .btn.primary{border-color:#4682b4;background:#4682b4;color:#fff}
+  .badge{border:1px solid #999;padding:1px 8px;font-size:11px;border-radius:10px}
+  .contenu{padding:14px}
+  .bloc{border:1px solid #ddd;margin-bottom:14px}
+  .bloc h3{margin:0;font-size:12px;color:#4682b4;background:#f0f4f8;padding:6px 12px;border-bottom:1px solid #ddd;letter-spacing:.5px}
+  .grille{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;padding:12px}
+  .champ{font-size:11px;color:#888}
+  .valeur{font-size:13px;border-bottom:1px dotted #bbb;padding-bottom:2px;margin-top:2px}
+  .valeur.ph{background:#e8e8e8;height:10px;border:none}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f0f0f0;text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;color:#666}
+  td{padding:6px 8px;border-bottom:1px solid #eee}
+  td.ar,th.ar{text-align:right}
+  .pied{display:flex;justify-content:flex-end;padding:12px}
+  .calc{width:380px;font-size:12px;border-left:3px solid #4682b4;padding-left:14px}
+  .ligne{display:flex;justify-content:space-between;padding:3px 0;color:#444}
+  .ligne.strong{font-weight:bold;border-top:1px solid #ccc;margin-top:6px;padding-top:6px;color:#222}
+  .cycle{display:flex;gap:0;padding:12px;align-items:center;border-top:1px dashed #ccc}
+  .etape{border:1px dashed #999;padding:6px 10px;font-size:11px;text-align:center;width:130px;color:#555;background:#fafafa}
+  .fleche{color:#999;padding:0 6px}
+  .info{background:#fdf6d8;border-top:1px solid #e0c95f;padding:7px 14px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="note">Wireframe basse fidélité — Jalon 0 — Écran : <strong>Fiche facture</strong> (M4 §4.4.4 à §4.4.7) — validation de l'ERD — montants DA stockés en centimes</div>
+<div class="app">
+  <div class="entete">
+    <div class="titre">FA-2026-00018 <span class="badge">Brouillon</span> <span class="badge">Avoir lié ?</span></div>
+    <div class="btn">Modifier</div>
+    <div class="btn">Aperçu PDF</div>
+    <div class="btn">Duplicata</div>
+    <div class="btn primary">Valider (attribue le n°)</div>
+  </div>
+  <div class="contenu">
+    <div class="bloc"><h3>EN-TÊTE (§4.4.4)</h3>
+      <div class="grille">
+        <div class="champ">Type de document<div class="valeur">FA — Facture</div></div>
+        <div class="champ">Numéro (verrouillé à la validation)<div class="valeur">—</div></div>
+        <div class="champ">Affaire<div class="valeur">AFG-2026-00012</div></div>
+        <div class="champ">Client<div class="valeur">CLI-2025-00007</div></div>
+        <div class="champ">Date d'émission<div class="valeur">30/07/2026</div></div>
+        <div class="champ">Date d'échéance<div class="valeur">29/08/2026</div></div>
+        <div class="champ">Bon de commande<div class="valeur">BC-10452</div></div>
+        <div class="champ">Mode de règlement prévu<div class="valeur">Chèque → timbre auto</div></div>
+        <div class="champ">Note de crédit (si type AV)<div class="valeur">—</div></div>
+        <div class="champ">Motif (si avoir)<div class="valeur">—</div></div>
+        <div class="champ">Source<div class="valeur">Déclaration mensuelle 07/2026</div></div>
+        <div class="champ">Rapport GITRA<div class="valeur">Inclus (rapport mensuel)</div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>LIGNES DE FACTURATION (§4.4.5)</h3>
+      <table><thead><tr>
+        <th>Code produit</th><th>Désignation</th><th>Unité</th><th class="ar">Qté</th>
+        <th class="ar">PU HT</th><th class="ar">Remise %</th><th class="ar">Montant HT</th><th>Classif.</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>BB-014</td><td>Fourniture et pose BB 0/14</td><td>t</td><td class="ar">312,500</td><td class="ar">24 800,00</td><td class="ar">0</td><td class="ar">7 750 000,00</td><td>Noir</td></tr>
+        <tr><td>LOC-ENG</td><td>Location porte-engin</td><td>j</td><td class="ar">15</td><td class="ar">45 000,00</td><td class="ar">5</td><td class="ar">641 250,00</td><td>Autre</td></tr>
+        <tr><td>BOR-T2</td><td>Bordure T2 (fourniture + pose)</td><td>ml</td><td class="ar">2 100</td><td class="ar">3 200,00</td><td class="ar">0</td><td class="ar">6 720 000,00</td><td>Blanc</td></tr>
+      </tbody></table>
+    </div>
+    <div class="bloc"><h3>PIED DE FACTURE (§4.4.6) — ordre verrouillé 📌</h3>
+      <div class="pied">
+        <div class="calc">
+          <div class="ligne"><span>Total HT lignes</span><span>15 111 250,00</span></div>
+          <div class="ligne"><span>− Remises lignes</span><span>− 33 750,00</span></div>
+          <div class="ligne"><span>− Rabais global (2 %)</span><span>− 301 550,00</span></div>
+          <div class="ligne strong"><span>= Net commercial HT</span><span>14 775 950,00</span></div>
+          <div class="ligne"><span>− Remboursement avance (prorata)</span><span>− 1 773 114,00</span></div>
+          <div class="ligne"><span>− Retenue garantie (5 % base HT)</span><span>− 738 797,50</span></div>
+          <div class="ligne strong"><span>= Total HT facture</span><span>12 264 038,50</span></div>
+          <div class="ligne"><span>+ TVA 19 %</span><span>+ 2 330 167,32</span></div>
+          <div class="ligne"><span>= Total TTC</span><span>14 594 205,82</span></div>
+          <div class="ligne"><span>+ Droit de timbre (barème, mode = Chèque)</span><span>+ 291 884,12</span></div>
+          <div class="ligne strong"><span>= NET À PAYER</span><span>14 886 089,94</span></div>
+        </div>
+      </div>
+      <div class="info">Arrondi half-up ligne par ligne puis au total (§10.3) — TAP supprimé (LF 2024) — timbre jamais si Virement/LCN (§7.1)</div>
+    </div>
+    <div class="bloc"><h3>CYCLE DE VIE</h3>
+      <div class="cycle">
+        <span class="etape">Brouillon<br>n° vide</span><span class="fleche">→</span>
+        <span class="etape">Validée<br>n° attribué &amp; verrouillé</span><span class="fleche">→</span>
+        <span class="etape">Émise / en attente<br>échéance</span><span class="fleche">→</span>
+        <span class="etape">Encaissée<br>→ M5</span>
+      </div>
+      <div class="info">Avoir : type AV + facture d'origine + motif — pas de table séparée (§4.4.12) · Annulation = supprimée logiquement, n° non réutilisé</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

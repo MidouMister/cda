@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wireframe J0 — Fiche client</title>
+<style>
+  body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f5f5f5;color:#222}
+  .note{background:#eef;border-bottom:2px solid #99c;padding:8px 16px;font-size:12px}
+  .app{max-width:1000px;margin:16px auto;background:#fff;border:1px solid #ccc}
+  .entete{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #ddd;flex-wrap:wrap}
+  .titre{font-size:16px;font-weight:bold;flex:1}
+  .btn{border:1px solid #999;padding:6px 12px;font-size:12px;color:#444;background:#fff}
+  .badge{border:1px solid #999;padding:1px 8px;font-size:11px;border-radius:10px}
+  .badge.vig{border-color:#c00;color:#c00;background:#fdecec}
+  .score{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;font-size:12px;font-weight:bold;color:#fff;background:#3a7}
+  .score.c{background:#e0a020}
+  .score.d{background:#c00}
+  .onglets{display:flex;gap:2px;padding:8px 14px 0;border-bottom:1px solid #ddd}
+  .ongl{border:1px solid #ccc;border-bottom:none;padding:6px 14px;font-size:12px;background:#f7f7f7}
+  .ongl.actif{border-top:2px solid #4682b4;background:#fff;font-weight:bold}
+  .contenu{padding:14px}
+  .bloc{border:1px solid #ddd;margin-bottom:14px}
+  .bloc h3{margin:0;font-size:12px;color:#4682b4;background:#f0f4f8;padding:6px 12px;border-bottom:1px solid #ddd;letter-spacing:.5px}
+  .grille{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;padding:12px}
+  .champ{font-size:11px;color:#888}
+  .valeur{font-size:13px;border-bottom:1px dotted #bbb;padding-bottom:2px;margin-top:2px}
+  .valeur.ph{background:#e8e8e8;height:10px;border:none}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f0f0f0;text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;color:#666}
+  td{padding:6px 8px;border-bottom:1px solid #eee}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px}
+  .kpi{background:#fafafa;border:1px solid #eee;padding:8px;text-align:center}
+  .kpi .n{font-size:15px;font-weight:bold;color:#222}
+  .kpi .l{font-size:10px;color:#888;margin-top:2px}
+  .info{background:#fdf6d8;border-top:1px solid #e0c95f;padding:7px 14px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="note">Wireframe basse fidélité — Jalon 0 — Écran : <strong>Fiche client</strong> (M2 §4.2.1 à §4.2.5) — validation de l'ERD</div>
+<div class="app">
+  <div class="entete">
+    <div class="titre">CLI-2025-00007 · DRAGADOS Oran <span class="badge">Actif</span> <span class="score">B</span> <span class="badge">Client GITRA/Groupe</span></div>
+    <div class="btn">Modifier</div>
+    <div class="btn">+ Affaire</div>
+  </div>
+  <div class="onglets">
+    <span class="ongl actif">Général</span><span class="ongl">Contacts</span><span class="ongl">Historique interactions</span>
+    <span class="ongl">Affaires</span><span class="ongl">Factures</span><span class="ongl">Encaissements</span>
+    <span class="ongl">Créances</span><span class="ongl">Documents</span>
+  </div>
+  <div class="contenu">
+    <div class="bloc"><h3>IDENTIFICATION (§4.2.1)</h3>
+      <div class="grille">
+        <div class="champ">Code client<div class="valeur">CLI-2025-00007</div></div>
+        <div class="champ">Type<div class="valeur">SARL</div></div>
+        <div class="champ">Raison sociale<div class="valeur">DRAGADOS Algérie</div></div>
+        <div class="champ">Sigle<div class="valeur">DRA</div></div>
+        <div class="champ">Catégorie<div class="valeur">Client privé</div></div>
+        <div class="champ">Secteur<div class="valeur">BTP</div></div>
+        <div class="champ">Client GITRA / Groupe<div class="valeur">Non</div></div>
+        <div class="champ">Nom du groupe / tutelle<div class="valeur ph"></div></div>
+        <div class="champ">Statut<div class="valeur">Actif</div></div>
+        <div class="champ">Responsable commercial<div class="valeur">M. Benaissa</div></div>
+        <div class="champ">Contentieux déclaré<div class="valeur">Non</div></div>
+        <div class="champ">Délai paiement habituel<div class="valeur">45 j</div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>COORDONNÉES</h3>
+      <div class="grille">
+        <div class="champ">Adresse<div class="valeur">Zone industrielle, Es Senia</div></div>
+        <div class="champ">Wilaya<div class="valeur">Oran (31)</div></div>
+        <div class="champ">Commune<div class="valeur">Es Senia</div></div>
+        <div class="champ">Tél fixe<div class="valeur">041 50 12 33</div></div>
+        <div class="champ">Tél mobile<div class="valeur">0550 12 34 56</div></div>
+        <div class="champ">Fax<div class="valeur">—</div></div>
+        <div class="champ">Email<div class="valeur">contact@dragados.dz</div></div>
+        <div class="champ">Adresse chantier<div class="valeur ph"></div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>INFORMATIONS JURIDIQUES</h3>
+      <div class="grille">
+        <div class="champ">NIF (15 chiffres)<div class="valeur">099 215 043 123 456</div></div>
+        <div class="champ">NIS (11 ou 15)<div class="valeur">099 216 045 12</div></div>
+        <div class="champ">RC<div class="valeur">31/00-0001 5B</div></div>
+        <div class="champ">AI<div class="valeur">3100042</div></div>
+        <div class="champ">RIB<div class="valeur">003 00101 0200000000 42</div></div>
+        <div class="champ">Banque<div class="valeur">BNA agence 101</div></div>
+        <div class="champ">Agence<div class="valeur">Oran Centre</div></div>
+        <div class="champ">Plafond crédit autorisé<div class="valeur">40 000 000,00 DA</div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>HISTORIQUE COMMERCIAL (AUTO §4.2.5)</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="n">4</div><div class="l">Affaires</div></div>
+        <div class="kpi"><div class="n">182 M DA</div><div class="l">Montant affaires HT</div></div>
+        <div class="kpi"><div class="n">129 M DA</div><div class="l">Facturé TTC</div></div>
+        <div class="kpi"><div class="n">104 M DA</div><div class="l">Encaissé</div></div>
+        <div class="kpi"><div class="n">25 M DA</div><div class="l">Créance nette</div></div>
+        <div class="kpi"><div class="n">45 j</div><div class="l">Délai moyen paiement</div></div>
+      </div>
+      <div class="info">Score recalculé à chaque facture/encaissement et en tâche de fond mensuelle (§4.2.4) · client GITRA/Groupe : pas de plafond auto, score protégé</div>
+    </div>
+    <div class="bloc"><h3>CONTACTS — APERÇU (onglet dédié §4.2.2)</h3>
+      <table><thead><tr><th>Nom</th><th>Fonction</th><th>Téléphone</th><th>Email</th><th>Principal</th></tr></thead>
+      <tbody><tr><td>K. Hadj</td><td>Responsable approvisionnement</td><td>0550 98 76 54</td><td>k.hadj@dragados.dz</td><td>Oui</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

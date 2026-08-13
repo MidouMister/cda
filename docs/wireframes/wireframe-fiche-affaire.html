@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wireframe J0 — Fiche affaire</title>
+<style>
+  body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f5f5f5;color:#222}
+  .note{background:#eef;border-bottom:2px solid #99c;padding:8px 16px;font-size:12px}
+  .app{max-width:1100px;margin:16px auto;background:#fff;border:1px solid #ccc}
+  .entete{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #ddd;flex-wrap:wrap}
+  .titre{font-size:16px;font-weight:bold;flex:1}
+  .btn{border:1px solid #999;padding:6px 12px;font-size:12px;color:#444;background:#fff}
+  .btn.primary{border-color:#4682b4;background:#4682b4;color:#fff}
+  .badge{border:1px solid #999;padding:1px 8px;font-size:11px;border-radius:10px}
+  .onglets{display:flex;gap:2px;padding:8px 14px 0;border-bottom:1px solid #ddd}
+  .ongl{border:1px solid #ccc;border-bottom:none;padding:6px 14px;font-size:12px;background:#f7f7f7}
+  .ongl.actif{border-top:2px solid #4682b4;background:#fff;font-weight:bold}
+  .contenu{padding:14px}
+  .bloc{border:1px solid #ddd;margin-bottom:14px}
+  .bloc h3{margin:0;font-size:12px;color:#4682b4;background:#f0f4f8;padding:6px 12px;border-bottom:1px solid #ddd;letter-spacing:.5px}
+  .grille{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;padding:12px}
+  .champ{font-size:11px;color:#888}
+  .valeur{font-size:13px;border-bottom:1px dotted #bbb;padding-bottom:2px;margin-top:2px}
+  .valeur.ph{background:#e8e8e8;height:10px;border:none}
+  .mini{font-size:11px;color:#777}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f0f0f0;text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;color:#666}
+  td{padding:6px 8px;border-bottom:1px solid #eee}
+  .frise{display:flex;gap:0;padding:14px 12px;align-items:center}
+  .etape{border:1px dashed #999;padding:6px 10px;font-size:11px;text-align:center;width:120px;color:#555;background:#fafafa}
+  .fleche{color:#999;padding:0 6px}
+  .calc{background:#fafaf3;border-top:1px dashed #ccc;padding:8px 12px;font-size:12px;color:#555}
+</style>
+</head>
+<body>
+<div class="note">Wireframe basse fidélité — Jalon 0 — Écran : <strong>Fiche affaire</strong> (M1 §4.1.3 à §4.1.5, §4.1.7, §4.1.7bis) — validation de l'ERD</div>
+<div class="app">
+  <div class="entete">
+    <div class="titre">AFG-2026-00012 <span class="badge">En cours</span></div>
+    <div class="btn">Modifier</div>
+    <div class="btn">+ Avenant</div>
+    <div class="btn primary">+ Facture</div>
+  </div>
+  <div class="onglets">
+    <span class="ongl actif">Général</span><span class="ongl">DQE</span><span class="ongl">Attachements</span>
+    <span class="ongl">Réceptions</span><span class="ongl">Avenants</span><span class="ongl">Factures</span>
+    <span class="ongl">Correspondances</span><span class="ongl">Délais</span><span class="ongl">Documents</span>
+  </div>
+  <div class="contenu">
+    <div class="bloc"><h3>IDENTIFICATION — CHAMPS COMMUNS (§4.1.3)</h3>
+      <div class="grille">
+        <div class="champ">Référence<div class="valeur">AFG-2026-00012</div></div>
+        <div class="champ">Type<div class="valeur">Marché public</div></div>
+        <div class="champ">Affaire mère<div class="valeur ph"></div></div>
+        <div class="champ">Client<div class="valeur">DRAGADOS … (CLI-2025-00007)</div></div>
+        <div class="champ">Objet<div class="valeur">Réhabilitation RN11 tronçon …</div></div>
+        <div class="champ">Montant initial HT<div class="valeur">96 420 000,00 DA</div></div>
+        <div class="champ">Taux TVA (verrouillé)<div class="valeur">19 %</div></div>
+        <div class="champ">Rabais global<div class="valeur">2,00 %</div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>DATES &amp; ORDRES</h3>
+      <div class="grille">
+        <div class="champ">Date signature<div class="valeur">10/01/2026</div></div>
+        <div class="champ">Date notification<div class="valeur">28/01/2026</div></div>
+        <div class="champ">N° ODS<div class="valeur">ODS-2026-0042</div></div>
+        <div class="champ">Date ODS<div class="valeur">02/02/2026</div></div>
+        <div class="champ">Démarrage effectif<div class="valeur">09/02/2026</div></div>
+        <div class="champ">Délai exécution<div class="valeur">220 j</div></div>
+        <div class="champ">Fin contractuelle (calculé)<div class="valeur">10/09/2026</div></div>
+        <div class="champ">Fin réelle<div class="valeur ph"></div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>MARCHÉ PUBLIC (§4.1.4)</h3>
+      <div class="grille">
+        <div class="champ">N° marché<div class="valeur">MP-2025/147</div></div>
+        <div class="champ">Service contractant<div class="valeur">DTP Oran</div></div>
+        <div class="champ">Type procédure<div class="valeur">AO ouvert</div></div>
+        <div class="champ">Avance forfaitaire<div class="valeur">12 % (max 15 %)</div></div>
+        <div class="champ">Avance appro.<div class="valeur">—</div></div>
+        <div class="champ">Caution restitution avance<div class="valeur">→ M11</div></div>
+        <div class="champ">Caution bonne exécution<div class="valeur">→ M11</div></div>
+        <div class="champ">Retenue garantie<div class="valeur">5 % base HT</div></div>
+        <div class="champ">Délai garantie<div class="valeur">13 mois</div></div>
+        <div class="champ">Type de révision<div class="valeur">Révisable</div></div>
+        <div class="champ">Pénalités retard<div class="valeur">0,10 %/j — plafond 5 %</div></div>
+        <div class="champ">Réception provisoire / définitive<div class="valeur">— / —</div></div>
+      </div>
+    </div>
+    <div class="bloc"><h3>SUIVI DES DÉLAIS &amp; SUSPENSIONS (§4.1.7)</h3>
+      <div class="frise">
+        <span class="etape">ODS<br>02/02/2026<br>Démarrage</span><span class="fleche">→</span>
+        <span class="etape">Suspension<br>15/03/2026 – 22/03/2026<br>Intempéries</span><span class="fleche">→</span>
+        <span class="etape">Reprise<br>23/03/2026<br>Délai gelé</span><span class="fleche">→</span>
+        <span class="etape">Avenant prorogation<br>+ 30 j</span>
+      </div>
+      <div class="calc">Fin révisée = Date ODS + Délai initial + Σ suspensions + Σ prorogations — calcul auto (§4.1.7)</div>
+    </div>
+    <div class="bloc"><h3>RÉCEPTIONS (§4.1.7bis) — aperçu onglet</h3>
+      <table><thead><tr><th>N° PV</th><th>Date</th><th>Lot/tranche</th><th>Montant concerné</th><th>Type</th></tr></thead>
+      <tbody><tr><td>PV-001</td><td>30/07/2026</td><td>Tronçon 2 — enrobés</td><td>32 140 000,00 DA</td><td>Provisoire</td></tr></tbody></table>
+    </div>
+    <div class="bloc"><h3>DQE — APERÇU (onglet dédié, import M13)</h3>
+      <table><thead><tr><th>N°</th><th>Désignation</th><th>Unité</th><th>Qté</th><th>PU HT</th><th>Montant HT</th><th>Famille</th><th>Classif.</th></tr></thead>
+      <tbody>
+        <tr><td>01</td><td>Fourniture et pose BB 0/14</td><td>t</td><td>1 250,000</td><td>24 800,00</td><td>31 000 000,00</td><td>Réalisation</td><td>Noir</td></tr>
+        <tr><td>02</td><td>Location engin (porte-engin)</td><td>j</td><td>60</td><td>45 000,00</td><td>2 700 000,00</td><td>Location</td><td>Autre</td></tr>
+        <tr><td>03</td><td>Bordure T2 (fourniture + pose)</td><td>ml</td><td>8 400</td><td>3 200,00</td><td>26 880 000,00</td><td>Réalisation</td><td>Blanc</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
