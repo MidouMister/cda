@@ -3,6 +3,7 @@ import { Nif, NumeroDocument } from './identites'
 import type { CategorieClassification } from './classification'
 import {
   MODES_REGLEMENT,
+  MODES_REGLEMENT_EFFECTIFS,
   UNITES_PRODUIT,
   verifierBinaire,
   verifierChaineNonVide,
@@ -11,6 +12,7 @@ import {
   verifierEntierPositif,
   verifierParmi,
   type ModeReglement,
+  type ModeReglementEffectif,
   type Unite,
 } from './entites-referentielles'
 import { calculerMontantLigne } from './entites-commerciales'
@@ -49,8 +51,12 @@ const verifierDateOptionnelle = (valeur: string | undefined, libelle: string): s
 
 const chaineOuNulle = (valeur: string | undefined): string | null => valeur ?? null
 
-// Ordre §4.4.6 : HT lignes − remises = net commercial ; puis remboursement
-// d'avance et retenue de garantie (base HT, avant TVA) ; TVA ; timbre ; net à payer.
+// Enchaînement §4.4.6 : HT lignes − remises (ligne + rabais marché ligne) =
+// net commercial ; puis remboursement d'avance et retenue de garantie (base HT,
+// avant TVA) ; TVA ; TTC. NET À PAYER = total TTC : le droit de timbre ne
+// figure plus dans le pied (décision 15/08/2026) ; l'écart d'arrondi du rabais
+// marché est tracé dans `ajustement_ecart_audit` (chaîne pour le journal d'audit,
+// écrite par le dépôt en Phase D).
 export interface PiedFacture {
   readonly total_ht_lignes_centimes: number
   readonly total_remises_centimes: number
@@ -60,8 +66,8 @@ export interface PiedFacture {
   readonly total_ht_centimes: number
   readonly total_tva_centimes: number
   readonly total_ttc_centimes: number
-  readonly droit_timbre_centimes: number
   readonly net_a_payer_centimes: number
+  readonly ajustement_ecart_audit: string | null
 }
 
 export interface DonneesFacture {
@@ -80,8 +86,12 @@ export interface DonneesFacture {
   rabais_global_bps?: number
   retenue_garantie_bps?: number
   remboursement_avance_centimes?: number
+  // mode_reglement_prevu : historique (MODES_REGLEMENT complet), valeur de
+  // référence au moment de l'émission — conservé tel quel.
   mode_reglement_prevu?: ModeReglement
-  mode_reglement_effectif?: ModeReglement
+  // mode_reglement_effectif : mode réellement utilisé à l'encaissement — limité
+  // aux modes EFFECTIFS de la version courante (décision 15/08/2026).
+  mode_reglement_effectif?: ModeReglementEffectif
   total_ht_lignes_centimes?: number
   total_remises_centimes?: number
   net_commercial_ht_centimes?: number
@@ -89,6 +99,8 @@ export interface DonneesFacture {
   total_ht_centimes?: number
   total_tva_centimes?: number
   total_ttc_centimes?: number
+  // DÉPRÉCIÉ (15/08/2026) : conservé pour l'historique/compatibilité de la base,
+  // plus alimenté par le moteur de facturation (timbre manuel à l'encaissement).
   droit_timbre_centimes?: number
   interets_moratoires_centimes?: number
   net_a_payer_centimes?: number
@@ -116,7 +128,7 @@ interface FactureNormalise {
   readonly retenue_garantie_bps: number
   readonly remboursement_avance_centimes: number
   readonly mode_reglement_prevu: ModeReglement | null
-  readonly mode_reglement_effectif: ModeReglement | null
+  readonly mode_reglement_effectif: ModeReglementEffectif | null
   readonly total_ht_lignes_centimes: number
   readonly total_remises_centimes: number
   readonly net_commercial_ht_centimes: number
@@ -160,7 +172,7 @@ export class Facture {
       verifierParmi(donnees.mode_reglement_prevu, MODES_REGLEMENT, 'mode de règlement prévu')
     }
     if (donnees.mode_reglement_effectif !== undefined) {
-      verifierParmi(donnees.mode_reglement_effectif, MODES_REGLEMENT, 'mode de règlement effectif')
+      verifierParmi(donnees.mode_reglement_effectif, MODES_REGLEMENT_EFFECTIFS, 'mode de règlement effectif')
     }
 
     const rabais_global_bps = donnees.rabais_global_bps ?? 0
@@ -178,6 +190,8 @@ export class Facture {
       total_ht_centimes: donnees.total_ht_centimes ?? 0,
       total_tva_centimes: donnees.total_tva_centimes ?? 0,
       total_ttc_centimes: donnees.total_ttc_centimes ?? 0,
+      // DÉPRÉCIÉ (15/08/2026) : conservé pour l'historique, plus alimenté par le
+      // moteur de facturation (timbre manuel à l'encaissement).
       droit_timbre_centimes: donnees.droit_timbre_centimes ?? 0,
       interets_moratoires_centimes: donnees.interets_moratoires_centimes ?? 0,
       net_a_payer_centimes: donnees.net_a_payer_centimes ?? 0,
@@ -293,7 +307,7 @@ export class Facture {
     return this._donnees.mode_reglement_prevu
   }
 
-  get mode_reglement_effectif(): ModeReglement | null {
+  get mode_reglement_effectif(): ModeReglementEffectif | null {
     return this._donnees.mode_reglement_effectif
   }
 
@@ -367,6 +381,9 @@ export interface DonneesLigneFacture {
   quantite_milliemes?: number
   pu_ht_centimes?: number
   remise_bps?: number
+  // Rabais marché contractuel, figé sur la ligne au moment de la facturation
+  // (copié de `affaires.rabais_marche_bps`, décision 15/08/2026 — §4.4.5bis).
+  rabais_marche_bps?: number
   famille_id?: number
   sous_famille_id?: number
   classification?: CategorieClassification
@@ -381,8 +398,11 @@ interface LigneFactureNormalise {
   readonly quantite_milliemes: number
   readonly pu_ht_centimes: number
   readonly remise_bps: number
+  readonly rabais_marche_bps: number
   readonly montant_ht_brut_centimes: number
   readonly montant_ht_remise_centimes: number
+  readonly montant_rabais_marche_centimes: number
+  readonly montant_ht_net_centimes: number
   readonly famille_id: number | null
   readonly sous_famille_id: number | null
   readonly classification: CategorieClassification | null
@@ -403,6 +423,8 @@ export class LigneFacture {
     verifierEntierNonNegatif(pu_ht_centimes, 'PU HT en centimes')
     const remise_bps = donnees.remise_bps ?? 0
     verifierEntierNonNegatif(remise_bps, 'remise de ligne en bps')
+    const rabais_marche_bps = donnees.rabais_marche_bps ?? 0
+    verifierEntierNonNegatif(rabais_marche_bps, 'rabais marché de ligne en bps')
 
     if (donnees.classification !== undefined) {
       verifierParmi(donnees.classification, ['NOIR', 'BLANC', 'AUTRE'], 'classification')
@@ -414,6 +436,12 @@ export class LigneFacture {
 
     const montant_ht_brut_centimes = calculerMontantLigne(pu_ht_centimes, quantite_milliemes)
     const remise_centimes = Montant.depuisCentimes(montant_ht_brut_centimes).appliquerTauxBps(remise_bps).centimes
+    // §4.4.5bis : rabais marché sur la base = BRUT (décision 15/08/2026), distinct
+    // de la remise de ligne ; net ligne = brut − remise − rabais marché.
+    const rabais_marche_centimes = Montant.depuisCentimes(montant_ht_brut_centimes)
+      .appliquerTauxBps(rabais_marche_bps)
+      .centimes
+    const montant_ht_net_centimes = montant_ht_brut_centimes - remise_centimes - rabais_marche_centimes
 
     return new LigneFacture({
       id: donnees.id,
@@ -424,8 +452,11 @@ export class LigneFacture {
       quantite_milliemes,
       pu_ht_centimes,
       remise_bps,
+      rabais_marche_bps,
       montant_ht_brut_centimes,
       montant_ht_remise_centimes: montant_ht_brut_centimes - remise_centimes,
+      montant_rabais_marche_centimes: rabais_marche_centimes,
+      montant_ht_net_centimes,
       famille_id: donnees.famille_id ?? null,
       sous_famille_id: donnees.sous_famille_id ?? null,
       classification: donnees.classification ?? null,
@@ -464,12 +495,24 @@ export class LigneFacture {
     return this._donnees.remise_bps
   }
 
+  get rabais_marche_bps(): number {
+    return this._donnees.rabais_marche_bps
+  }
+
   get montant_ht_brut_centimes(): number {
     return this._donnees.montant_ht_brut_centimes
   }
 
   get montant_ht_remise_centimes(): number {
     return this._donnees.montant_ht_remise_centimes
+  }
+
+  get montant_rabais_marche_centimes(): number {
+    return this._donnees.montant_rabais_marche_centimes
+  }
+
+  get montant_ht_net_centimes(): number {
+    return this._donnees.montant_ht_net_centimes
   }
 
   get famille_id(): number | null {

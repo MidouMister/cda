@@ -29,6 +29,7 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | Dépassement (jours) | calculé (`date_fin_reelle − date_fin_contractuelle`) | ✅ calculé |
 | Motif dépassement | `affaires.motif_depassement` | ✅ |
 | Rabais global | `affaires.rabais_global_bps` | ✅ |
+| Rabais marché (marchés publics) | `affaires.rabais_marche_bps` (taux contractuel, copié et **figé sur chaque ligne** à la facturation — décision 15/08/2026) | ✅ |
 | Statut | `affaires.statut` (7 valeurs) | ✅ |
 | Responsable | `affaires.responsable` (texte, mono-utilisateur 📌) | ✅ |
 
@@ -173,7 +174,7 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | Responsable commercial | `clients.responsable_commercial` | ✅ |
 | Contentieux déclaré | `clients.contentieux_declare` | ✅ |
 | Coordonnées (adresse, wilaya, commune, tél, fax, email, chantier) | `clients.adresse` / `wilaya` / `commune` / `tel_fixe` / `tel_mobile` / `fax` / `email` / `adresse_chantier` | ✅ |
-| NIF / NIS / RC / AI | `clients.nif` / `nis` / `rc` / `ai` | ✅ |
+| NIF / NIS / RC / AI | `clients.nif` / `nis` / `rc` / `ai` — **NIS = texte de 15 chiffres exactement** (zéros initiaux conservés, séparé du NIF/RC/AI) | ✅ |
 | RIB / Banque / Agence | `clients.rib` / `banque` / `agence` | ✅ |
 | Mode règlement préféré | `clients.mode_reglement_prefere` | ✅ |
 | Délai paiement habituel | `clients.delai_paiement_jours` | ✅ |
@@ -220,7 +221,7 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 
 | Champ PRD | Trace | Statut |
 |---|---|---|
-| VENTES / LOCATIONS / RÉALISATIONS / SOUS-TRAITANCE | `familles` (+ `sous_familles`) | ✅ |
+| Vente / Location / Réalisation / Sous-traitance (codes canoniques VTE/LOC/REA/ST, libellés d'affichage uniquement) | `familles` (+ `sous_familles`) | ✅ |
 
 ### §4.3.2 Fiche produit
 
@@ -292,8 +293,8 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | Retenue de garantie | `factures.retenue_garantie_bps` (base HT) | ✅ |
 | Remboursement avance | `factures.remboursement_avance_centimes` (prorata) | ✅ |
 | TVA | 19 % verrouillé (`taux_tva` sur affaire/produit) | ✅ |
-| Mode de règlement prévu | `factures.mode_reglement_prevu` | ✅ |
-| Droit de timbre | `factures.droit_timbre_centimes` (barème §4.7.3, **uniquement si règlement en espèces**) | ✅ |
+| Mode de règlement prévu | `factures.mode_reglement_prevu` (VIREMENT/CHEQUE/ESPECES/TRAITE/LCN, inchangé). ⚠️ **Liste à réviser** : la décision 15/08/2026 limite les modes de règlement de cette version à ESPECES, CHEQUE, VIREMENT_BANCAIRE, DEPOT_ESPECES_BANQUE — l'alignement de `mode_reglement_prevu` (migration 1 verrouillée) est à trancher | ✅ |
+| Droit de timbre | `factures.droit_timbre_centimes` — **DÉPRÉCIÉ** (conservé historique, plus alimenté) ; timbre traité **manuellement à l'encaissement** (15/08/2026) | ⏸ déprécié |
 
 ### §4.4.5 Lignes de facturation
 
@@ -302,7 +303,11 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | Code produit / libellé / unité / PU | `lignes_facture` (`produit_id`, `designation`, `unite`, `pu_ht_centimes`) | ✅ |
 | Quantité / Montant HT | `lignes_facture.quantite_milliemes` / `montant_ht_brut_centimes` / `montant_ht_remise_centimes` | ✅ |
 | Remise ligne | `lignes_facture.remise_bps` | ✅ |
+| Rabais marché (marchés publics, ligne par ligne) | `lignes_facture.rabais_marche_bps` (taux **figé** à la facturation) / `montant_rabais_marche_centimes` / `montant_ht_net_centimes` | ✅ 🆕 |
+| Ligne d'ajustement d'arrondi (documents privés, optionnelle) | `lignes_facture.type_ligne='AJUSTEMENT_ARRONDI'` — marchés publics : écart ≤ 2 centimes appliqué à la ligne éligible la plus élevée, **tracé dans le journal d'audit** | ✅ 🆕 |
 | Famille + Classification auto | `lignes_facture.famille_id` / `sous_famille_id` / `classification` | ✅ |
+
+Calcul de ligne (décision 15/08/2026) : brut → remise ligne (`montant_ht_remise_centimes`) → rabais marché figé (`montant_rabais_marche_centimes`) → **net ligne = brut − rabais** (`montant_ht_net_centimes`), arrondi half-up ligne par ligne (§10.3).
 
 ### §4.4.6 Pied de facture
 
@@ -310,9 +315,11 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 |---|---|---|
 | Total HT lignes − remises − rabais → Net commercial | `factures.total_ht_lignes_centimes` / `total_remises_centimes` / `net_commercial_ht_centimes` | ✅ |
 | − Remboursement avance − Retenue garantie → Total HT | `factures.remboursement_avance_centimes` / `retenue_garantie_centimes` / `total_ht_centimes` | ✅ |
-| + TVA 19 % → TTC | `factures.total_tva_centimes` / `total_ttc_centimes` | ✅ |
-| + Droit de timbre → NET À PAYER | `factures.droit_timbre_centimes` / `net_a_payer_centimes` | ✅ |
+| + TVA 19 % → TTC (**TTC = HT + TVA strictement**) | `factures.total_tva_centimes` / `total_ttc_centimes` | ✅ |
+| NET À PAYER = **total TTC** (sans timbre) | `factures.net_a_payer_centimes` (= `total_ttc_centimes`) | ✅ |
 | Centimes, arrondi half-up ligne puis total | `domaine/calculerPiedFacture` (D9, J1) | ✅ |
+
+Le **droit de timbre ne fait plus partie du pied de facture** (décision 15/08/2026) : retiré du chemin de calcul, traité manuellement à l'encaissement (module « Encaissements (structure minimale) » ci-dessous).
 
 ### §4.4.7 ST — hors MVP (Phase 2), §4.4.7bis révision de prix — hors MVP (Phase 2)
 
@@ -350,6 +357,29 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 
 ---
 
+## M5 — Encaissements (structure minimale) 🆕
+
+**Portée validée le 15/08/2026 (chef du département Commercial)** : une facture a **0..N encaissements** ; passage à `PAYEE` **uniquement au solde nul**. L'affectation multi-factures (N—N), l'échéancier des créances, les relances et le recouvrement restent hors périmètre MVP (Phase 2).
+
+### §4.5.1 Fiche encaissement (structure minimale)
+
+| Champ PRD | Trace | Statut |
+|---|---|---|
+| N° encaissement (`ENC-YYYY-NNNNN`) | `encaissements.numero` (compteur `ENC`, §4.7.5) — index proposé : unique partiel `WHERE supprime_le IS NULL` | ✅ 🆕 |
+| Date (stockée `AAAA-MM-JJ`, affichée `JJ/MM/AAAA`) | `encaissements.date_encaissement` | ✅ 🆕 |
+| Facture concernée | `encaissements.facture_id` (FK — 0..N encaissements par facture) | ✅ 🆕 |
+| Montant encaissé | `encaissements.montant_encaisse_centimes` (`CHECK > 0` ; ne dépasse jamais le montant dû) | ✅ 🆕 |
+| Mode de règlement effectif | `encaissements.mode_reglement_effectif` (`ESPECES`, `CHEQUE`, `VIREMENT_BANCAIRE`, `DEPOT_ESPECES_BANQUE`) | ✅ 🆕 |
+| Droit de timbre (traitement **manuel**) | `encaissements.timbre_statut` (`A_VERIFIER`/`TRAITE`/`NON_APPLICABLE`), `montant_timbre_saisi_centimes`, `timbre_traite_le`, `timbre_traite_par`, `reference_timbre_ou_quittance`, `commentaire_timbre` | ✅ 🆕 |
+| Statut de la facture | `factures.statut` → `PAYEE` au solde nul uniquement | ✅ |
+| Audit | triggers INSERT/UPDATE/DELETE sur `encaissements` (table sensible) | ✅ 🆕 |
+
+### §4.5.2 Affectation (FIFO, multi-factures) — hors MVP (Phase 2) | ⏸ Phase 2
+
+### §4.5.3–§4.5.8 (impayés, échéancier, relances, provisions, écrans M5) — hors MVP (Phase 2) | ⏸ Phase 2
+
+---
+
 ## M7 — Paramétrage & Administration
 
 ### §4.7.1 Sécurité — hors schéma (mot de passe, enveloppes, `egto-admin-reset`, J2)
@@ -359,8 +389,8 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | Champ PRD | Trace | Statut |
 |---|---|---|
 | Dénomination, forme, capital, RC, NIF, NIS, AI, adresse, tél, fax, email, logo, mention | `parametres` (clé-valeur) | ✅ |
-| Seuil max des espèces pour le timbre (1 M DA) | `parametres.timbre.seuil_max_especes_centimes` | ✅ |
-| Barème du timbre (tranches + plancher + plafond) | `bareme_timbre` | ✅ |
+| Seuil max des espèces pour le timbre (1 M DA) | `parametres.timbre.seuil_max_especes_centimes` — **DÉPRÉCIÉ** (historique, retiré du calcul) | ⏸ déprécié |
+| Barème du timbre (tranches + plancher + plafond) | `bareme_timbre` — **DÉPRÉCIÉ** (historique, retiré du calcul) | ⏸ déprécié |
 
 ### §4.7.4 Exercices & périodes
 
@@ -382,7 +412,8 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 
 | Champ PRD | Trace | Statut |
 |---|---|---|
-| CRUD critiques tracés, lecture seule | `journal_audit` + **triggers** (clients, affaires, avenants, devis, factures, bons_livraison) | ✅ |
+| CRUD critiques tracés, lecture seule | `journal_audit` + **triggers** (clients, affaires, avenants, devis, factures, bons_livraison, **encaissements**) | ✅ |
+| Trace de l'écart d'arrondi des marchés publics (≤ 2 centimes) | `journal_audit` (règle de ligne, décision 15/08/2026) | ✅ |
 | Rétention illimitée, export annuel | opérationnel (fichier) | ✅ |
 
 ### §4.7.9 Journal applicatif — fichiers rotatifs `userData/logs/` (M15, J2) — hors schéma
@@ -422,7 +453,7 @@ Livrable du DoD J0 : **chaque champ des tableaux §4.1 à §4.13 (périmètre MV
 | ST (documents, numérotés par marché) | Phase 2 | §4.4.7 |
 | Révision de prix (champs `type_revision`/`formule_revision` réservés) | Phase 2 | §4.4.7bis |
 | Rapport mensuel GITRA | Phase 2 (**bloqué**, template) | §16.1 |
-| Créances / encaissements (`encaissements`, liaison N—N) | Phase 2 | M5 |
+| Créances / recouvrement (affectation multi-factures N—N, échéancier, relances) | Phase 2 | M5 — la **structure minimale** `encaissements` (0..N par facture, solde nul → `PAYEE`) est **MVP** (décision 15/08/2026) |
 | Cautions / garanties (`cautions`) | Phase 2 | M11 |
 | Échéancier retenues (`retenues_garantie_echeances`) | Phase 2 | M12 |
 | Sous-traitance (`sous_traitants`, `bcst`, `decomptes_sst`) | Phase 2 | M8 |

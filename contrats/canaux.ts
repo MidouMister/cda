@@ -19,4 +19,10 @@ export const CANAUX = {
     lister: 'clients.lister',
     creer: 'clients.creer',
   },
+  encaissements: {
+    lister: 'encaissements.lister',
+    creer: 'encaissements.creer',
+    supprimer: 'encaissements.supprimer',
+    modifierTimbre: 'encaissements.modifierTimbre',
+  },
 } as const

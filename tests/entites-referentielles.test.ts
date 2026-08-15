@@ -11,7 +11,7 @@ import {
 } from '../domaine/entites-referentielles'
 
 const nifValide = () => Nif.depuisValeur('099916012345678')
-const nisValide = () => Nis.depuisValeur('09991601234')
+const nisValide = () => Nis.depuisValeur('001234567890123')
 
 describe('Client', () => {
   it('construit un client complet valide avec tous les champs optionnels', () => {
@@ -71,7 +71,7 @@ describe('Client', () => {
     expect(client.email).toBe('contact@btpm.dz')
     expect(client.adresse_chantier).toBe('Route d’Arzew')
     expect(client.nif?.valeur).toBe('099916012345678')
-    expect(client.nis?.valeur).toBe('09991601234')
+    expect(client.nis?.valeur).toBe('001234567890123')
     expect(client.rc).toBe('RC 31/00-000')
     expect(client.ai).toBe('AI 31 00 000')
     expect(client.rib).toBe('001 002 003 004 005')
@@ -257,7 +257,7 @@ describe('Client', () => {
         raison_sociale: 'BTP Méditerranée',
         categorie: 'PRIVE',
         nif: nifValide(),
-        nis: '09991601234' as unknown as Nis,
+        nis: '001234567890123' as unknown as Nis,
       }),
     ).toThrow(TypeError)
   })

@@ -4,8 +4,8 @@
 ### E.G.T.O — Entreprise des Grands Travaux de l'Ouest
 #### Oran, Algérie
 
-**Version 2.1 FINALE — Août 2026**
-*Document consolidé et autonome. Fusionne le PRD v1.1, la refonte v2.0 et les correctifs v2.1. Ce document seul suffit au développement — aucune référence externe n'est requise.*
+**Version 2.2 — Août 2026**
+*Document consolidé et autonome. Fusionne le PRD v1.1, la refonte v2.0, les correctifs v2.1 et les décisions métier v2.2. Ce document seul suffit au développement — aucune référence externe n'est requise.*
 
 **Conventions utilisées dans ce document :**
 - 📌 = décision tranchée, non négociable
@@ -21,6 +21,7 @@
 | v1.1 | Version initiale (8 modules M1–M8, stack Electron/React/TypeScript) |
 | v2.0 | Refonte suite à audit : phasage 5 étapes, nouveaux modules, fiscalité, sécurité, glossaire, NFR, critères d'acceptation |
 | v2.1 | Correction de 5 erreurs bloquantes + spécifications complémentaires (attachements, révision de prix, clé SQLCipher, barème timbre) |
+| v2.2 | **15/08/2026 — Décisions métier (chef du département Commercial)** : rabais des marchés publics appliqué **ligne par ligne** ; **droit de timbre traité manuellement à l'encaissement** (plus aucun calcul dans le pied de facture — TTC = HT + TVA strictement) ; **familles validées** (VTE/LOC/REA/ST) ; **NIS = texte de 15 chiffres exactement** ; **TAP supprimée définitivement** (pas de remplacement TLS) |
 
 **Modules de la version finale :**
 
@@ -127,7 +128,7 @@ Une affaire = un engagement commercial avec un client. Types :
 | Date fin réelle | Date | |
 | Dépassement (jours) | Calculé | `Fin réelle − Fin contractuelle` |
 | Motif dépassement | Liste | Force majeure / Avenant / Retard client / Retard appro / Autre |
-| Rabais global | % | |
+| Rabais marché | % | **Taux contractuel** (marché public), appliqué **ligne par ligne** à la facturation (§4.4.5bis) — champ `affaires.rabais_marche_bps`, copié et **figé sur chaque ligne** au moment de la facturation ; l'ancien champ `rabais_global_bps` reste pour l'historique |
 | Statut | Liste | **Signé / ODS reçu / En cours / Facturé / Soldé / Archivé / Résilié** — 📌 *« Prospect / Devis envoyé / Négociation » retirés : ces étapes pré-signature sont portées exclusivement par le Devis (M9) pour le contrat privé, et par le Registre des consultations (Phase 3) pour le marché public. Une Affaire n'est jamais créée avant d'être gagnée — cohérent avec §4.9.3.* |
 | Responsable | Texte libre | 📌 Champ texte simple assumé (mono-utilisateur, pas de table Utilisateurs) |
 
@@ -212,9 +213,9 @@ Chaque mois, création d'une déclaration globale regroupant toutes les affaires
 |---|---|---|---|---|---|---|---|---|---|
 
 **Classification auto** (non modifiable, **figée en snapshot sur chaque ligne au moment de la saisie** 📌 — un changement ultérieur de sous-famille catalogue ne réécrit pas l'historique) :
-- **NOIR** : VENTES (tous) + RÉALISATIONS enrobés/bitume (BB, GB, Cut Back, Émulsion, Fraisage, Mise en œuvre BB/GB)
-- **BLANC** : RÉALISATIONS génie civil / terrassement / VRD (Béton armé, Bordure T2, Terrassement, Fondation, Électricité, Plomberie)
-- **AUTRE** : LOCATIONS + SOUS-TRAITANCE (Location engin, Porte-engin, Personnel, Études)
+- **NOIR** : Vente (tous) + Réalisation enrobés/bitume (BB, GB, Cut Back, Émulsion, Fraisage, Mise en œuvre BB/GB)
+- **BLANC** : Réalisation génie civil / terrassement / VRD (Béton armé, Bordure T2, Terrassement, Fondation, Électricité, Plomberie)
+- **AUTRE** : Location + Sous-traitance (Location engin, Porte-engin, Personnel, Études)
 
 **Règles métier** :
 - Une seule déclaration par mois
@@ -314,7 +315,7 @@ Onglet « Attachements » de la fiche affaire :
 
 **Coordonnées** : Adresse, Wilaya, Commune, Tél fixe, Tél mobile, Fax, Email, Adresse chantier
 
-**Informations juridiques** : NIF (15 chiffres ⚠️ à vérifier sur documents réels), NIS (11 chiffres ⚠️ à vérifier), RC, AI, RIB, Banque, Agence
+**Informations juridiques** : NIF (15 chiffres), **NIS (texte de 15 chiffres exactement — décision 15/08/2026, zéros initiaux conservés, §16.5)**, RC, AI, RIB, Banque, Agence
 
 **Conditions commerciales** : Mode règlement préféré, Délai paiement habituel (jours), Plafond crédit autorisé
 
@@ -373,10 +374,12 @@ Journal chronologique léger, adapté au contexte mono-utilisateur :
 #### 4.3.1 Architecture (4 familles)
 | Famille | Code | Description |
 |---------|------|-------------|
-| **VENTES** | `VTE` | Enrobés sous trémie, bitumes, granulats |
-| **LOCATIONS** | `LOC` | Engins, porte-engin, terrain, équipements |
-| **RÉALISATIONS** | `REA` | Fourniture + pose, mise en œuvre, préparation terrain, VRD |
-| **SOUS-TRAITANCE (CA)** | `ST` | Personnel, études, prestations spécifiques |
+| **Vente** | `VTE` | Enrobés sous trémie, bitumes, granulats |
+| **Location** | `LOC` | Engins, porte-engin, terrain, équipements |
+| **Réalisation** | `REA` | Fourniture + pose, mise en œuvre, préparation terrain, VRD |
+| **Sous-traitance** | `ST` | Personnel, études, prestations spécifiques |
+
+> 🆕 **Familles validées le 15/08/2026 (chef du département Commercial)** : codes `VTE`, `LOC`, `REA`, `ST` et libellés singuliers ci-dessus. **Une famille ne détermine ni TVA, ni droit de timbre, ni rabais, ni prix** — elle organise le catalogue (§4.3.2) et alimente la classification Noir/Blanc/Autre (§4.3.4, §4.1.8).
 
 #### 4.3.2 Fiche Produit
 | Champ | Type |
@@ -438,34 +441,55 @@ Brouillon → Validée → Imprimée → Envoyée → Payée → Archivée
 | Adresse facturation | Siège ou chantier |
 | NIF client | Auto |
 | N° BC client | Texte libre |
-| Rabais global | % |
-| Remise par ligne | % (en plus du rabais global) |
+| Rabais marché % | Taux contractuel de l'affaire, appliqué **ligne par ligne** (figé sur chaque ligne — §4.4.5bis) |
+| Remise par ligne | % (distincte du rabais marché — §4.4.5bis) |
 | Retenue de garantie | % sur montant **HT** (selon affaire, 📌 tranché) |
 | Remboursement avance | 📌 **Calculé automatiquement au prorata** de l'avance sur chaque ST (ajustable manuellement si besoin) |
 | TVA | 19 % (taux unique) |
-| 🆕 **Mode de règlement prévu** | Virement / Chèque / Espèces / Traite / LCN — saisi à la création, modifiable jusqu'à validation. Détermine l'assujettissement au droit de timbre (voir §7.1). Si le règlement effectif diffère (constaté à l'encaissement M5), traité par écart en ND — cas rare, à documenter au manuel utilisateur |
-| Droit de timbre | Calculé automatiquement selon le barème en vigueur (§4.7.3) **uniquement si le Mode de règlement prévu = Espèces** (versement dans la caisse de l'entreprise), plafonné au seuil des espèces paramétré (défaut 1 000 000 DA) — **jamais pour Chèque, Traite, Virement ou LCN** ✅ *déclencheur confirmé par le comptable le 09/08/2026* |
+| 🆕 **Mode de règlement prévu** | Virement / Chèque / Espèces / Traite / LCN — saisi à la création, modifiable jusqu'à validation. L'information est conservée (constat d'écart éventuel avec le règlement effectif à l'encaissement) ; **ne détermine plus aucun assujettissement automatique au droit de timbre** (décision 15/08/2026 — §4.7.3). Un écart de mode de règlement, constaté à l'encaissement, est documenté au manuel utilisateur. ⚠️ **Liste à réviser** : la décision 15/08/2026 limite les modes de règlement de cette version à `ESPECES`, `CHEQUE`, `VIREMENT_BANCAIRE`, `DEPOT_ESPECES_BANQUE` — l'alignement de `mode_reglement_prevu` (migration 1 verrouillée) est à trancher |
+| Droit de timbre | **Traité manuellement à l'encaissement** (§4.7.3) — **jamais calculé dans le pied de facture** ; le total TTC reste strictement HT + TVA (décision validée le 15/08/2026). L'ancien calcul automatique (barème, seuil espèces) est **déprécié**, conservé pour l'historique |
 
 #### 4.4.5 Lignes de facturation
 - Code produit (charge libellé, unité, PU auto)
-- Quantité, PU HT (modifiable), Montant HT
-- Remise ligne (%)
+- Quantité, PU HT (modifiable), **Montant brut HT**
+- Remise ligne (`remise_bps`, %)
+- 🆕 **Taux de rabais marché figé par ligne** (`lignes_facture.rabais_marche_bps` — copié de l'affaire au moment de la facturation) et **montant du rabais marché de la ligne** (`montant_rabais_marche_centimes`)
+- 🆕 **Montant net par ligne** = Montant brut HT − Remise ligne − Rabais marché ligne (§4.4.5bis)
+- 🆕 Type de ligne `AJUSTEMENT_ARRONDI` — **optionnel, documents privés uniquement** (§4.4.5bis)
 - Famille et Classification auto héritées du produit
+
+#### 4.4.5bis 🆕 Rabais des marchés publics — application ligne par ligne (décision validée le 15/08/2026)
+Le taux contractuel du rabais est porté au niveau affaire/marché (`affaires.rabais_marche_bps`, §4.1.3). À la facturation, ce taux est **copié et figé sur chaque ligne** (`lignes_facture.rabais_marche_bps`) ; une modification ultérieure du taux d'affaire ne réécrit pas les lignes déjà facturées.
+
+Pour chaque ligne :
+
+```
+montant_rabais_ligne = montant_brut_ligne × taux (arrondi 2 décimales half-up, §10.3)
+montant_net_ligne    = montant_brut_ligne − montant_rabais_ligne
+```
+
+Le **total HT facture = somme des montants nets de ligne**. La remise de ligne (`remise_bps`) **reste distincte** du rabais marché : elle s'applique sur le brut, puis le rabais marché s'applique sur le brut également (net = brut − remise − rabais, §4.4.5). Brut, remise, rabais et net sont conservés **par ligne** pour la lisibilité et l'audit.
+
+**Écart d'arrondi** : la multiplication brut × taux peut produire une somme de rabais de lignes différant du rabais théorique sur le total, d'au plus **2 centimes**, en **écart positif ou négatif**. Deux comportements, selon le type de document :
+
+- **Marchés publics** : aucune ligne `AJUSTEMENT_ARRONDI` obligatoire. L'écart (≤ 2 centimes) est appliqué à la **ligne éligible de montant le plus élevé**, avec **trace dans le journal d'audit** (motif « ajustement d'arrondi rabais marché », écart positif ou négatif).
+- **Documents privés** : type de ligne `AJUSTEMENT_ARRONDI` **optionnel**, à la main, pour corriger un écart d'arrondi (positif ou négatif) ; sans ligne d'ajustement, l'écart reste constaté dans le journal d'audit.
 
 #### 4.4.6 Calcul pied de facture
 ```
 Total HT lignes
 − Remises lignes
-− Rabais global
+− Rabais lignes (marché, ligne par ligne — §4.4.5bis)
 = Net commercial HT
 − Remboursement avance (calcul automatique au prorata)
 − Retenue de garantie (base HT)
 = Total HT facture
 + TVA 19 %
-= Total TTC
-+ Droit de timbre (calculé selon barème §4.7.3 et mode de règlement prévu — voir §7.1)
+= Total TTC (montant commercial et fiscal)
 = NET À PAYER
 ```
+📌 Le droit de timbre **ne figure plus dans le pied de facture** (décision validée le 15/08/2026) : **Total TTC = HT + TVA strictement** et **NET À PAYER = total TTC** ; le timbre est traité manuellement à l'encaissement (§4.7.3). Ne jamais afficher « timbre = 0 DA » automatiquement.
+
 📌 Tous les montants sont stockés et calculés en **centimes (INTEGER)**, arrondi 2 décimales half-up appliqué ligne par ligne puis au total (voir §10.3).
 
 #### 4.4.7 Spécificités ST (Situation Travaux)
@@ -569,14 +593,16 @@ Onglet dans fiche affaire :
 
 ### M5 — Gestion des Créances & Encaissements
 
+> 🆕 **Structure minimale (MVP) — décision validée le 15/08/2026 (chef du département Commercial)** : une facture a **0..N encaissements** liés directement par `facture_id` ; la facture passe à **« Payée » uniquement au solde nul** (Σ encaissements = montant dû). Champs : `numero` (compteur `ENC`, §4.7.5), `montant_encaisse_centimes`, `date_encaissement` (**stockée `AAAA-MM-JJ` en base, affichée `JJ/MM/AAAA` uniquement dans l'interface**), `mode_reglement_effectif` (ESPECES, CHEQUE, VIREMENT_BANCAIRE, DEPOT_ESPECES_BANQUE — modes de règlement effectifs limités à ces 4 valeurs pour cette version ; un dépôt d'espèces en banque ≠ espèces remises à la caisse), statuts et traçabilité du timbre (§4.7.3) + colonnes transversales (§10.2). Contrôles : montant > 0 ; un encaissement validé ne dépasse jamais le montant dû. L'affectation multi-factures (N—N), l'échéancier des créances et les relances restent **hors périmètre MVP** (M5, Phase 2).
+
 #### 4.5.1 Fiche Encaissement
 | Champ | Type |
 |-------|------|
 | N° encaissement | Auto `ENC-YYYY-NNNNN` |
 | Date | Date |
 | Client | Liaison |
-| Mode règlement | Virement / Chèque / Espèces / Traite / LCN |
-| N° pièce | Texte (n° chèque, virement) |
+| Mode règlement | Espèces / Chèque / Virement bancaire / Dépôt espèces en banque |
+| N° pièce | Texte (n° chèque, virement bancaire) |
 | Banque émettrice | Liste |
 | Date valeur | Date |
 | Montant TTC | Nombre |
@@ -708,9 +734,9 @@ Au tout premier lancement : création du mot de passe, **génération et afficha
 #### 4.7.3 Paramètres entreprise
 Dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, téléphone, fax, email, logo, mention légale pied de page.
 
-**🆕 Seuil maximum du versement en espèces soumis au droit de timbre** : clé `timbre.seuil_max_especes_centimes`, défaut **1 000 000 DA** (décision comptable 09/08/2026).
+**🆕 Seuil maximum du versement en espèces soumis au droit de timbre** : clé `timbre.seuil_max_especes_centimes`, défaut **1 000 000 DA** — **⚠️ DÉPRÉCIÉE (15/08/2026)** : conservée pour compatibilité/historique, **retirée du chemin de calcul** (le timbre est traité manuellement à l'encaissement, voir ci-dessous).
 
-**🆕 Barème du droit de timbre** *(valeurs de départ ci-dessous, issues du barème 2025/2026 en vigueur au moment de la rédaction — table éditable en Paramétrage (onglet Paramétrage, écran R7), jamais figée en dur dans le code — 📌 valeurs à valider une dernière fois avec l'expert-comptable EGTO avant mise en production ; **déclencheur confirmé** : uniquement pour un versement en **espèces** en caisse, jamais pour chèque, traite, virement ou LCN)* :
+**🆕 Barème du droit de timbre** *(valeurs de départ issues du barème 2025/2026 en vigueur au moment de la rédaction — **⚠️ DÉPRÉCIÉ le 15/08/2026** : table `bareme_timbre` conservée pour compatibilité/historique, **retirée du chemin de calcul** ; écran R7 (Paramétrage) **désactivé** pour ce module. Plus aucun calcul automatique de timbre dans la facture)* :
 
 | Tranche (montant TTC) | Taux |
 |---|---|
@@ -720,6 +746,17 @@ Dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, téléphone,
 | > 100 000 DA | 2 % |
 | Plancher | 5 DA |
 | Plafond | 10 000 DA |
+
+**Droit de timbre — traitement manuel à l'encaissement (décision validée le 15/08/2026, chef du département Commercial)**
+
+Le droit de timbre **n'est plus calculé par la facture** : total HT, TVA, total TTC et NET À PAYER ne comportent **jamais** de timbre (TTC = HT + TVA strictement, §4.4.6). Le timbre est **traité manuellement par le caissier/comptable à l'encaissement** (§4.5.1), avec :
+
+- **Statut** : `A_VERIFIER | TRAITE | NON_APPLICABLE` (contraintes conditionnelles).
+- **Montant saisi** : `montant_timbre_saisi_centimes` (nullable) — saisi si dû, jamais inféré.
+- **Traçabilité** : `timbre_traite_le` (date), `timbre_traite_par` (responsable), `reference_timbre_ou_quittance`, `commentaire_timbre`.
+- Le **montant de timbre saisi ne modifie jamais** `total_ht`, la TVA ni `total_ttc` de la facture.
+- **Distinction espèces caisse vs dépôt en banque** : un versement d'espèces remis à la caisse (`ESPECES`) diffère d'un dépôt d'espèces effectué en banque (`DEPOT_ESPECES_BANQUE`) — la vérification du timbre est faite à la remise en caisse.
+- Ne jamais afficher « timbre = 0 DA » automatiquement.
 
 #### 4.7.4 Exercices & Périodes
 - Exercice en cours (début/fin)
@@ -818,7 +855,7 @@ Saisie des factures reçues des sous-traitants : N° facture, Date, Sous-traitan
 |-------|-------------|
 | N° paiement | `PAY-SST-YYYY-NNNNN` |
 | Date, Sous-traitant, Facture | |
-| Mode | Virement / Chèque |
+| Mode | Virement bancaire / Chèque |
 | Montant TTC | |
 | Retenue de garantie (mainlevée) | Déclenchée à la **réception définitive de l'affaire mère**, sauf mention contraire au BCST |
 | Statut | Programmé / Effectué |
@@ -955,7 +992,7 @@ Un DQE de marché peut contenir plusieurs centaines de postes — la saisie manu
 - **Aperçu avant impression** systématique + impression directe possible depuis l'aperçu
 - Rapport mensuel : PDF (signature) + Excel (comptabilité/GITRA, format à valider en Phase 0)
 - Rapports : PDF / Excel / CSV
-- **Mentions légales obligatoires** (liste exhaustive) : dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, mode de règlement, **mention du droit de timbre si assujetti**, taux de TVA (19 %)
+- **Mentions légales obligatoires** (liste exhaustive) : dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, mode de règlement, taux de TVA (19 %). **Plus aucune mention de droit de timbre sur la facture** (décision 15/08/2026 — timbre traité manuellement à l'encaissement, §4.7.3)
 - **Duplicata** : mention « DUPLICATA » à toute réimpression d'un document déjà imprimé
 
 ### 5.3 Règles de gestion transversales
@@ -1096,7 +1133,7 @@ egto-gestion-commerciale/
 │   │   └── entities.ts         # Types métier (Affaire, Client, Facture, etc.)
 │   └── services/
 │       ├── affaire.service.ts  # Logique métier affaires (calculs délais, statuts)
-│       ├── facture.service.ts  # Calculs pied de facture, numérotation, timbre
+│       ├── facture.service.ts  # Calculs pied de facture (sans droit de timbre), numérotation
 │       ├── client.service.ts   # Scoring auto, règles vigilance
 │       └── rapport.service.ts  # Assemblage données rapport mensuel
 ├── assets/
@@ -1228,13 +1265,13 @@ CREATE TABLE audit_log (
 ### 7.1 Synthèse des règles retenues
 | Sujet | Décision finale |
 |---|---|
-| **Droit de timbre** | **Barème à tranches paramétrable (§4.7.3)** ; **déclencheur = règlement prévu en Espèces uniquement** (versement en caisse, champ en-tête facture §4.4.4), seuil des espèces 1 000 000 DA paramétré ; **jamais pour Chèque, Traite, Virement ou LCN** ✅ *déclencheur confirmé par le comptable (09/08/2026) — valeurs des tranches à valider* |
+| **Droit de timbre** | **Traité manuellement à l'encaissement** (§4.7.3, décision validée le 15/08/2026) — plus aucun calcul dans le pied de facture ; **TTC = HT + TVA strictement**, NET À PAYER = total TTC. L'ancienne mécanique automatique (barème `bareme_timbre`, seuil espèces `timbre.seuil_max_especes_centimes`, écran R7) est **dépréciée** : conservée pour compatibilité/historique, retirée du chemin de calcul |
 | **TVA** | Taux unique 19 %, **champ verrouillé au niveau produit** 📌 — le pied de facture (§4.4.6) suppose un taux unique ; une évolution multi-taux nécessiterait une refonte de la ventilation HT, explicitement hors périmètre |
 | **État TVA collectée** | Rapport mensuel simple (Total HT vendu / TVA collectée), scope limité aux ventes — la TVA déductible sur achats reste hors périmètre (gérée par la comptabilité générale) |
 | **Numérotation** | Attribuée uniquement à la validation, jamais au brouillon (§5.3) |
 | **Conservation légale** | ~10 ans — exercices clôturés en lecture seule + au moins une sauvegarde annuelle conservée 10 ans (§4.7.7) |
 | **Mentions légales facture** | Liste exhaustive définie en §5.2 |
-| **TAP** (Taxe sur l'Activité Professionnelle) | Supprimée depuis la loi de finances 2024, toujours abolie sous la LF 2026 — **📌 quasi tranché**, confirmation finale de l'expert-comptable recommandée pour clôturer formellement le point pour la situation spécifique d'EGTO (EPE/SPA, filiale GITRA). Non implémentée par défaut. |
+| **TAP** (Taxe sur l'Activité Professionnelle) | **Supprimée définitivement le 15/08/2026** (décision chef du département Commercial) — abolie depuis la loi de finances 2024, toujours sous la LF 2026. **Aucune logique ni libellé conservé, aucun remplacement par la TLS.** |
 | **Révision de prix** | Gérée au cas par cas (champ Type de révision par affaire §4.1.4, mécanique de calcul §4.4.7bis) |
 | **Intérêts moratoires** | **Montant saisi directement** sur une **ND proposée** (`factures.interets_moratoires_centimes`) — pas de calcul automatique ni de taux 📌 (décision 09/08/2026). Références réglementaires indicatives pour évaluer le montant : marché public = taux directeur Banque d'Algérie + 1 point, déclenché après 30 j suivant certification du service fait (base réglementaire à faire confirmer par le fiscaliste) ; contrat privé sans taux contractuel = taux légal par défaut de l'ordre de 3,5 %. |
 | **Pénalités de retard** | Pas de taux unique — paramétrable par affaire selon le CCAP du marché concerné (§4.1.4) |
@@ -1288,7 +1325,7 @@ CREATE TABLE audit_log (
 > Un ERD complet et un dictionnaire de données détaillé sont un **livrable de la Phase 0** (voir §3). Cette section liste les entités principales et leurs relations pour cadrer le développement.
 
 ### 10.1 Entités principales
-`Client` (1—N) `Contact`, `Client` (1—N) `InteractionHistorique`, `Client` (1—N) `Affaire`, `Affaire` (1—N) `Avenant` (auto-référence vers affaire mère), `Affaire` (1—N) `PosteDQE`, `Affaire` (1—N) `Attachement`, `Affaire` (1—N) `DeclarationLigne`, `Affaire` (1—N) `Facture`, `Affaire` (1—N) `Caution`, `Affaire` (1—N) `Reception`, `Affaire` (1—N) `Correspondance`, `Affaire` (1—N) `RetenueGarantieEcheance` (une ligne par lot de réception), `Devis` (0—1) `Affaire` (conversion), `Facture` (1—N) `LigneFacture`, `Facture` (0—N) `Encaissement` (via affectation N—N), `Facture` (0—N) `Avoir`, `BonDeLivraison` (0—1) `Facture`, `SousTraitant` (1—N) `BCST`, `BCST` (1—N) `DecompteSST`, `Produit` (1—N) `TarifHistorique`.
+`Client` (1—N) `Contact`, `Client` (1—N) `InteractionHistorique`, `Client` (1—N) `Affaire`, `Affaire` (1—N) `Avenant` (auto-référence vers affaire mère), `Affaire` (1—N) `PosteDQE`, `Affaire` (1—N) `Attachement`, `Affaire` (1—N) `DeclarationLigne`, `Affaire` (1—N) `Facture`, `Affaire` (1—N) `Caution`, `Affaire` (1—N) `Reception`, `Affaire` (1—N) `Correspondance`, `Affaire` (1—N) `RetenueGarantieEcheance` (une ligne par lot de réception), `Devis` (0—1) `Affaire` (conversion), `Facture` (1—N) `LigneFacture`, `Facture` (0—N) `Encaissement` (FK directe `facture_id`, structure minimale validée le 15/08/2026 — l'affectation N—N entre encaissement et factures multiples reste **hors MVP**, Phase 2), `Facture` (0—N) `Avoir`, `BonDeLivraison` (0—1) `Facture`, `SousTraitant` (1—N) `BCST`, `BCST` (1—N) `DecompteSST`, `Produit` (1—N) `TarifHistorique`.
 
 ### 10.2 Colonnes transversales
 Chaque table métier porte : `id`, `created_at`, `updated_at`, `deleted_at` (suppression logique), `statut`.
@@ -1303,7 +1340,7 @@ Tous les montants sont stockés en **INTEGER (centimes)**, jamais en `REAL`/flot
 Un plan de recette détaillé sera co-construit avec le service commercial en Phase 0/1. Critères d'acceptation par module :
 
 - **M1** : une affaire marché public créée avec ODS génère correctement sa date de fin contractuelle et ses alertes de délai
-- **M4** : le pied de facture (§4.4.6) produit un total identique, au centime près, à un calcul manuel de contrôle sur 10 cas types (avec/sans retenue, avec/sans droit de timbre selon le barème §4.7.3)
+- **M4** : le pied de facture (§4.4.6) produit un total identique, au centime près, à un calcul manuel de contrôle sur 10 cas types révisés (avec/sans retenue, rabais marché **ligne par ligne**, écarts d'arrondi positifs et négatifs couverts) ; **le pied ne contient aucun droit de timbre** (total TTC = HT + TVA)
 - **M4 (révision de prix)** : l'exemple chiffré de §4.4.7bis est reproduit exactement (5 000 000 DA × 0,0755 = 377 500 DA)
 - **M4.9** : la génération du rapport mensuel PDF+Excel correspond ligne à ligne au template GITRA validé en Phase 0
 - **M7** : la procédure de récupération de mot de passe via `egto-admin-reset` fonctionne **avec la phrase de récupération**, sans accès à l'application, et échoue sans elle
@@ -1328,7 +1365,7 @@ Voir §4.7.7 (politique fonctionnelle), §9.1 (clés et restaurabilité) et §5.
 | Template Excel GITRA non validé avant développement du rapport mensuel | Reprise coûteuse du module M4.9 | Verrouiller en Phase 0 (dépendance bloquante) |
 | Qualité des données à l'import initial (clients/produits/DQE existants) | Doublons, erreurs de facturation | Assistant d'import avec rapport d'anomalies (M13) |
 | Disponibilité du service commercial pour la recette | Retard de livraison | Planifier les créneaux de recette dès la Phase 0 |
-| Règles fiscales à valeurs non confirmées (barème droit de timbre, statut TAP) | Non-conformité fiscale au lancement | Validation avec le comptable/fiscaliste EGTO avant mise en production (voir §16) |
+| Règles fiscales à valeurs non confirmées (barème droit de timbre, statut TAP) | Non-conformité fiscale au lancement | Résolu le 15/08/2026 : timbre **manuel à l'encaissement** (mécanique automatique dépréciée), **TAP définitivement supprimée** — voir §16 |
 | Perte de la phrase de récupération par la direction | Impossibilité de récupérer l'accès en cas d'oubli du mot de passe ou de panne du poste | Consignation écrite à l'installation (§4.7.2), rappel dans le manuel utilisateur |
 
 ---
@@ -1357,17 +1394,20 @@ Voir §4.7.7 (politique fonctionnelle), §9.1 (clés et restaurabilité) et §5.
 | # | Point ouvert | Statut |
 |---|---|---|
 | 1 | Template Excel du rapport mensuel GITRA | **N'existe pas encore** — à faire produire et valider par GITRA/comptabilité avant le développement de M4.9 |
-| 2 | Droit de timbre | Barème à tranches (1 % / 1,5 % / 2 %, plancher 5 DA, plafond 10 000 DA) proposé en §4.7.3 comme **valeur de départ** — **valeurs à valider définitivement avec le comptable EGTO avant mise en production**. **Déclencheur et seuil confirmés (09/08/2026)** : espèces uniquement, plafond 1 000 000 DA. ✅ |
+| 2 | Droit de timbre | Barème à tranches (1 % / 1,5 % / 2 %, plancher 5 DA, plafond 10 000 DA) proposé en §4.7.3 comme valeur de départ. **Mécanique automatique révoquée le 15/08/2026** : le timbre est **traité manuellement à l'encaissement** (barème et seuil dépréciés, écran R7 désactivé, TTC = HT + TVA strictement). ✅ |
 | 3 | Intérêts moratoires | **Tranché (09/08/2026)** : montant saisi directement sur la ND, pas de taux — ✅. Les références réglementaires indicatives (marché public : taux directeur BA + 1 point après 30 j ; privé : ~3,5 %) restent à confirmer par le fiscaliste pour l'évaluation du montant |
-| 4 | TAP | Supprimée depuis la loi de finances 2024, toujours abolie sous la LF 2026 — **📌 quasi tranché**, confirmation finale de l'expert-comptable recommandée pour clôturer formellement le point pour la situation spécifique d'EGTO (EPE/SPA, filiale GITRA) |
-| 5 | Longueur exacte NIF (15) / NIS (11) | À vérifier sur documents réels CNRC d'EGTO (le NIS est parfois annoncé à 15 chiffres selon les sources) |
+| 4 | TAP | Supprimée depuis la loi de finances 2024, toujours abolie sous la LF 2026 — **décision définitive le 15/08/2026 (chef du département Commercial) : TAP supprimée, aucun remplacement TLS, aucune logique ni libellé conservé**. ✅ |
+| 5 | Longueur exacte NIF (15) / NIS (11) | **Tranché (15/08/2026)** : NIF = 15 chiffres ; **NIS = texte de 15 chiffres exactement** (conversion numérique interdite, zéros initiaux conservés, ex. `001234567890123`). ✅ |
 | 6 | « Saisie de la déclaration avant le 5 du mois » | Retenu par défaut comme avertissement (non bloquant), cohérent avec le principe général « alerter plutôt que bloquer » — à confirmer explicitement avec le service commercial |
 | 7 | Formule exacte des pénalités de retard | Variable par marché (CCAP) — le champ est paramétrable par affaire plutôt que figé dans le PRD |
 | 8 | Retenue à la source sur paiements sous-traitants | Non traitée, aucun mécanisme prévu dans M8 — à confirmer avec le fiscaliste si applicable aux paiements EGTO → sous-traitants |
 | 9 | Mot de passe des exports ZIP manuels | Distinct du mot de passe applicatif, ou dérivé de la phrase de récupération — à trancher en Phase 0 (§9.1) |
+| 10 | 🆕 Rabais des marchés publics | **Décision validée le 15/08/2026 (chef du département Commercial)** : appliqué **ligne par ligne** (`montant_net_ligne = montant_brut_ligne − montant_rabais_ligne`), taux figé depuis l'affaire au moment de la facturation ; écart d'arrondi (≤ 2 centimes, positif ou négatif) appliqué à la **ligne éligible de montant le plus élevé** avec **trace dans le journal d'audit** (marchés publics), ou ligne `AJUSTEMENT_ARRONDI` optionnelle (documents privés) — §4.4.5bis. ✅ |
+| 11 | 🆕 Encaissements (structure minimale) | **Décision validée le 15/08/2026** : une facture a **0..N encaissements** (FK directe `facture_id`), passage à **« Payée » uniquement au solde nul** ; modes de règlement effectif limités à 4 valeurs (`ESPECES`, `CHEQUE`, `VIREMENT_BANCAIRE`, `DEPOT_ESPECES_BANQUE`) ; `date_encaissement` stockée `AAAA-MM-JJ`, affichée `JJ/MM/AAAA` ; contrôles (montant > 0, aucun dépassement du montant dû, contraintes conditionnelles du timbre). Affectation N—N, échéancier, relances : hors MVP (Phase 2). ✅ |
+| 12 | 🆕 Familles du catalogue | **Décision validée le 15/08/2026** : codes `VTE`/`LOC`/`REA`/`ST`, libellés singuliers `Vente`/`Location`/`Réalisation`/`Sous-traitance` ; **une famille ne détermine ni TVA, ni timbre, ni rabais, ni prix** — §4.3.1. ✅ |
 
 ---
 
 *Document PRD FINAL — E.G.T.O Gestion Commerciale*
-*Version 2.1 — Août 2026*
-*Consolidation des versions 1.1, 2.0 et des correctifs 2.1 — document autonome destiné au développement*
+*Version 2.2 — Août 2026*
+*Consolidation des versions 1.1, 2.0, des correctifs 2.1 et des décisions métier 2.2 — document autonome destiné au développement*

@@ -32,26 +32,33 @@ describe('Base chiffrée EGTO — connexion, migrations, schéma, seeds', () => 
     nettoyerFichiers(CHEMIN_ESSAI)
   })
 
-  it('exécute la migration 1 et l’enregistre dans migrations_history', () => {
+  it('exécute les migrations 1, 2 et 3 et les enregistre dans migrations_history', () => {
     const base = obtenirBase()
-    expect(base.pragma('user_version', { simple: true })).toBe(1)
+    expect(base.pragma('user_version', { simple: true })).toBe(3)
     const historique = base.prepare('SELECT version, nom FROM migrations_history ORDER BY version').all()
-    expect(historique).toEqual([{ version: 1, nom: 'schema-initial-j0' }])
+    expect(historique).toEqual([
+      { version: 1, nom: 'schema-initial-j0' },
+      { version: 2, nom: '002_rabais-marche-et-encaissements' },
+      { version: 3, nom: '003_ajustement-arrondi-lignes' },
+    ])
   })
 
   it('est idempotente : une base à jour ne ré-exécute rien', () => {
     appliquerMigrations(obtenirBase())
     const base = obtenirBase()
-    expect(base.pragma('user_version', { simple: true })).toBe(1)
+    expect(base.pragma('user_version', { simple: true })).toBe(3)
     const nombre = base.prepare('SELECT COUNT(*) AS n FROM migrations_history').get() as { n: number }
-    expect(nombre.n).toBe(1)
+    expect(nombre.n).toBe(3)
   })
 
-  it('crée les 29 tables du schéma J0', () => {
+  it('crée les 31 tables du schéma J0 + migrations 2 et 3', () => {
     const tables = obtenirBase()
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
       .all() as { name: string }[]
-    expect(tables).toHaveLength(29)
+    expect(tables).toHaveLength(31)
+    const noms = tables.map((table) => table.name)
+    expect(noms).toContain('encaissements')
+    expect(noms).toContain('contexte_audit')
   })
 
   it('ne contient aucune colonne REAL', () => {
@@ -68,11 +75,11 @@ describe('Base chiffrée EGTO — connexion, migrations, schéma, seeds', () => 
     }
   })
 
-  it('installe les 18 triggers d’audit', () => {
+  it('installe les 26 triggers d’audit', () => {
     const triggers = obtenirBase()
       .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name")
       .all() as { name: string }[]
-    expect(triggers).toHaveLength(18)
+    expect(triggers).toHaveLength(26)
     const noms = triggers.map((trigger) => trigger.name)
     for (const attendu of [
       'trg_clients_audit_insert',
@@ -80,6 +87,14 @@ describe('Base chiffrée EGTO — connexion, migrations, schéma, seeds', () => 
       'trg_clients_audit_delete',
       'trg_factures_audit_insert',
       'trg_bons_livraison_audit_delete',
+      'trg_encaissements_audit_insert',
+      'trg_encaissements_audit_update',
+      'trg_encaissements_audit_delete',
+      'trg_encaissements_pas_depassement_insert',
+      'trg_encaissements_pas_depassement_update',
+      'trg_lignes_facture_audit_insert',
+      'trg_lignes_facture_audit_update',
+      'trg_lignes_facture_audit_delete',
     ]) {
       expect(noms).toContain(attendu)
     }
@@ -197,12 +212,12 @@ describe('Base chiffrée EGTO — connexion, migrations, schéma, seeds', () => 
 
     let base = ouvrir(CLE_VALIDE)
     base.exec('CREATE TABLE essai_plus_recente (id INTEGER PRIMARY KEY)')
-    base.pragma('user_version = 2')
+    base.pragma('user_version = 4')
     base.close()
 
     base = ouvrir(CLE_VALIDE)
     expect(() => appliquerMigrations(base)).toThrow(/plus récente/)
-    expect(base.pragma('user_version', { simple: true })).toBe(2)
+    expect(base.pragma('user_version', { simple: true })).toBe(4)
     const table = base
       .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'essai_plus_recente'")
       .get() as { n: number }

@@ -82,25 +82,31 @@ describe('Nif', () => {
 })
 
 describe('Nis', () => {
-  it('accepte 11 chiffres', () => {
-    const nis = Nis.depuisValeur('09991601234')
-    expect(nis.valeur).toBe('09991601234')
-  })
-
-  it('accepte 15 chiffres', () => {
+  it('accepte exactement 15 chiffres', () => {
     const nis = Nis.depuisValeur('099916012345678')
     expect(nis.valeur).toBe('099916012345678')
   })
 
-  it('refuse 10, 12 ou 16 chiffres', () => {
-    expect(() => Nis.depuisValeur('0999160123')).toThrow()
-    expect(() => Nis.depuisValeur('099916012345')).toThrow()
+  it('conserve les zéros initiaux (valeur texte, jamais convertie en nombre)', () => {
+    const nis = Nis.depuisValeur('001234567890123')
+    expect(nis.valeur).toBe('001234567890123')
+  })
+
+  it('refuse 11, 13 ou 16 chiffres', () => {
+    expect(() => Nis.depuisValeur('09991601234')).toThrow()
+    expect(() => Nis.depuisValeur('0999160123456')).toThrow()
     expect(() => Nis.depuisValeur('0999160123456789')).toThrow()
   })
 
   it('refuse les lettres', () => {
     expect(() => Nis.depuisValeur('09991601234A')).toThrow()
+    expect(() => Nis.depuisValeur('A09916012345678')).toThrow()
+  })
+
+  it('refuse une chaîne vide et les non-chaînes', () => {
     expect(() => Nis.depuisValeur('')).toThrow()
+    expect(() => Nis.depuisValeur(null as unknown as string)).toThrow(TypeError)
+    expect(() => Nis.depuisValeur(9916012345678 as unknown as string)).toThrow(TypeError)
   })
 })
 

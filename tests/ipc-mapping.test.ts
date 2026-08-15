@@ -7,8 +7,16 @@ import { mapperClientEnVue, mapperDonneesCreationVersDepot } from '../electron/i
 import { mapperExerciceEnVue } from '../electron/ipc/ipc-exercices'
 import { mapperFamilleEnVue } from '../electron/ipc/ipc-familles'
 import { mapperParametreEnVue, mapperSeuilEspecesEnVue } from '../electron/ipc/ipc-parametres'
+import {
+  mapperDonneesCreationVersDepot as mapperDonneesCreationEncaissementVersDepot,
+  mapperDonneesModificationVersDepot,
+  mapperEncaissementEnVue,
+  versDateAffichage,
+  versDateIso,
+} from '../electron/ipc/ipc-encaissements'
 import type { Client } from '../electron/depots/depot-clients'
-import type { DonneesCreationClient } from '../contrats'
+import type { EnregistrementEncaissement } from '../electron/depots/depot-encaissements'
+import type { DonneesCreationClient, DonneesCreationEncaissement, DonneesModificationTimbreEncaissementVue } from '../contrats'
 import type { TrancheTimbre } from '../domaine/droit-timbre'
 
 const racineProjet = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -197,6 +205,232 @@ describe('Mapping vers les vues contrats/', () => {
       })
     })
   })
+
+  describe('Conversion des dates JJ/MM/AAAA ↔ ISO', () => {
+    it.each([
+      ['31/12/2026', '2026-12-31'],
+      ['29/02/2028', '2028-02-29'],
+      ['01/01/2026', '2026-01-01'],
+      ['15/08/2026', '2026-08-15'],
+    ] as const)('convertit %s en ISO %s', (affichage, iso) => {
+      expect(versDateIso(affichage)).toBe(iso)
+    })
+
+    it.each(['2026-12-31', '1/1/2026', '01/2026', '', '2026/12/31', '31-12-2026'] as const)(
+      'rejette une date au mauvais format : %s',
+      (invalide) => {
+        expect(() => versDateIso(invalide)).toThrow(/JJ\/MM\/AAAA/)
+      },
+    )
+
+    it.each([
+      ['31/02/2026', /jour invalide/],
+      ['29/02/2026', /jour invalide/],
+      ['01/13/2026', /mois invalide/],
+      ['00/01/2026', /jour invalide/],
+    ] as const)('rejette la date calendaire invalide %s', (invalide, message) => {
+      expect(() => versDateIso(invalide)).toThrow(message)
+    })
+
+    it('rejette une date non-chaîne', () => {
+      expect(() => versDateIso(undefined as unknown as string)).toThrow(TypeError)
+      expect(() => versDateIso(20260815 as unknown as string)).toThrow(/JJ\/MM\/AAAA/)
+    })
+
+    it('convertit une date ISO en affichage JJ/MM/AAAA', () => {
+      expect(versDateAffichage('2026-12-31')).toBe('31/12/2026')
+      expect(versDateAffichage('2028-02-29')).toBe('29/02/2028')
+    })
+
+    it('rejette une date ISO invalide en affichage', () => {
+      expect(() => versDateAffichage('2026-02-31')).toThrow(/jour invalide/)
+      expect(() => versDateAffichage('31/12/2026')).toThrow(/AAAA-MM-JJ/)
+    })
+
+    it('fait l’aller-retour JJ/MM/AAAA → ISO → JJ/MM/AAAA', () => {
+      expect(versDateAffichage(versDateIso('15/08/2026'))).toBe('15/08/2026')
+    })
+  })
+
+  describe('mapperDonneesCreationEncaissementVersDepot', () => {
+    it('convertit la commande camelCase du renderer en saisie snake_case du dépôt (JJ/MM/AAAA → ISO)', () => {
+      const donnees: DonneesCreationEncaissement = {
+        factureId: 7,
+        montantEncaisseCentimes: 150000,
+        dateEncaissement: '02/07/2026',
+        modeReglementEffectif: 'ESPECES',
+        timbreStatut: 'TRAITE',
+        montantTimbreSaisiCentimes: 500,
+        timbreTraiteLe: '03/07/2026',
+        timbreTraitePar: 'Sami',
+        referenceTimbreOuQuittance: 'QUIT-2026-0001',
+        commentaireTimbre: 'Quittance bancaire',
+      }
+      expect(mapperDonneesCreationEncaissementVersDepot(donnees)).toEqual({
+        facture_id: 7,
+        montant_encaisse_centimes: 150000,
+        date_encaissement: '2026-07-02',
+        mode_reglement_effectif: 'ESPECES',
+        timbre_statut: 'TRAITE',
+        montant_timbre_saisi_centimes: 500,
+        timbre_traite_le: '2026-07-03',
+        timbre_traite_par: 'Sami',
+        reference_timbre_ou_quittance: 'QUIT-2026-0001',
+        commentaire_timbre: 'Quittance bancaire',
+      })
+    })
+
+    it('n’introduit aucune clé pour les champs facultatifs absents', () => {
+      const mappe = mapperDonneesCreationEncaissementVersDepot({
+        factureId: 7,
+        montantEncaisseCentimes: 100000,
+        dateEncaissement: '15/08/2026',
+        modeReglementEffectif: 'CHEQUE',
+      })
+      expect(mappe.facture_id).toBe(7)
+      expect(mappe.date_encaissement).toBe('2026-08-15')
+      expect(mappe.montant_encaisse_centimes).toBe(100000)
+      expect(mappe.timbre_statut).toBeUndefined()
+      expect(mappe.montant_timbre_saisi_centimes).toBeUndefined()
+      expect(mappe.timbre_traite_le).toBeUndefined()
+      expect(mappe.timbre_traite_par).toBeUndefined()
+      expect(mappe.reference_timbre_ou_quittance).toBeUndefined()
+      expect(mappe.commentaire_timbre).toBeUndefined()
+    })
+
+    it('rejette une date invalide lors de la conversion', () => {
+      expect(() =>
+        mapperDonneesCreationEncaissementVersDepot({
+          factureId: 7,
+          montantEncaisseCentimes: 100000,
+          dateEncaissement: '31/02/2026',
+          modeReglementEffectif: 'CHEQUE',
+        }),
+      ).toThrow(/jour invalide/)
+      expect(() =>
+        mapperDonneesCreationEncaissementVersDepot({
+          factureId: 7,
+          montantEncaisseCentimes: 100000,
+          dateEncaissement: '15/08/2026',
+          modeReglementEffectif: 'CHEQUE',
+          timbreTraiteLe: '32/08/2026',
+        }),
+      ).toThrow(/jour invalide/)
+    })
+  })
+
+  describe('mapperDonneesModificationVersDepot', () => {
+    it('convertit la commande camelCase du renderer en modification snake_case du dépôt (JJ/MM/AAAA → ISO)', () => {
+      const donnees: DonneesModificationTimbreEncaissementVue = {
+        id: 9,
+        timbreStatut: 'TRAITE',
+        montantTimbreSaisiCentimes: 500,
+        timbreTraiteLe: '16/08/2026',
+        timbreTraitePar: 'Sami',
+        referenceTimbreOuQuittance: 'QUIT-2026-0002',
+        commentaireTimbre: 'Quittance bancaire',
+      }
+      expect(mapperDonneesModificationVersDepot(donnees)).toEqual({
+        id: 9,
+        timbre_statut: 'TRAITE',
+        montant_timbre_saisi_centimes: 500,
+        timbre_traite_le: '2026-08-16',
+        timbre_traite_par: 'Sami',
+        reference_timbre_ou_quittance: 'QUIT-2026-0002',
+        commentaire_timbre: 'Quittance bancaire',
+      })
+    })
+
+    it('n’introduit aucune clé pour les champs facultatifs absents', () => {
+      const mappe = mapperDonneesModificationVersDepot({ id: 9, timbreStatut: 'NON_APPLICABLE' })
+      expect(mappe.id).toBe(9)
+      expect(mappe.timbre_statut).toBe('NON_APPLICABLE')
+      expect(mappe.montant_timbre_saisi_centimes).toBeUndefined()
+      expect(mappe.timbre_traite_le).toBeUndefined()
+      expect(mappe.timbre_traite_par).toBeUndefined()
+      expect(mappe.reference_timbre_ou_quittance).toBeUndefined()
+      expect(mappe.commentaire_timbre).toBeUndefined()
+    })
+
+    it('rejette une date de traitement invalide lors de la conversion', () => {
+      expect(() =>
+        mapperDonneesModificationVersDepot({
+          id: 9,
+          timbreStatut: 'TRAITE',
+          montantTimbreSaisiCentimes: 500,
+          timbreTraiteLe: '31/02/2026',
+          timbreTraitePar: 'Sami',
+        }),
+      ).toThrow(/jour invalide/)
+    })
+
+    it('n’expose aucun champ protégé dans DonneesModificationTimbreEncaissement', () => {
+      const mappe = mapperDonneesModificationVersDepot({ id: 9, timbreStatut: 'TRAITE' })
+      const cles = Object.keys(mappe)
+      expect(cles).not.toContain('montant_encaisse_centimes')
+      expect(cles).not.toContain('mode_reglement_effectif')
+      expect(cles).not.toContain('facture_id')
+      expect(cles).not.toContain('date_encaissement')
+      expect(cles).not.toContain('numero')
+    })
+  })
+
+  describe('mapperEncaissementEnVue', () => {
+    const enregistrement: EnregistrementEncaissement = {
+      id: 9,
+      cree_le: '2026-08-15 10:00:00',
+      modifie_le: '2026-08-15 10:00:00',
+      supprime_le: null,
+      facture_id: 7,
+      numero: 'ENC-2026-0001',
+      montant_encaisse_centimes: 150000,
+      date_encaissement: '2026-07-02',
+      mode_reglement_effectif: 'ESPECES',
+      timbre_statut: 'TRAITE',
+      montant_timbre_saisi_centimes: 500,
+      timbre_traite_le: '2026-07-03',
+      timbre_traite_par: 'Sami',
+      reference_timbre_ou_quittance: 'QUIT-2026-0001',
+      commentaire_timbre: null,
+    }
+
+    it('convertit les colonnes snake_case en vue camelCase et les dates en JJ/MM/AAAA', () => {
+      expect(mapperEncaissementEnVue(enregistrement)).toEqual({
+        id: 9,
+        factureId: 7,
+        numero: 'ENC-2026-0001',
+        montantEncaisseCentimes: 150000,
+        dateEncaissement: '02/07/2026',
+        modeReglementEffectif: 'ESPECES',
+        timbreStatut: 'TRAITE',
+        montantTimbreSaisiCentimes: 500,
+        timbreTraiteLe: '03/07/2026',
+        timbreTraitePar: 'Sami',
+        referenceTimbreOuQuittance: 'QUIT-2026-0001',
+        commentaireTimbre: null,
+        creeLe: '2026-08-15 10:00:00',
+        modifieLe: '2026-08-15 10:00:00',
+        supprimeLe: null,
+      })
+    })
+
+    it('conserve les champs timbre absents et supprime_le à null', () => {
+      const vue = mapperEncaissementEnVue({
+        ...enregistrement,
+        timbre_statut: 'NON_APPLICABLE',
+        montant_timbre_saisi_centimes: null,
+        timbre_traite_le: null,
+        timbre_traite_par: null,
+        reference_timbre_ou_quittance: null,
+      })
+      expect(vue.timbreStatut).toBe('NON_APPLICABLE')
+      expect(vue.montantTimbreSaisiCentimes).toBeNull()
+      expect(vue.timbreTraiteLe).toBeNull()
+      expect(vue.timbreTraitePar).toBeNull()
+      expect(vue.referenceTimbreOuQuittance).toBeNull()
+      expect(vue.supprimeLe).toBeNull()
+    })
+  })
 })
 
 describe('Frontière contrats/ → domaine/', () => {
@@ -204,6 +438,7 @@ describe('Frontière contrats/ → domaine/', () => {
     const dossier = join(racineProjet, 'contrats')
     const fichiers = readdirSync(dossier).filter((fichier) => fichier.endsWith('.ts'))
     expect(fichiers.length).toBeGreaterThan(0)
+    expect(fichiers).toContain('encaissements.ts')
     for (const fichier of fichiers) {
       const contenu = readFileSync(join(dossier, fichier), 'utf8')
       expect(contenu).not.toMatch(/from\s+['"]\.\.\/domaine(?:\/|['"])/)

@@ -91,9 +91,13 @@ Ces règles traversent tout le code ; les enfreindre casse la conformité fiscal
 - **Pas de suppression physique** : suppression logique (`deleted_at`, statut). Chaque table métier porte `id`, `created_at`, `updated_at`, `deleted_at`, `statut`.
 - **Pas de modification rétroactive** d'une déclaration mensuelle ou d'une ST validée — régularisation par lignes négatives sur la période suivante.
 - **Classification Noir/Blanc/Autre figée en snapshot** sur chaque ligne de déclaration au moment de la saisie : un changement de sous-famille catalogue ne doit pas réécrire l'historique.
-- **Journal d'audit par triggers SQLite** (§5.5.9), pas par appels explicites dans les handlers — un handler oublié laisserait un trou, un trigger non. Table `audit_log`, lecture seule, rétention illimitée.
+- **Journal d'audit par triggers SQLite** (§5.5.9), pas par appels explicites dans les handlers — un handler oublié laisserait un trou, un trigger non. Table `audit_log`, lecture seule, rétention illimitée. Les **encaissements** sont une table sensible (INSERT/UPDATE/DELETE) et la règle d'arrondi des marchés publics trace l'écart dans le journal.
 - **TVA 19 % verrouillée au niveau produit.** Le pied de facture suppose un taux unique ; le multi-taux est hors périmètre et exigerait une refonte de la ventilation HT.
 - **Retenue de garantie 5 % sur base HT**, public comme privé (surcharge possible par affaire).
+- **Rabais des marchés publics : ligne par ligne.** Taux contractuel au niveau affaire (`affaires.rabais_marche_bps`), copié et **figé sur chaque ligne** à la facturation ; net ligne = brut ligne − rabais ligne. L'écart d'arrondi (≤ 2 centimes) va à la ligne éligible de montant le plus élevé, avec trace dans le journal d'audit (documents privés : ligne `AJUSTEMENT_ARRONDI` optionnelle).
+- **Encaissements 0..N par facture** ; passage à `PAYEE` uniquement au solde nul. Montant encaissé > 0, un encaissement validé ne dépasse jamais le montant dû. `date_encaissement` stockée `AAAA-MM-JJ`, affichée `JJ/MM/AAAA`.
+- **NIS = texte de 15 chiffres exactement** (conversion numérique interdite, zéros initiaux conservés), champ séparé du NIF, du RC et de l'AI.
+- **TAP définitivement supprimée** — aucune logique ni libellé TAP (et pas de remplacement par la TLS).
 
 Pied de facture (§4.4.6), dans cet ordre exact :
 
@@ -102,11 +106,10 @@ Total HT lignes − remises lignes − rabais global
 = Net commercial HT
 − remboursement avance (prorata auto) − retenue de garantie (base HT)
 = Total HT facture  + TVA 19 %  = Total TTC
-+ droit de timbre (barème §4.7.3, uniquement si règlement prévu en espèces, seuil paramétré)
-= NET À PAYER
+= NET À PAYER   (NET À PAYER = total TTC, TTC = HT + TVA strictement)
 ```
 
-Le **droit de timbre** suit un barème à tranches **paramétrable en base** (§4.7.3) — jamais de taux en dur dans le code. Il ne s'applique **jamais** au virement ni au LCN.
+Le **droit de timbre ne fait plus partie du pied de facture** (décision 15/08/2026) : plus aucun calcul automatique, il est **traité manuellement à l'encaissement** (champ `encaissements.timbre_statut` : `A_VERIFIER` / `TRAITE` / `NON_APPLICABLE`). Le barème (`bareme_timbre`) et le seuil des espèces (`timbre.seuil_max_especes_centimes`) sont **dépréciés** (conservés pour l'historique, retirés du chemin de calcul). Ne jamais afficher « timbre = 0 DA » automatiquement.
 
 ## Chiffrement (§9.1) — à lire avant de toucher à l'auth ou aux sauvegardes
 
@@ -116,7 +119,7 @@ Conséquences pratiques : un changement de mot de passe ne rechiffre **que l'env
 
 ## Points ouverts (annexe §16) — ne pas trancher seul
 
-Le template Excel GITRA du rapport mensuel **n'existe pas encore** : développer M4.9 avant sa validation expose à une reprise complète. Décisions déjà tranchées (09/08/2026) : timbre = espèces uniquement (seuil 1 M DA paramétré), intérêts moratoires = montant saisi sur la ND. Restent à confirmer par le comptable/fiscaliste EGTO : **valeurs** du barème du droit de timbre, statut de la TAP, longueurs NIF/NIS, mot de passe des exports ZIP. Les valeurs présentes au PRD sont des **valeurs de départ paramétrables**, pas des constantes validées — d'où l'exigence de les stocker en table de paramétrage.
+Le template Excel GITRA du rapport mensuel **n'existe pas encore** : développer M4.9 avant sa validation expose à une reprise complète. Décisions métier tranchées le **15/08/2026** (chef du département Commercial) : **droit de timbre traité manuellement à l'encaissement** — la mécanique automatique du 09/08/2026 (espèces uniquement, seuil 1 M DA, barème) est **révoquée**, barème et seuil **dépréciés** (historique) ; intérêts moratoires = montant saisi sur la ND ; **NIS = 15 chiffres** ; **TAP supprimée** ; rabais des marchés publics ligne par ligne. Restent à confirmer par le comptable/fiscaliste EGTO : valeurs **historiques** du barème du timbre (conservées telles quelles, hors calcul), mot de passe des exports ZIP. Les valeurs présentes au PRD sont des **valeurs de départ paramétrables**, pas des constantes validées — d'où l'exigence de les stocker en table de paramétrage.
 
 ## Convention de lecture du PRD
 

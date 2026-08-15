@@ -67,7 +67,9 @@ export const machineEtatsFacture: MachineEtats<StatutFacture, ActionFacture> = c
   VALIDE: { IMPRIMER: 'IMPRIMEE' },
   // L'envoi au client.
   IMPRIMEE: { ENVOYER: 'ENVOYEE' },
-  // L'encaissement règle la facture.
+  // L'encaissement règle la facture. La facture ne passe à PAYEE que si le
+  // solde est nul (Σ encaissements = montant dû) — contrôle appliqué par le
+  // dépôt en Phase D (D17), extérieur à cette machine.
   ENVOYEE: { ENCAISSER: 'PAYEE' },
   // La facture payée est archivée.
   PAYEE: { ARCHIVER: 'ARCHIVEE' },

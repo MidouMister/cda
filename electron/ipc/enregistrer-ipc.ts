@@ -3,6 +3,7 @@ import type { Base } from '../db/connexion'
 import { enregistrerHandlersBareme } from './ipc-bareme'
 import { enregistrerHandlersClients } from './ipc-clients'
 import { enregistrerHandlersDiagnostic } from './ipc-diagnostic'
+import { enregistrerHandlersEncaissements } from './ipc-encaissements'
 import { enregistrerHandlersExercices } from './ipc-exercices'
 import { enregistrerHandlersFamilles } from './ipc-familles'
 import { enregistrerHandlersParametres } from './ipc-parametres'
@@ -24,5 +25,6 @@ export const enregistrerHandlersIpc = (obtenirBase?: () => Base): void => {
   enregistrerHandlersExercices(enregistreur, obtenirBase)
   enregistrerHandlersFamilles(enregistreur, obtenirBase)
   enregistrerHandlersClients(enregistreur, obtenirBase)
+  enregistrerHandlersEncaissements(enregistreur, obtenirBase)
   enregistrerHandlersDiagnostic(enregistreur)
 }

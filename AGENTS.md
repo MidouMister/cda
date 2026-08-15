@@ -37,6 +37,21 @@ Dernières versions stables, **aucune version figée**. Revue trimestrielle des 
 - Interface et documents **en français exclusivement** ; dates `JJ/MM/AAAA` ; TVA 19 % verrouillée au niveau produit.
 - Pas de commentaires inutiles dans le code.
 
+### Décisions métier définitives (15-16/08/2026)
+
+- **Encaissement réservé aux factures `ENVOYEE`** : tout encaissement (total **ou partiel**) est interdit hors statut `ENVOYEE` ; `BROUILLON`, `VALIDE`, `IMPRIMEE`, `PAYEE`, `ARCHIVEE` bloqués. Liste blanche `STATUTS_FACTURE_AUTORISANT_ENCAISSEMENT` dans `electron/depots/depot-encaissements.ts` ; un futur état `PARTIELLEMENT_PAYEE` devra rejoindre cette liste ; `PAYEE` atteint uniquement au solde nul.
+- **Quatre modes de règlement effectifs uniquement** : `ESPECES`, `CHEQUE`, `VIREMENT_BANCAIRE`, `DEPOT_ESPECES_BANQUE` (`MODES_REGLEMENT_EFFECTIFS`, type `ModeReglementEffectif`) — `TRAITE`, `LCN` et `VIREMENT` sont **refusés** comme modes effectifs. Le mode effectif vit exclusivement dans `encaissements.mode_reglement_effectif` ; les anciennes colonnes de mode de règlement de `factures` (migration 1, CHECK 5 valeurs) sont **historiques/dépréciées** (aucune écriture, pas de migration 4 prévue).
+- **Timbre manuel hors calcul TTC** : le pied de facture ne contient aucun droit de timbre — `total TTC = total HT + TVA` strictement. `calculerDroitTimbre` est **déprécié/isolé** (jamais appelé par le moteur) ; le timbre est **traité manuellement à l'encaissement** (statuts `A_VERIFIER`/`TRAITE`/`NON_APPLICABLE`, montant saisi nullable) ; `droit_timbre_centimes` jamais recalculé ; barème du timbre en table de paramétrage, jamais en dur ; aucune ligne de timbre dans le pied ni le PDF.
+- **Rabais marché appliqué ligne par ligne** : net ligne = brut − remise ligne − rabais marché (base = **brut**, taux figé depuis l'affaire, bps) — plus de rabais global au pied (champ `rabais_global_bps` historique). Écart d'arrondi (≤ 2 centimes, signé) ajusté sur la **ligne éligible de montant net le plus élevé** (marchés publics, avec trace d'audit) ou via une ligne `AJUSTEMENT_ARRONDI` optionnelle (documents privés, jamais si écart nul) — isolé dans `calculerPiedFacture` (D9) et `calculerSoldeFacture` (D17).
+- **NIS à 15 chiffres** : `MOTIF_NIS = /^\d{15}$/` (zéros initiaux conservés, champ texte) — ni plus, ni moins.
+- **TAP supprimée** : définitivement supprimée (aucun remplacement TLS) — ne rien implémenter, ne pas réintroduire.
+
+#### Limites assumées
+
+- Anciennes colonnes de mode de règlement de `factures` **conservées pour compatibilité** (historique, dépréciées).
+- État `PARTIELLEMENT_PAYEE` **non encore actif** (anticipé dans le code, inerte).
+- Modes `TRAITE`, `LCN`, **carte**, **virement postal**, **paiement électronique** : **hors périmètre** (refusés comme modes effectifs).
+
 ## 5. Opérations interdites sans validation explicite
 
 | Interdit | Raison |
@@ -51,6 +66,11 @@ Dernières versions stables, **aucune version figée**. Revue trimestrielle des 
 | Désactiver une option de sécurité (`contextIsolation`, `sandbox`, CSP) ou exposer un canal IPC générique | PRD §5.5.2, §9 |
 | Insérer un secret/clé dans un fichier versionné | Sécurité |
 | Introduire une abstraction « au cas où » (multi-utilisateur, multi-taux…) | Mono-poste mono-utilisateur assumé, PRD §1 |
+| Encaiser une facture hors statut `ENVOYEE` (total ou partiel) | Liste blanche `STATUTS_FACTURE_AUTORISANT_ENCAISSEMENT`, décision 15-16/08/2026 |
+| Introduire `TRAITE`, `LCN`, `VIREMENT`, carte, virement postal ou paiement électronique comme mode de règlement effectif | 4 modes effectifs uniquement, décision 15-16/08/2026 |
+| Écrire dans les anciennes colonnes de mode de règlement de `factures` ou prévoir une migration 4 | Colonnes historiques/dépréciées, mode effectif exclusivement dans `encaissements` |
+| Recalculer le droit de timbre ou l'ajouter au pied/PDF | Timbre manuel à l'encaissement, TTC = HT + TVA strictement, décision 15-16/08/2026 |
+| Réintroduire le rabais global au pied ou la TAP | Remplacés/annulés définitivement, décision 15-16/08/2026 |
 
 En cas de doute : **poser la question, ne pas trancher seul.**
 

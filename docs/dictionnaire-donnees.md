@@ -16,7 +16,7 @@ Jalon 0 — livrable du cadrage. Correspond à `electron/db/schema.sql`. Source 
 | Monnaie | Uniquement des `INTEGER` ; **aucune colonne `REAL`** | §10.3, DoD J0 |
 | Suppression logique | `supprime_le` horodaté ; jamais de `DELETE` en application | §5.3, plan-mvp |
 | Audit | Triggers SQLite uniquement, table `journal_audit` | §4.7.8, §5.3 |
-| Listes de valeurs | Codes majuscules français (`SARL`, `VIREMENT`, `NOIR`…) en `CHECK` | nommage français, §4 |
+| Listes de valeurs | Codes majuscules français (`SARL`, `VIREMENT_BANCAIRE`, `NOIR`…) en `CHECK` | nommage français, §4 |
 
 ---
 
@@ -31,8 +31,10 @@ Jalon 0 — livrable du cadrage. Correspond à `electron/db/schema.sql`. Source 
 | supprime_le | TEXT | oui | — | suppression logique | §10.2 |
 | statut | TEXT | non | `actif` | | §10.2 |
 | code | TEXT | non | — | `UNIQUE` — `VTE`, `LOC`, `REA`, `ST` | §4.3.1 |
-| libelle | TEXT | non | — | `VENTES`, `LOCATIONS`, `RÉALISATIONS`, `SOUS-TRAITANCE` | §4.3.1 |
+| libelle | TEXT | non | — | `Vente`, `Location`, `Réalisation`, `Sous-traitance` (singulier, majuscule initiale) | §4.3.1 |
 | ordre | INTEGER | non | 0 | ordre d'affichage | — |
+
+Codes canoniques `VTE`/`LOC`/`REA`/`ST` ; les libellés sont d'affichage uniquement et ne déterminent **ni TVA, ni timbre, ni rabais, ni prix** (validé le 15/08/2026, chef du département Commercial).
 
 ### 2. `sous_familles` — Sous-familles des produits — §4.3.2, §4.1.8
 
@@ -76,14 +78,16 @@ La classification est **figée en snapshot** sur chaque ligne (DQE, facture) au 
 | tel_fixe / tel_mobile / fax / email | TEXT | oui | — | coordonnées | §4.2.1 |
 | adresse_chantier | TEXT | oui | — | | §4.2.1 |
 | nif | TEXT | oui | — | 15 chiffres attendus (à vérifier §16.5) ; **unicité partielle hors particuliers** (`ux_clients_nif`) | §4.2.1, §4.2.6 |
-| nis | TEXT | oui | — | 11 ou 15 chiffres selon sources (§16.5) | §4.2.1 |
+| nis | TEXT | oui | — | **texte de 15 chiffres exactement** (conversion numérique interdite, zéros initiaux conservés, ex. `001234567890123`) — champ séparé du NIF, du RC et de l'AI | §4.2.1 |
 | rc / ai | TEXT | oui | — | registre de commerce / identifiant fiscal | §4.2.1 |
 | rib / banque / agence | TEXT | oui | — | | §4.2.1 |
-| mode_reglement_prefere | TEXT | oui | — | `CHECK IN ('VIREMENT','CHEQUE','ESPECES','TRAITE','LCN')` | §4.2.1, §4.4.4 |
+| mode_reglement_prefere | TEXT | oui | — | `CHECK IN ('ESPECES','CHEQUE','VIREMENT_BANCAIRE','DEPOT_ESPECES_BANQUE')` — aligné sur la décision 15/08/2026 (4 modes de cette version) | §4.2.1, §4.4.4 |
 | delai_paiement_jours | INTEGER | oui | — | sert au calcul de `date_echeance` | §4.4.4 |
 | plafond_credit_centimes | INTEGER | oui | — | centimes — non bloquant, informatif | §4.2.1, §4.2.4 |
 | score_client | TEXT | oui | — | `CHECK IN ('A','B','C','D')` — recalculé (auto) | §4.2.4 |
 | derniere_evaluation_score_le | TEXT | oui | — | date du dernier calcul du score | §4.2.4 |
+
+Le **NIS** est un identifiant administratif **texte de 15 chiffres exactement** (jamais converti en nombre : les zéros initiaux seraient perdus, ex. `001234567890123`), stocké dans un champ **séparé** du NIF, du RC et de l'AI, validé à la saisie sans recalcul automatique. Pour un éventuel établissement secondaire, conserver le **NIS complet de 15 chiffres** de l'établissement concerné (validé le 15/08/2026).
 
 ### 5. `contacts` — Contacts client — §4.2.2
 
@@ -151,6 +155,7 @@ Le taux TVA 19 % est **verrouillé au niveau produit** (non modifiable, pas de c
 | date_fin_reelle | TEXT | oui | — | | §4.1.3 |
 | motif_depassement | TEXT | oui | — | `CHECK IN ('FORCE_MAJEURE','AVENANT','RETARD_CLIENT','RETARD_APPRO','AUTRE')` | §4.1.3 |
 | rabais_global_bps | INTEGER | non | 0 | bps | §4.1.3 |
+| rabais_marche_bps | INTEGER | non | 0 | **rabais contractuel du marché public** (bps) — copié et **figé sur chaque ligne** au moment de la facturation (§4.4.5, décision 15/08/2026) ; distinct du `rabais_global_bps` | §4.1.3, §4.4.5 |
 | responsable | TEXT | oui | — | texte libre (mono-utilisateur 📌) | §4.1.3 |
 | numero_marche | TEXT | oui | — | (public) attribué par le MO | §4.1.4 |
 | service_contractant | TEXT | oui | — | administration / EPE | §4.1.4 |
@@ -351,23 +356,25 @@ Calcul : `date_fin_revisee = date_ods + delai_initial + Σ suspensions + Σ pror
 | rabais_global_bps | INTEGER | non | 0 | % | §4.4.4 |
 | retenue_garantie_bps | INTEGER | non | 0 | % sur HT — repris de l'affaire | §4.4.4 |
 | remboursement_avance_centimes | INTEGER | non | 0 | au prorata, ajustable | §4.4.4, §4.4.6 |
-| mode_reglement_prevu | TEXT | oui | — | `CHECK IN ('VIREMENT','CHEQUE','ESPECES','TRAITE','LCN')` — **le timbre ne s'applique que si `ESPECES`** (versement en caisse, §16.2) | §4.4.4, §7.1 |
-| mode_reglement_effectif | TEXT | oui | — | constaté à l'encaissement (M5, hors MVP) | §4.4.4 |
+| mode_reglement_prevu | TEXT | oui | — | `CHECK IN ('VIREMENT','CHEQUE','ESPECES','TRAITE','LCN')` — modes **inchangés** ; le timbre n'est plus déclenché par la facture (décision 15/08/2026). ⚠️ **Liste à réviser** : la décision 15/08/2026 limite les modes de règlement de cette version à `ESPECES`, `CHEQUE`, `VIREMENT_BANCAIRE`, `DEPOT_ESPECES_BANQUE` — l'alignement de `mode_reglement_prevu` (migration 1 verrouillée) est à trancher | §4.4.4, §7.1 |
+| mode_reglement_effectif | TEXT | oui | — | constaté à l'encaissement — modes effectifs limités à `('ESPECES','CHEQUE','VIREMENT_BANCAIRE','DEPOT_ESPECES_BANQUE')` (voir `encaissements.mode_reglement_effectif`, table 28) | §4.4.4 |
 | total_ht_lignes_centimes | INTEGER | non | 0 | Σ HT lignes avant remises | §4.4.6 |
-| total_remises_centimes | INTEGER | non | 0 | remises lignes + rabais global | §4.4.6 |
+| total_remises_centimes | INTEGER | non | 0 | Σ remises de ligne (brut × remise_bps) + Σ rabais marché de ligne (brut × rabais_marche_bps) — écart d'arrondi (≤ 2 centimes) imputé ; aucun rabais global de document | §4.4.6 |
 | net_commercial_ht_centimes | INTEGER | non | 0 | = total HT lignes − remises | §4.4.6 |
 | retenue_garantie_centimes | INTEGER | non | 0 | base HT | §4.4.6 |
 | total_ht_centimes | INTEGER | non | 0 | = net commercial − remb. avance − retenue | §4.4.6 |
 | total_tva_centimes | INTEGER | non | 0 | 19 % | §4.4.6 |
 | total_ttc_centimes | INTEGER | non | 0 | = total HT + TVA | §4.4.6 |
-| droit_timbre_centimes | INTEGER | non | 0 | barème §4.7.3, **uniquement si règlement prévu en espèces** (§16.2) | §4.4.6, §7.1 |
+| droit_timbre_centimes | INTEGER | non | 0 | **DÉPRÉCIÉ** — conservé pour l'historique/compatibilité, **plus alimenté par le moteur de calcul** (timbre traité manuellement à l'encaissement, décision 15/08/2026) | §4.4.6, §7.1 |
 | interets_moratoires_centimes | INTEGER | non | 0 | **montant saisi directement** sur une ND (pas de taux) 📌 | §16.3, §4.4.1 |
-| net_a_payer_centimes | INTEGER | non | 0 | = total TTC + timbre | §4.4.6 |
+| net_a_payer_centimes | INTEGER | non | 0 | **= total TTC** (HT + TVA strictement — le timbre n'en fait plus partie) | §4.4.6 |
 | facture_origine_id | INTEGER | oui | — | `FK → factures.id` (pour AV) | §4.4.12 |
 | motif_avoir | TEXT | oui | — | obligatoire pour AV | §4.4.12 |
 | date_validation | TEXT | oui | — | horodatage attribution du numéro | §4.4.2 |
 | nombre_impressions | INTEGER | non | 0 | comptage duplicata | §4.4.13 |
 | exercice_id | INTEGER | oui | — | `FK → exercices.id` | §4.7.4 |
+
+Une facture a **0..N encaissements** (table `encaissements`, section 28) ; passage au statut `PAYEE` **uniquement au solde nul** (Σ encaissements = montant dû, décision 15/08/2026). **NET À PAYER = total TTC** — le droit de timbre n'apparaît jamais dans le pied (traitement manuel à l'encaissement).
 
 ### 21. `lignes_facture` — Lignes de facture — §4.4.5, §4.4.6
 
@@ -381,11 +388,20 @@ Calcul : `date_fin_revisee = date_ods + delai_initial + Σ suspensions + Σ pror
 | unite | TEXT | oui | — | `CHECK IN ('T','M2','M3','FORFAIT','H','J','KM','U','L')` | §4.4.5 |
 | quantite_milliemes | INTEGER | non | 0 | | §4.4.5 |
 | pu_ht_centimes | INTEGER | non | 0 | modifiable | §4.4.5 |
-| remise_bps | INTEGER | non | 0 | remise ligne (%) en plus du rabais global | §4.4.4, §4.4.5 |
+| remise_bps | INTEGER | non | 0 | remise ligne (%) appliquée sur le brut | §4.4.4, §4.4.5 |
 | montant_ht_brut_centimes | INTEGER | non | 0 | qte × PU avant remise | §4.4.6 |
 | montant_ht_remise_centimes | INTEGER | non | 0 | après remise ligne | §4.4.6 |
+| rabais_marche_bps | INTEGER | non | 0 | **rabais contractuel du marché public, figé sur la ligne** à la facturation (copié de `affaires.rabais_marche_bps`) | §4.1.3, §4.4.5 |
+| montant_rabais_marche_centimes | INTEGER | non | 0 | montant du rabais marché sur la ligne | §4.4.6 |
+| montant_ht_net_centimes | INTEGER | non | 0 | net de la ligne après remise ligne **et** rabais marché | §4.4.6 |
+| type_ligne | TEXT | oui | — | `CHECK IN ('AJUSTEMENT_ARRONDI')` — **optionnel, documents privés uniquement** : ligne d'ajustement qui absorbe l'écart d'arrondi (voir note ci-dessous) | §4.4.6 |
 | famille_id / sous_famille_id | INTEGER | oui | — | `FK` — héritées du produit | §4.4.5 |
 | classification | TEXT | oui | — | `CHECK IN ('NOIR','BLANC','AUTRE')` — snapshot | §4.4.5 |
+
+Calcul de ligne (décision 15/08/2026, §4.4.5bis) : `montant_ht_brut_centimes` → remise ligne (`remise_bps`) → `montant_ht_remise_centimes` → rabais marché figé (`rabais_marche_bps`) → `montant_rabais_marche_centimes` → **`montant_ht_net_centimes`**. La **remise de ligne s'applique sur le brut** ; le **rabais marché s'applique également sur le brut** (**base = brut**, décision 15/08/2026) : `montant_rabais_marche_centimes = montant_ht_brut_centimes × rabais_marche_bps` (pas le montant après remise) et `montant_ht_net_centimes = montant_ht_brut_centimes − montant_ht_remise_centimes − montant_rabais_marche_centimes`, soit **net ligne = brut − remise − rabais marché**, arrondi 2 décimales half-up ligne par ligne, §10.3. Le rabais des **marchés publics** est appliqué **ligne par ligne** ; aucune ligne `AJUSTEMENT_ARRONDI` obligatoire — l'écart d'arrondi (≤ 2 centimes) est appliqué à la **ligne éligible de montant le plus élevé**, avec **trace dans le journal d'audit** :
+- **Écart positif** (somme des nets arrondis < total HT net attendu) : l'écart est ajouté à la ligne éligible la plus élevée.
+- **Écart négatif** (somme des nets arrondis > total HT net attendu) : l'écart est retranché de la ligne éligible la plus élevée.
+- Pour les **documents privés**, l'écart d'arrondi peut être absorbé par une ligne `AJUSTEMENT_ARRONDI` **optionnelle** (jamais silencieuse : tracée).
 
 ### 22. `bons_livraison` — Bons de livraison (activité VENTES) — §4.4.11
 
@@ -443,6 +459,8 @@ Contrainte `CHECK` : cohérence niveau/client/affaire, et `fin_periode >= debut_
 | valeur | TEXT | non | — | valeur sérialisée | §4.7.3 |
 | description | TEXT | oui | — | | — |
 
+Clé `timbre.seuil_max_especes_centimes` : **DÉPRÉCIÉE** — conservée pour compatibilité/historique, **retirée du chemin de calcul** (le timbre est traité manuellement à l'encaissement depuis le 15/08/2026).
+
 ### 26. `compteurs_numerotation` — Compteurs par document et année — §4.7.5, §4.4.2
 
 | Colonne | Type | Null. | Défaut | Contrainte / note | § PRD |
@@ -456,7 +474,9 @@ Contrainte `CHECK` : cohérence niveau/client/affaire, et `fin_periode >= debut_
 
 `UNIQUE(code_document, annee, affaire_id)`. Le numéro est **incrémenté à la validation** (D11/`attribuerNumero`), jamais au brouillon — §4.4.2, §5.3.
 
-### 27. `bareme_timbre` — Barème du droit de timbre — §4.7.3, §7.1
+### 27. `bareme_timbre` — Barème du droit de timbre — §4.7.3, §7.1 — **DÉPRÉCIÉ (historique)**
+
+Table **dépréciée le 15/08/2026** : conservée pour compatibilité/historique, **retirée du chemin de calcul** — plus aucun calcul automatique de timbre dans le pied de facture (traitement manuel à l'encaissement, table `encaissements`). Aucun taux en dur dans le code.
 
 | Colonne | Type | Null. | Défaut | Contrainte / note | § PRD |
 |---|---|---|---|---|---|
@@ -469,14 +489,42 @@ Contrainte `CHECK` : cohérence niveau/client/affaire, et `fin_periode >= debut_
 | plafond_centimes | INTEGER | non | 1000000 | 10 000 DA | §4.7.3 |
 | actif | INTEGER | non | 1 | `CHECK IN (0,1)` | §4.7.3 |
 
-Valeurs de départ (tranchées par l'expert-comptable avant mise en production) : ≤ 300 DA exonéré ; 300–30 000 DA : 1 % ; 30 000–100 000 DA : 1,5 % ; > 100 000 DA : 2 %. Jamais de taux en dur dans le code — D10 (J1). **Déclencheur (confirmé comptable, 09/08/2026)** : timbre appliqué **uniquement** si le règlement prévu est un **versement en espèces** dans la caisse de l'entreprise ; seuil maximum des espèces paramétré (`parametres.timbre.seuil_max_especes_centimes`, défaut 1 000 000 DA). Chèque, traite, virement et LCN : **jamais de timbre**.
+Valeurs de départ (tranchées par l'expert-comptable avant mise en production) : ≤ 300 DA exonéré ; 300–30 000 DA : 1 % ; 30 000–100 000 DA : 1,5 % ; > 100 000 DA : 2 %. **⚠️ Valeurs historiques** : la mécanique automatique du timbre (barème, seuil des espèces) a été révoquée le 15/08/2026 — la table est conservée pour l'historique, le timbre est désormais **traité manuellement à l'encaissement** (voir table 28).
 
-### 28. `journal_audit` — Journal d'audit (triggers) — §4.7.8, §5.3
+### 28. `encaissements` — Encaissements (structure minimale) — §4.5.1, §4.5.2
+
+Structure minimale autorisée (décision validée le 15/08/2026, chef du département Commercial) : une facture a **0..N encaissements** ; l'affectation multi-factures (N—N), l'échéancier des créances et les relances restent hors périmètre MVP (M5, Phase 2).
 
 | Colonne | Type | Null. | Défaut | Contrainte / note | § PRD |
 |---|---|---|---|---|---|
 | id | INTEGER | non | auto | PK auto | — |
-| table_affectee | TEXT | non | — | `clients`, `affaires`, `avenants`, `devis`, `factures`, `bons_livraison` | §4.7.8 |
+| cree_le / modifie_le / supprime_le | TEXT | — | — | transversales | §10.2 |
+| facture_id | INTEGER | non | — | `FK → factures.id` — une facture a 0..N encaissements | §4.5.1 |
+| numero | TEXT | non | — | compteur `ENC` (`ENC-YYYY-NNNNN`, §4.7.5) ; **index proposé : unique partiel** `ux_encaissements_numero` (`WHERE supprime_le IS NULL`) | §4.5.1, §4.7.5 |
+| montant_encaisse_centimes | INTEGER | non | 0 | centimes — `CHECK (montant_encaisse_centimes > 0)` ; un encaissement validé **ne dépasse jamais le montant dû** | §4.5.1 |
+| date_encaissement | TEXT | non | — | stockée ISO `AAAA-MM-JJ` en base ; **affichée `JJ/MM/AAAA` uniquement dans l'interface** | §5.5.1 |
+| mode_reglement_effectif | TEXT | non | — | `CHECK IN ('ESPECES','CHEQUE','VIREMENT_BANCAIRE','DEPOT_ESPECES_BANQUE')` — modes de règlement effectifs **limités à ces 4 valeurs pour cette version** ; le **dépôt espèces en banque** est distinct du versement espèces à la caisse | §4.5.1 |
+| timbre_statut | TEXT | oui | — | `CHECK IN ('A_VERIFIER','TRAITE','NON_APPLICABLE')` — traitement **manuel** du timbre à l'encaissement (contraintes conditionnelles, jamais de « timbre = 0 DA » affiché automatiquement) | §16.2 |
+| montant_timbre_saisi_centimes | INTEGER | oui | — | nullable — montant du timbre saisi manuellement si dû | §16.2 |
+| timbre_traite_le | TEXT | oui | — | date du traitement (caissier/comptable) | §16.2 |
+| timbre_traite_par | TEXT | oui | — | responsable du traitement | §16.2 |
+| reference_timbre_ou_quittance | TEXT | oui | — | n° de timbre / quittance | §16.2 |
+| commentaire_timbre | TEXT | oui | — | | §16.2 |
+
+Règles (validées le 15/08/2026) :
+- **0..N encaissements par facture** ; la facture passe à `PAYEE` **uniquement au solde nul** (Σ encaissements = montant dû).
+- Montant encaissé **> 0** ; un encaissement validé **ne dépasse jamais le montant dû** de la facture.
+- Le **droit de timbre est traité manuellement à l'encaissement** (statut `timbre_statut` conditionnel) — plus aucun calcul automatique dans le pied de facture (barème et seuil dépréciés).
+- `date_encaissement` : stockée `AAAA-MM-JJ` en base, **affichage `JJ/MM/AAAA` uniquement dans l'interface**.
+- Table **sensible** : triggers d'audit INSERT/UPDATE/DELETE dans `journal_audit` (voir table 29).
+- Index proposé : `numero` unique partiel (`WHERE supprime_le IS NULL`).
+
+### 29. `journal_audit` — Journal d'audit (triggers) — §4.7.8, §5.3
+
+| Colonne | Type | Null. | Défaut | Contrainte / note | § PRD |
+|---|---|---|---|---|---|
+| id | INTEGER | non | auto | PK auto | — |
+| table_affectee | TEXT | non | — | `clients`, `affaires`, `avenants`, `devis`, `factures`, `bons_livraison`, `encaissements` | §4.7.8 |
 | action | TEXT | non | — | `CHECK IN ('INSERT','UPDATE','DELETE')` | §4.7.8 |
 | ligne_id | INTEGER | oui | — | id de la ligne audité | §4.7.8 |
 | ancien_etat | TEXT | oui | — | JSON (avant) | §4.7.8 |
@@ -484,9 +532,9 @@ Valeurs de départ (tranchées par l'expert-comptable avant mise en production) 
 | auteur | TEXT | non | `egto` | mono-utilisateur | §4.7.1 |
 | date_action | TEXT | non | now | horodatage | §4.7.8 |
 
-Lecture seule, rétention illimitée (volume faible). Export annuel possible pour archivage. Encaissements et cautions (ajoutés en Phase 2) devront recevoir leurs propres triggers d'audit.
+Lecture seule, rétention illimitée (volume faible). Export annuel possible pour archivage. Les **encaissements** sont une table **sensible** : triggers d'audit INSERT/UPDATE/DELETE (décision 15/08/2026). La règle d'arrondi des marchés publics (écart ≤ 2 centimes appliqué à la ligne éligible de montant le plus élevé) **trace l'écart dans le journal d'audit** (voir table 21). Les cautions (ajoutées en Phase 2) devront recevoir leurs propres triggers d'audit.
 
-### 29. `migrations_history` — Historique des migrations — plan-mvp M3 (J1)
+### 30. `migrations_history` — Historique des migrations — plan-mvp M3 (J1)
 
 | Colonne | Type | Null. | Défaut | Contrainte / note | § PRD |
 |---|---|---|---|---|---|
@@ -504,7 +552,7 @@ Lecture seule, rétention illimitée (volume faible). Export annuel possible pou
 | `DeclarationLigne` | hors MVP | Phase 2 | déclarations mensuelles hors périmètre M1 |
 | ST (documents `SITUATION`) | hors MVP | Phase 2 | numérotées par marché, §4.4.7 |
 | `Caution`, `RetenueGarantieEcheance` | hors MVP | Phase 2 | M11/M12 |
-| `Encaissement`, `Facture↔Encaissement` | hors MVP | Phase 2 | M5 créances |
+| Affectation multi-factures d'un encaissement (N—N), échéancier, relances | hors MVP | Phase 2 | M5 — la **structure minimale** `encaissements` (1 facture → 0..N encaissements) est **MVP**, voir table 28 |
 | `SousTraitant`, `BCST`, `DecompteSST` | hors MVP | Phase 2 | M8 |
 | `Registre consultations` | hors MVP | Phase 3 | §4.1.13 |
 | `Correspondance` | **MVP** | — | M1 (§4.1.11) — voir table 16 |

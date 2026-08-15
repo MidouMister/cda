@@ -1,4 +1,4 @@
-export const CODES_DOCUMENT = ['FA', 'AC', 'AV', 'FS', 'ND', 'BL', 'DEV', 'ST'] as const
+export const CODES_DOCUMENT = ['FA', 'AC', 'AV', 'FS', 'ND', 'BL', 'DEV', 'ST', 'ENC'] as const
 export type CodeDocument = (typeof CODES_DOCUMENT)[number]
 
 export const PREFIXES_AFFAIRE = ['AFG', 'AVT'] as const
@@ -6,7 +6,7 @@ export const PREFIXES_AFFAIRE = ['AFG', 'AVT'] as const
 const MOTIF_NUMERO = /^([A-Z]{2,3})-(\d{4})-(\d{4,})$/
 const MOTIF_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 const MOTIF_NIF = /^\d{15}$/
-const MOTIF_NIS = /^\d{11}$|^\d{15}$/
+const MOTIF_NIS = /^\d{15}$/
 
 const JOURS_PAR_MOIS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const
 
@@ -123,7 +123,7 @@ export class Nis {
   static depuisValeur(valeur: string): Nis {
     verifierChaine(valeur, 'NIS')
     if (!MOTIF_NIS.test(valeur)) {
-      throw new Error('« NIS » doit contenir 11 ou 15 chiffres, sans séparateur.')
+      throw new Error('« NIS » doit contenir exactement 15 chiffres, sans séparateur.')
     }
     return new Nis(valeur)
   }

@@ -380,12 +380,12 @@ Interrupteur : 36 × 21 px, gris au repos, **vert** actif, pastille blanche tran
 
 L'écran le plus utilisé, et celui où l'exigence de fidélité au document est la plus forte. Aligné à droite, largeur 420 px, chaque intitulé face à son montant en chiffres tabulaires. Il se recalcule à chaque frappe, sans bouton de recalcul.
 
-L'ordre est celui de [prd-cda.md:456-468](prd-cda.md#L456-L468), **sans exception ni raccourci** :
+L'ordre est celui de [prd-cda.md:478-490](prd-cda.md#L478-L490), **sans exception ni raccourci** :
 
 ```
   Total HT des lignes
 − Remises sur lignes        (accordées ligne par ligne)
-− Rabais global             (pourcentage du document)
+− Rabais lignes             (marché, ligne par ligne)
 ──────────────────────────────────────────────────────
 = Net commercial HT
 − Remboursement d'avance    (prorata)
@@ -395,18 +395,19 @@ L'ordre est celui de [prd-cda.md:456-468](prd-cda.md#L456-L468), **sans exceptio
 + TVA 19 %
 ──────────────────────────────────────────────────────
 = Total TTC
-+ Droit de timbre           (mode de règlement, plafond)
 ══════════════════════════════════════════════════════
   NET À PAYER
 ```
 
-**La remise sur lignes et le rabais global sont deux lignes distinctes**, toutes deux affichées même à zéro. Les confondre — ou n'en montrer qu'une — rend le net commercial invérifiable, puisque l'une s'applique poste par poste et l'autre au document entier.
+Le droit de timbre ne figure plus dans le pied : **TTC = HT + TVA strictement** et **NET À PAYER = total TTC** — le timbre est traité manuellement à l'encaissement (§4.7.3).
+
+**La remise par ligne et le rabais marché restent deux mécanismes distincts**, mais les deux s'appliquent **ligne par ligne** : brut → remise de ligne → rabais marché (taux figé depuis l'affaire) → net de ligne. Au pied ne figurent que la **somme des remises** et la **somme des rabais de lignes**, toutes deux affichées même à zéro — il n'y a **aucun pourcentage global de document**. Les confondre — ou n'en montrer qu'une — rendrait le net commercial invérifiable : la somme des nets de ligne ne peut pas se reconstituer en une seule déduction.
 
 Trois filets seulement, sur les trois sous-totaux `= Net commercial HT`, `= Total HT facture` et `= Total TTC`, qui passent en `--text-primary` gras. Les déductions restent en `--text-secondary` préfixées d'un signe moins : ce n'est pas une anomalie, c'est un mécanisme normal — jamais de rouge.
 
 Le **NET À PAYER** occupe un bloc `--bg-hover` à rayon 9 px, coiffé d'un filet de 2 px en `--text-primary`, libellé en 11 px majuscules espacées, montant en 16 / 700.
 
-Chaque ligne conditionnelle porte **la raison de sa valeur** en indication grise : le pourcentage du rabais, la base de la retenue, et pour le timbre le mode de règlement qui l'a déclenché — ou la mention « non applicable au virement » quand il ne s'applique pas. La ligne de timbre reste affichée à zéro avec son motif : son absence pure ferait douter d'un oubli. Une note de bas de pied rappelle l'arrondi ligne par ligne puis au total, et le caractère paramétrable du barème (§4.7.3).
+Chaque ligne conditionnelle porte **la raison de sa valeur** en indication grise : le taux du rabais marché figé depuis l'affaire, la base de la retenue, le prorata de l'avance. Le droit de timbre, lui, **ne figure jamais** dans le pied — aucune ligne, même à zéro : « timbre = 0 DA » est interdit. Une note de bas de pied rappelle l'arrondi ligne par ligne puis au total.
 
 Saisie des lignes entièrement au clavier : `Tab` avance de cellule en cellule, `⏎` en fin de ligne crée la suivante, `⌘D` duplique la ligne courante. Le code produit ouvre un sélecteur à recherche incrémentale qui renseigne libellé, unité et prix unitaire.
 
@@ -422,7 +423,7 @@ Saisie des lignes entièrement au clavier : `Tab` avance de cellule en cellule, 
 
 Mode étroit à 980 px, disposition à deux colonnes : navigation collante de 190 px à gauche, contenu à droite. Cinq sections — Société, Fiscalité, Numérotation, Sécurité et sauvegarde, Apparence.
 
-Chaque section s'ouvre sur un titre 15 / 700 et une phrase qui dit **où le réglage produit son effet** : « Ces informations alimentent l'en-tête et les mentions légales de tous les documents imprimés ». Les réglages simples sont des lignes libellé / sous-libellé / contrôle séparées d'un filet ; les données structurées — barème du timbre, séries de numérotation — sont des tableaux, pas des empilements de champs.
+Chaque section s'ouvre sur un titre 15 / 700 et une phrase qui dit **où le réglage produit son effet** : « Ces informations alimentent l'en-tête et les mentions légales de tous les documents imprimés ». Les réglages simples sont des lignes libellé / sous-libellé / contrôle séparées d'un filet ; les données structurées — séries de numérotation, indices de révision de prix — sont des tableaux, pas des empilements de champs.
 
 Toute valeur signalée comme à confirmer dans l'annexe §16 du PRD porte son avertissement **à côté d'elle**, pas dans une note de bas de page.
 
@@ -555,9 +556,9 @@ Format A4 portrait, marges 20 mm en haut et en bas, 18 mm sur les côtés. Corps
 
 En-tête : logo EGTO à gauche, coordonnées et identifiants légaux à droite en 8 pt. Le titre du document et son numéro sont l'élément le plus visible de la page — c'est ce qu'on cherche en manipulant une liasse.
 
-Les 9 mentions légales obligatoires de [prd-cda.md:956](prd-cda.md#L956) figurent en pied de page en 7,5 pt : dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, mode de règlement, mention du droit de timbre le cas échéant, taux de TVA.
+Les 10 mentions légales obligatoires de [prd-cda.md:995](prd-cda.md#L995) figurent en pied de page en 7,5 pt : dénomination, forme juridique, capital, RC, NIF, NIS, AI, adresse, mode de règlement, taux de TVA.
 
-Le tableau des lignes utilise un filet de séparation fin, sans fond alterné. **Le pied reproduit exactement l'enchaînement de §3.9**, rabais global compris, avec le NET À PAYER encadré d'un filet. L'écran et le papier ne peuvent pas diverger d'une ligne : c'est le seul moyen pour l'utilisateur de contrôler avant d'imprimer.
+Le tableau des lignes utilise un filet de séparation fin, sans fond alterné. **Le pied reproduit exactement l'enchaînement de §3.9**, rabais marché et remises ligne par ligne compris, sans droit de timbre, avec le NET À PAYER encadré d'un filet. L'écran et le papier ne peuvent pas diverger d'une ligne : c'est le seul moyen pour l'utilisateur de contrôler avant d'imprimer.
 
 Duplicata : mention « DUPLICATA » en filigrane diagonal gris 20 %, sur toute réimpression d'un document déjà imprimé ([prd-cda.md:548](prd-cda.md#L548)).
 

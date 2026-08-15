@@ -44,6 +44,13 @@ describe('machineEtatsFacture', () => {
     expect(transiter(machineEtatsFacture, payée, 'ARCHIVER')).toBe('ARCHIVEE')
   })
 
+  it('ENCAISSER mène à PAYEE, le contrôle de solde nul restant externe à la machine', () => {
+    // La machine autorise ENCAISSER → PAYEE ; la condition « solde nul
+    // (Σ encaissements = montant dû) » est appliquée par le dépôt en Phase D
+    // (D17), pas par la machine à états.
+    expect(transiter(machineEtatsFacture, 'ENVOYEE', 'ENCAISSER')).toBe('PAYEE')
+  })
+
   it.each([
     ['BROUILLON', 'ENCAISSER'],
     ['BROUILLON', 'ARCHIVER'],

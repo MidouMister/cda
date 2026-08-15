@@ -1,3 +1,7 @@
+// DÉPRÉCIÉ depuis le 15/08/2026 — timbre traité manuellement à l'encaissement
+// (`encaissements.timbre_statut`) ; plus appelé par le moteur de facturation
+// (D9) ; conservé isolé pour référence historique et tests.
+
 import { Montant } from './montant'
 
 export type ModeReglement = 'VIREMENT' | 'CHEQUE' | 'ESPECES' | 'TRAITE' | 'LCN'

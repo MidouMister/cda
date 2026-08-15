@@ -12,8 +12,22 @@ export type CategorieClient = (typeof CATEGORIES_CLIENT)[number]
 export const SECTEURS_CLIENT = ['BTP', 'ENERGIE', 'PORTUAIRE', 'HYDRAULIQUE', 'VRD', 'AUTRE'] as const
 export type SecteurClient = (typeof SECTEURS_CLIENT)[number]
 
+// DÉPRÉCIÉ (15/08/2026) : TRAITE et LCN ne sont plus des modes actifs — à ne
+// PAS utiliser comme modes effectifs. Ce type reste utilisé pour
+// `clients.mode_reglement_prefere` et `factures.mode_reglement_prevu`
+// (valeurs historiques, colonnes verrouillées de la migration 1).
 export const MODES_REGLEMENT = ['VIREMENT', 'CHEQUE', 'ESPECES', 'TRAITE', 'LCN'] as const
 export type ModeReglement = (typeof MODES_REGLEMENT)[number]
+
+// Modes de règlement EFFECTIFS de la version courante (décision 15/08/2026) —
+// uniquement ces 4 valeurs ; TRAITE/LCN/VIREMENT refusés comme modes effectifs.
+export const MODES_REGLEMENT_EFFECTIFS = [
+  'ESPECES',
+  'CHEQUE',
+  'VIREMENT_BANCAIRE',
+  'DEPOT_ESPECES_BANQUE',
+] as const
+export type ModeReglementEffectif = (typeof MODES_REGLEMENT_EFFECTIFS)[number]
 
 export const SCORES_CLIENT = ['A', 'B', 'C', 'D'] as const
 export type ScoreClient = (typeof SCORES_CLIENT)[number]

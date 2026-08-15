@@ -21,4 +21,13 @@ export const construireApiEgto = (ipcRenderer: IpcRenderer): ApiEgto => ({
     lister: () => ipcRenderer.invoke(CANAUX.clients.lister),
     creer: (donnees) => ipcRenderer.invoke(CANAUX.clients.creer, donnees),
   },
+  encaissements: {
+    lister: (factureId) =>
+      factureId === undefined
+        ? ipcRenderer.invoke(CANAUX.encaissements.lister)
+        : ipcRenderer.invoke(CANAUX.encaissements.lister, factureId),
+    creer: (donnees) => ipcRenderer.invoke(CANAUX.encaissements.creer, donnees),
+    supprimer: (id) => ipcRenderer.invoke(CANAUX.encaissements.supprimer, id),
+    modifierEncaissement: (donnees) => ipcRenderer.invoke(CANAUX.encaissements.modifierTimbre, donnees),
+  },
 })

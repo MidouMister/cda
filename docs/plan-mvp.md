@@ -40,7 +40,7 @@ electron/            Processus Main
 domaine/             TypeScript PUR — aucun import externe (ni electron, ni sqlite, ni react, ni fs, ni date-fns)
   ├── montant.ts     objet Montant (centimes, half-up, refus des flottants)
   ├── pied-facture.ts  enchaînement §4.4.6
-  ├── droit-timbre.ts  barème à tranches reçu en paramètre (jamais en dur)
+  ├── droit-timbre.ts  barème à tranches reçu en paramètre (jamais en dur) — **module déprécié** (timbre manuel à l'encaissement, 15/08/2026)
   ├── numerotation.ts  attribution à la validation, séquence sans trou
   ├── tarifs.ts      cascade affaire → client → catalogue
   ├── score.ts       formules §4.2.4, protection GITRA/Groupe
@@ -90,13 +90,14 @@ Sept jalons, chacun livrable et démontrable seul.
 - Scaffold Electron + React + TypeScript + Vite, arborescence §1.3.
 - Connexion `better-sqlite3-multiple-ciphers`, WAL, cipher compatible SQLCipher ; moteur de migrations (`PRAGMA user_version`, dossier `migrations/`, table `migrations_history`).
 - `domaine/` : `Montant`, identités, entités, machines à états, classification + snapshot.
-- Fonctions de calcul : `calculerPiedFacture`, `calculerDroitTimbre`, `attribuerNumero`.
+- Fonctions de calcul : `calculerPiedFacture`, `calculerDroitTimbre` (isolé/déprécié), `attribuerNumero`.
+- **Structure minimale d'encaissements** : table `encaissements` (0..N par facture, solde nul → `PAYEE`), dépôt dédié, contrats/IPC encaissements — décision 15/08/2026.
 - Garde-fou ESLint : échec du build si `domaine/` importe l'extérieur.
 - Fenêtre Electron durcie (`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, CSP `default-src 'self'`) affichant un écran de diagnostic.
 
 **Definition of Done**
-- Les 10 cas types de contrôle du pied de facture ([prd-cda.md:1304](../prd-cda.md#L1304)) passent au centime près, avec et sans retenue, avec et sans droit de timbre.
-- Le barème du timbre est lu depuis les paramètres, jamais d'une constante ; un test le prouve en modifiant les tranches à chaud. Déclencheur : **uniquement si le règlement prévu est en espèces** (versement en caisse), plafonné au seuil paramétré (défaut 1 000 000 DA) — chèque, traite, virement et LCN ne génèrent jamais de timbre.
+- Les 10 cas types révisés du pied de facture passent au centime près, avec et sans retenue, avec rabais marché **ligne par ligne**, écarts d'arrondi positifs et négatifs couverts (règle de la ligne éligible la plus élevée pour les marchés publics) ; **le pied ne contient aucun droit de timbre** (total TTC = HT + TVA).
+- Le droit de timbre **n'est plus calculé par le moteur** : le module `calculerDroitTimbre` est isolé/déprécié ; l'**encaissement manuel du timbre** est testé (statuts `A_VERIFIER`/`TRAITE`/`NON_APPLICABLE`, montant saisi nullable, **solde nul requis pour `PAYEE`**, aucun dépassement du montant dû, montant encaissé > 0).
 - `npm run verifier` (typage + lint + garde + tests) vert en une commande.
 - Les tests de calcul tournent sans lancer Electron ni ouvrir de base réelle.
 - La base créée est illisible par un client SQLite standard sans la clé.
@@ -159,17 +160,17 @@ Sept jalons, chacun livrable et démontrable seul.
 **Livrables**
 - M4 : FA, AC, AV totaux et partiels, BL.
 - Numérotation attribuée **à la validation uniquement** ([prd-cda.md:424](../prd-cda.md#L424)) : brouillon supprimé sans consommation, séquence sans trou, numéro verrouillé.
-- Pied de facture §4.4.6 : remboursement d'avance au prorata, retenue de garantie, TVA 19 %, droit de timbre selon barème et mode de règlement prévu.
+- Pied de facture §4.4.6 : remboursement d'avance au prorata, retenue de garantie, TVA 19 % — **sans droit de timbre** (TTC = HT + TVA ; timbre traité manuellement à l'encaissement, §4.7.3).
 - `genererFactureDepuisBons` : BL sélectionnés → FA, les BL passent en « Facturé ».
-- PDF côté Main (pdfmake, Roboto + Noto Naskh Arabic), 9 mentions légales de [prd-cda.md:956](../prd-cda.md#L956), filigrane « DUPLICATA » à toute réimpression, comptage dans l'audit.
+- PDF côté Main (pdfmake, Roboto + Noto Naskh Arabic), 10 mentions légales de [prd-cda.md:995](../prd-cda.md#L995), filigrane « DUPLICATA » à toute réimpression, comptage dans l'audit.
 - Cycle de vie Brouillon → Validée → Imprimée → Envoyée → Payée → Archivée, suppression logique.
 - UI : liste/fiche facture (pied recalculé en direct), aperçu avant impression, liste/fiche BL + génération groupée, écran avoir.
 
 **Definition of Done**
-- Les 10 cas types produisent un total identique au centime au calcul manuel, avec et sans retenue, avec et sans droit de timbre.
-- Seul un règlement prévu **en espèces** (versement en caisse) génère le timbre, selon les tranches paramétrées et plafonné au seuil (défaut 1 000 000 DA) ; chèque, traite, virement et LCN ne génèrent **jamais** de timbre.
+- Les 10 cas types produisent un total identique au centime au calcul manuel, avec et sans retenue, avec rabais marché ligne par ligne ; **le pied de facture ne contient aucun droit de timbre** (total TTC = HT + TVA).
+- Le timbre est **traité manuellement à l'encaissement** (statuts `A_VERIFIER`/`TRAITE`/`NON_APPLICABLE`, montant saisi) ; la facture passe à `PAYEE` **uniquement au solde nul** — aucune ligne de timbre n'apparaît dans le pied ni dans le PDF.
 - La suppression de 3 brouillons consécutifs ne crée aucun trou dans la séquence des factures validées.
-- Le PDF contient les 9 mentions légales et affiche correctement un texte arabe.
+- Le PDF contient les 10 mentions légales et affiche correctement un texte arabe.
 - Un avoir partiel sur 2 lignes d'une facture de 5 lignes référence la facture d'origine et son motif.
 
 ### Jalon 6 — Durcissement & Livraison
@@ -204,14 +205,15 @@ Une tâche n'est prête que si **toutes** ses dépendances sont terminées. `—
 | D6 | Entités de facturation : `Facture`, `LigneFacture`, `BonLivraison`, `PiedFacture` | D2, D3 | J1 |
 | D7 | Machines à états : cycle de vie facture, statut affaire, statut devis — transition illégale = erreur | D5, D6 | J1 |
 | D8 | Classification Noir/Blanc/Autre + mécanisme de snapshot | D4 | J1 |
-| D9 | `calculerPiedFacture` — enchaînement §4.4.6, arrondi ligne par ligne puis au total | D2, D6 | J1 |
-| D10 | `calculerDroitTimbre` — barème à tranches reçu en paramètre, plancher/plafond, jamais de taux en dur ; **déclenché uniquement si règlement en espèces** (mode = ESPECES, seuil paramétré) | D2 | J1 |
+| D9 | `calculerPiedFacture` — enchaînement §4.4.6 révisé (15/08/2026) : rabais marché **ligne par ligne**, **retrait du droit de timbre du pied** (TTC = HT + TVA), règle d'ajustement d'arrondi (ligne éligible la plus élevée / `AJUSTEMENT_ARRONDI`), arrondi ligne par ligne puis au total | D2, D6 | J1 |
+| D10 | `calculerDroitTimbre` — **isolé/déprécié** (décision 15/08/2026) : **plus appelé par le moteur** (timbre manuel à l'encaissement) ; barème à tranches reçu en paramètre conservé pour les tests du module isolé | D2 | J1 |
 | D11 | `attribuerNumero` — validation seule, séquence sans trou, verrouillage, format ST par marché prévu | D3 | J1 |
 | D12 | `resoudreTarif` — cascade affaire → client → catalogue, période englobante | D4 | J3 |
 | D13 | `calculerScoreClient` — les 4 formules §4.2.4, protection GITRA/Groupe | D4 | J3 |
 | D14 | `calculerDelaisAffaire` — ODS, suspensions, reprises, prorogations ; horloge en paramètre | D5 | J4 |
 | D15 | `evaluerAlertes` — délais, validité devis, échéances. Informatives, aucune ne bloque | D14 | J4 |
 | D16 | Garde-fou ESLint : interdiction de tout import sortant depuis `domaine/`, échec du build | D2 | J1 |
+| D17 | 🆕 `calculerSoldeFacture` — solde de facture (montant dû − Σ encaissements) + règle d'ajustement d'arrondi (ligne éligible de montant le plus élevé, trace journal d'audit) — dépend de D9, décision 15/08/2026 | D9 | J1 |
 
 ### M — Main process (Electron, SQL, PDF, Excel, sécurité)
 
@@ -236,7 +238,9 @@ Une tâche n'est prête que si **toutes** ses dépendances sont terminées. `—
 | M17 | Adaptateurs exceljs + système de fichiers (arborescence `Documents/EGTO/`, dialogues natifs) | M1 | J3 |
 | M18 | Lecteur Excel pour l'import (mapping de colonnes, tolérance aux entêtes approximatives) | M17 | J3 |
 | M19 | Adaptateur pdfmake + polices Roboto et Noto Naskh Arabic embarquées | M1 | J5 |
-| M20 | Gabarits PDF `factureA4`, `devisA4`, `bonLivraisonA4` : 9 mentions légales, filigrane duplicata | M19 | J5 |
+| M20 | Gabarits PDF `factureA4`, `devisA4`, `bonLivraisonA4` : 10 mentions légales, filigrane duplicata | M19 | J5 |
+| M21 | 🆕 Table `encaissements` (structure minimale) + dépôt : FK `facture_id`, `numero` (compteur `ENC`), montant > 0, solde nul → `PAYEE`, suppression logique, triggers d'audit — décision 15/08/2026 | M6 | J1 |
+| M22 | 🆕 Contrats `contrats/` + IPC encaissements (création, statut timbre `A_VERIFIER`/`TRAITE`/`NON_APPLICABLE`, `date_encaissement` ISO en base / JJ/MM/AAAA en UI) — dépend de M21 | M21 | J1 |
 
 ### R — Renderer (React)
 
@@ -250,7 +254,7 @@ Le renderer n'effectue aucun calcul financier : il affiche des montants déjà c
 | R4 | Notifications transitoires + états transversaux (chargement, vide, erreur — chaque état vide propose l'action qui le résout) | R1 | J2 |
 | R5 | Composants : `Liste` générique (TanStack Table : tri, filtres, pagination, sélection, largeurs persistées), formulaires, `FicheAOnglets` | R1, M7 | J3 |
 | R6 | Écrans Connexion et premier démarrage, affichage unique et imprimable de la phrase | R2, M16 | J2 |
-| R7 | Écran Paramétrage : entreprise, barème du timbre, numérotation, exercices, alertes, sauvegardes, journaux | R5, M9 | J2 |
+| R7 | Écran Paramétrage : entreprise, numérotation, exercices, alertes, sauvegardes, journaux — **module « barème du timbre » désactivé** (déprécié, décision 15/08/2026) | R5, M9 | J2 |
 | R8 | Liste + fiche client à onglets, badge de vigilance, score | R5, D13 | J3 |
 | R9 | Liste + fiche produit, consultation de l'historique des tarifs | R5, D12 | J3 |
 | R10 | Assistant d'import en 3 étapes : mapping, prévisualisation, rapport d'anomalies | R5, M18 | J3 |
@@ -271,8 +275,8 @@ Les tests des calculs s'exécutent sans Electron, sans base réelle, sans naviga
 |---|---|---|---|
 | Q1 | Harnais Vitest | D2 | J1 |
 | Q2 | Tests `Montant` : half-up, absence de dérive de flottant, refus des non-entiers | D2, Q1 | J1 |
-| Q3 | **Les 10 cas types du pied de facture**, avec et sans retenue, avec et sans timbre — critère §11 | D9, Q1 | J1 |
-| Q4 | Tests du timbre : chaque tranche, plancher 5 DA, plafond 10 000 DA, exonération ≤ 300 DA, aucun timbre en chèque/traite/virement/LCN, seuil espèces (1 M DA) | D10, Q1 | J1 |
+| Q3 | **Les 10 cas types révisés du pied de facture** : avec et sans retenue, rabais marché **ligne par ligne**, écarts d'arrondi positifs et négatifs (règle de la ligne éligible la plus élevée pour les marchés publics ; `AJUSTEMENT_ARRONDI` privé optionnel) — critère §11, décision 15/08/2026 | D9, Q1 | J1 |
+| Q4 | Tests du module timbre **isolé** (barème hors moteur) : chaque tranche, plancher 5 DA, plafond 10 000 DA, exonération ≤ 300 DA, seuil espèces (1 M DA) — **conservés comme référence historique du module déprécié** (15/08/2026) | D10, Q1 | J1 |
 | Q5 | Tests de numérotation : validation seule, brouillon sans consommation, séquence sans trou, verrouillage | D11, Q1 | J1 |
 | Q6 | Tests du scoring : 4 seuils, protection GITRA, score D qui ne bloque rien | D13, Q1 | J3 |
 | Q7 | Tests de résolution de tarif : cascade 3 niveaux et périodes limitrophes | D12, Q1 | J3 |
@@ -296,6 +300,7 @@ Les tests des calculs s'exécutent sans Electron, sans base réelle, sans naviga
 | Q25 | Manuel utilisateur PDF : phrase de récupération, alerte SmartScreen, écarts de mode de règlement | J5 livré | J6 |
 | Q26 | Seeds de démonstration et jeu de données de recette | M5 | J6 |
 | Q27 | Revue d'accessibilité : navigation clavier intégrale, focus visible, contrastes dans les deux thèmes | R1→R18 | J6 |
+| Q28 | 🆕 Tests encaissements et solde : création, solde nul → `PAYEE`, aucun dépassement du montant dû, montant > 0, statuts timbre conditionnels, `date_encaissement` ISO en base / JJ/MM/AAAA en UI — dépend de D17/M21/M22 | D17, M21, M22 | J1 |
 
 ### Chemin critique
 
@@ -326,11 +331,19 @@ La cible est Windows : **conventions Windows**, pas macOS. Les principes du prem
 
 ### 5.1 Hors périmètre MVP (à replanifier après recette)
 
-Déclarations mensuelles et ST, révision de prix, rapport mensuel GITRA, créances et encaissements, cautions, retenues de garantie, sous-traitance, dashboards, rapports personnalisables.
+Déclarations mensuelles et ST, révision de prix, rapport mensuel GITRA, créances et encaissements **complets** (échéancier, relances, affectation N—N), cautions, retenues de garantie, sous-traitance, dashboards, rapports personnalisables. *(La **structure minimale** `encaissements` — 0..N par facture, solde nul → `PAYEE` — est **MVP**, livrée en J1, décision 15/08/2026.)*
 
 ### 5.2 Points ouverts §16
 
-Valeurs du barème du timbre, statut de la TAP, longueurs exactes NIF/NIS, mot de passe des exports ZIP. **Sans effet bloquant sur le développement** : toutes ces valeurs vivent en table de paramétrage. (Timbre et intérêts moratoires : mécanique tranchée le 09/08/2026 — espèces uniquement + seuil 1 M DA ; montant direct sur ND.)
+Mot de passe des exports ZIP. **Sans effet bloquant sur le développement** : toutes ces valeurs vivent en table de paramétrage.
+
+**Décisions tranchées le 15/08/2026 (chef du département Commercial)** :
+- **Droit de timbre** : plus aucun calcul automatique — traitement **manuel à l'encaissement** (barème et seuil dépréciés, écran R7 désactivé, TTC = HT + TVA strictement).
+- **TAP** : **définitivement supprimée** (aucun remplacement TLS).
+- **NIS** : **texte de 15 chiffres exactement** (zéros initiaux conservés).
+- **Rabais des marchés publics** : appliqué **ligne par ligne** (net ligne = brut − rabais, taux figé depuis l'affaire) — **le rabais global au pied est remplacé par le rabais ligne par ligne** ; le champ `rabais_global_bps` reste pour l'historique.
+
+*(Intérêts moratoires : mécanique inchangée, tranchée le 09/08/2026 — montant direct sur ND.)*
 
 ### 5.3 Suivi de la dépendance bloquante GITRA
 
@@ -342,8 +355,10 @@ Le template Excel du rapport mensuel n'existe pas encore ([prd-cda.md:1357](../p
 
 ### 5.4 Éléments à réclamer avant le Jalon 5
 
-Logo EGTO et icône `.ico`, ainsi qu'un exemplaire réel de facture pour caler le gabarit PDF. À défaut, le gabarit est construit sur les seules mentions légales de [prd-cda.md:956](../prd-cda.md#L956).
+Logo EGTO et icône `.ico`, ainsi qu'un exemplaire réel de facture pour caler le gabarit PDF. À défaut, le gabarit est construit sur les seules mentions légales de [prd-cda.md:995](../prd-cda.md#L995).
 
 ### 5.5 Réserve technique consignée
 
 Le pied de facture retenu place la retenue de garantie **avant** la TVA, conformément à la lettre de §4.4.6. Le traitement fiscal usuel ne réduit pas la base taxable. Décision du client, appliquée telle quelle ; le calcul est isolé dans `calculerPiedFacture` (D9) de sorte qu'un arbitrage comptable ultérieur ne touche qu'un fichier et sa suite de tests.
+
+**Rabais marché (15/08/2026)** : plus de rabais global au pied — le rabais des marchés publics est appliqué **ligne par ligne** (`montant_net_ligne = montant_brut_ligne − montant_rabais_ligne`, taux figé depuis l'affaire) ; total HT = somme des montants nets de ligne. L'écart d'arrondi (≤ 2 centimes, positif ou négatif) est ajusté sur la **ligne éligible de montant le plus élevé** avec trace d'audit (marchés publics), ou via une ligne `AJUSTEMENT_ARRONDI` optionnelle (documents privés) — isolé dans `calculerPiedFacture` (D9) et `calculerSoldeFacture` (D17).

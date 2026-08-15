@@ -7,7 +7,7 @@ const REPERTOIRE_MODULE = dirname(fileURLToPath(import.meta.url))
 const CHEMIN_SCHEMA = join(REPERTOIRE_MODULE, 'schema.sql')
 const DOSSIER_MIGRATIONS = join(REPERTOIRE_MODULE, 'migrations')
 
-export const VERSION_MAXIMALE = 1
+export const VERSION_MAXIMALE = 3
 export const NOM_MIGRATION_INITIALE = 'schema-initial-j0'
 
 interface MigrationFichier {
