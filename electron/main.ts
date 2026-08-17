@@ -1,26 +1,35 @@
-import { app, BrowserWindow } from 'electron'
+﻿import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import { ouvrirBaseDev } from './cle-de-dev'
-import { fermerBase } from './db/connexion'
+import { ouvrirBase, fermerBase } from './db/connexion'
 import { appliquerMigrations } from './db/migrations'
 import { insererSeeds } from './db/seeds'
+import { verrouiller, CompteurInactivite } from './securite/session'
 import { enregistrerHandlersIpc } from './ipc/enregistrer-ipc'
+import type { DepsSession } from './securite/session'
 
-// PROVISOIRE (J1) : la base de dev s'ouvre avec la clé générée dans egto.cle
-// (userData). Le J2 la remplacera par la DEK 256 bits chiffrée en enveloppe.
-const ouvrirBaseDeDev = (): void => {
-  try {
-    const dossierUtilisateur = app.getPath('userData')
-    const base = ouvrirBaseDev(join(dossierUtilisateur, 'egto.db'), dossierUtilisateur)
-    appliquerMigrations(base)
-    insererSeeds(base)
-  } catch (erreur) {
-    console.error(
-      'EGTO — échec de l’ouverture de la base de développement (l’écran de connexion du J2 gérera le chiffrement réel) :',
-      erreur,
-    )
-  }
+export const DUREE_INACTIVITE_MS = 30 * 60 * 1000
+
+const etatSession: { dekCourante: Buffer | null; base: { close: () => void } | null } = {
+  dekCourante: null,
+  base: null,
 }
+
+const compteurActivite = new CompteurInactivite(DUREE_INACTIVITE_MS, () => {
+  try {
+    verrouiller(etatSession, depsSession)
+  } catch {
+    // Session deja verrouillee
+  }
+})
+
+const depsSession: DepsSession = {
+  ouvrirBase: (chemin, cle) => ouvrirBase(chemin, cle),
+  fermerBase: () => fermerBase(),
+  appliquerMigrations: (base) => { appliquerMigrations(base as Parameters<typeof appliquerMigrations>[0]) },
+  insererSeeds: (base) => { insererSeeds(base as Parameters<typeof insererSeeds>[0]) },
+}
+
+const obtenirDossierUserData = (): string => app.getPath('userData')
 
 const creerFenetreDiagnostic = (): void => {
   const fenetre = new BrowserWindow({
@@ -59,8 +68,14 @@ const creerFenetreDiagnostic = (): void => {
 }
 
 app.whenReady().then(() => {
-  enregistrerHandlersIpc()
-  ouvrirBaseDeDev()
+  enregistrerHandlersIpc(
+    undefined,
+    depsSession,
+    () => etatSession,
+    compteurActivite,
+    obtenirDossierUserData,
+  )
+
   creerFenetreDiagnostic()
 
   app.on('activate', () => {
@@ -71,7 +86,13 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
-  fermerBase()
+  if (etatSession.dekCourante !== null) {
+    try {
+      verrouiller(etatSession, depsSession)
+    } catch {
+      // Session deja verrouillee
+    }
+  }
 })
 
 app.on('window-all-closed', () => {

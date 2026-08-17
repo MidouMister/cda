@@ -15,23 +15,35 @@
     "lint": "eslint .",
     "test": "vitest run",
     "garde": "node scripts/garde-domaine.mjs",
-    "verifier": "npm run typecheck && npm run lint && npm run garde && npm test"
+    "verifier": "npm run typecheck && npm run lint && npm run garde && npm test",
+    "admin-reset": "electron out/main/egto-admin-reset.js"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
+    "argon2": "^0.45.1",
     "better-sqlite3-multiple-ciphers": "^13.0.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "unzipper": "^0.12.5",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
+    "@types/archiver": "^8.0.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/unzipper": "^0.10.11",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^43.4.0",
     "electron-vite": "^5.0.0",
     "eslint": "^10.8.1",
+    "jsdom": "^30.0.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",
     "vite": "^7.3.6",

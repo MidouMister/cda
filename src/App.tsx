@@ -1,55 +1,39 @@
-import { useEffect, useState } from 'react'
-import type { Diagnostic } from '../contrats'
+﻿import { useEffect } from 'react'
+import { utiliserSession } from './etat-session'
+import { Connexion } from './ecrans/Connexion'
+import { PremierDemarrage } from './ecrans/PremierDemarrage'
+import { Shell } from './Shell'
 
 export function App() {
-  const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null)
-  const [erreur, setErreur] = useState<string | null>(null)
+  const ecran = utiliserSession((s) => s.ecran)
+  const definirEcran = utiliserSession((s) => s.definirEcran)
+  const definirErreur = utiliserSession((s) => s.definirErreur)
 
   useEffect(() => {
     let actif = true
-
-    window.egto
-      .diagnostic()
-      .then((resultat) => {
-        if (actif) {
-          setDiagnostic(resultat)
+    window.egto.session
+      .etat()
+      .then((etat) => {
+        if (!actif) return
+        if (!etat.premierDemarrage) {
+          definirEcran('premier_demarrage')
+        } else {
+          definirEcran('connexion')
         }
       })
-      .catch((raison) => {
-        if (actif) {
-          setErreur(raison instanceof Error ? raison.message : String(raison))
-        }
+      .catch(() => {
+        if (actif) definirErreur('Erreur de connexion au serveur.')
       })
-
     return () => {
       actif = false
     }
-  }, [])
+  }, [definirEcran, definirErreur])
 
-  return (
-    <main className="ecran-diagnostic">
-      <h1>EGTO — Diagnostic J1</h1>
-      {erreur ? (
-        <p className="erreur">{erreur}</p>
-      ) : diagnostic ? (
-        <section className="versions" aria-label="Versions d'environnement">
-          <p>
-            Electron : <code>{diagnostic.versions.electron}</code>
-          </p>
-          <p>
-            Chromium : <code>{diagnostic.versions.chromium}</code>
-          </p>
-          <p>
-            Node : <code>{diagnostic.versions.node}</code>
-          </p>
-          <p>
-            Plateforme : <code>{diagnostic.plateforme}</code>
-          </p>
-          <p className="ok">IPC fonctionnel</p>
-        </section>
-      ) : (
-        <p className="en-attente">Chargement…</p>
-      )}
-    </main>
-  )
+  if (ecran === 'chargement') {
+    return <div className="ecran-chargement">Chargement…</div>
+  }
+
+  if (ecran === 'premier_demarrage') return <PremierDemarrage />
+  if (ecran === 'connexion') return <Connexion />
+  return <Shell />
 }

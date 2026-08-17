@@ -1,6 +1,84 @@
 # État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 16/08/2026 — Phase E close : bilan final de la refonte 15-16/08/2026 validé
+## Dernière session : 17/08/2026 — Jalon 2 / V2b-3 « Sauvegarde chiffrée + journal rotatif »
+
+**Unité de travail V2b-2 (Jalon 2, coquille UI).** `npm run verifier` : **31 fichiers / 704 tests, tout vert** (typecheck node+web, ESLint, garde-domaine, Vitest).
+
+### Fait — V2b-1 IPC session + contrats + main.ts bascule (validé par l'utilisateur)
+
+- **`contrats/canaux.ts`** : 6 canaux session (`session.etat`, `session.premierDemarrage`, `session.deverrouiller`, `session.verrouiller`, `session.changerMotDePasse`, `session.activite`).
+- **`contrats/index.ts`** : `ApiEgto.session` interface.
+- **`electron/ipc/ipc-session.ts`** : 6 handlers IPC session + `etat.base = base` (bug fix).
+- **`electron/ipc/enregistrer-ipc.ts`** : enregistrement conditionnel session.
+- **`electron/construire-api-egto.ts`** : branche session conditionnelle.
+- **`electron/main.ts`** : `depsSession` câblée, `DUREE_INACTIVITE_MS=30min` exporté, `before-quit` verrouille la session.
+- **`electron/securite/session.ts`** : `deverrouiller` retourne `{ dekCourante, base }` (bug fix).
+- **Tests (36 tests)** : `tests/ipc-session.test.ts` (27) + `tests/integration-demarrage.test.ts` (9). `npm run verifier` : 28 fichiers / 640 tests, tout vert.
+
+### Fait — V2b-2 Coquille UI + Shell + tests (sous-agent code, branche jalon-2-securite)
+
+- **Dépendances ajoutées** : `react-router-dom`, `zustand` (prod) ; `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` (dev).
+- **`vitest.config.ts`** : `include` étendu à `**/*.test.tsx` (`environmentMatchGlobs` retiré — Vitest 4.x utilise le directive `// @vitest-environment jsdom` par fichier).
+- **`tsconfig.vitest.json`** (NOUVEAU) : étend `tsconfig.web.json`, types `node` + `vitest/globals`.
+- **`src/styles.css`** (RÉÉCRIT) : tokens de design (40+ variables CSS light/dark), styles de base, styles session, shell grid layout, media query impression.
+- **`src/etat-session.ts`** (NOUVEAU) : store Zustand (`EcranSession` type, 5 états, actions).
+- **`src/ecrans/Connexion.tsx`** (NOUVEAU) : formulaire connexion, appel `deverrouiller` IPC, gestion erreurs.
+- **`src/ecrans/PremierDemarrage.tsx`** (NOUVEAU) : flux 2 étapes (création mdp + affichage phrase), support impression.
+- **`src/Shell.tsx`** (NOUVEAU) : grille CSS (sidebar 250px + topbar 52px + statusbar 26px + contenu), navigation 6 sections.
+- **`src/App.tsx`** (RÉÉCRIT) : routage session (`chargement` → `premier_demarrage`/`connexion` → `app`).
+- **`src/egto.d.ts`** (NOUVEAU) : type ambiant `window.egto`.
+- **`index.html`** : titre « EGTO — Gestion Commerciale ».
+- **`src/__tests__/session-flow.test.tsx`** (NOUVEAU) : 12 tests UI jsdom — flux initial (3), PremierDemarrage (5), Connexion (2), règles sécurité (2).
+- **`npm run verifier` final** : **29 fichiers / 652 tests, tout vert**.
+
+### Décisions — V2b-1
+
+- **Bug fix `etat.base`** : `deverrouiller` stocke la base dans `etat` pour les handlers IPC.
+- **`DUREE_INACTIVITE_MS` exporté** depuis `main.ts` pour les tests d'intégration.
+- **Enregistrement conditionnel** : handlers session enregistrés uniquement si `api.session` existe.
+
+### Décisions — V2b-2
+
+- **`environmentMatchGlobs` retiré** (Vitest 4.x) : directive `// @vitest-environment jsdom` par fichier suffit.
+- **Zustand pour la session** : store externe au React tree, jamais en stockage persistant (règle sécurité).
+- **Tests UI sans localStorage** : assertions DOM plutôt que localStorage (absent dans jsdom).
+
+### Fait — V2b-3 Sauvegarde chiffrée + journal rotatif (17/08/2026)
+
+- **electron/journal.ts (NOUVEAU)** : journal applicatif rotatif — écriture avec formaterEntree (niveau UPPERCASE), rotation tous les 5 Mo (5 fichiers max), lecteur lireLogs (tri par horodatage décroissant, filtre par niveau), export exporterLogs, détection de secrets dans les messages/stacks (estSecretDansLog), TAILLE_MAXIMO_OCTETS = 5 242 880, ROTATIONS_MAX = 5. Types : EntreeJournal, NiveauJournal ('erreur' | 'avertissement' | 'info'), ResultatEcriture, ResultatLecture, ResultatExportJournal.
+- **electron/sauvegarde.ts (REWRITTEN)** : export de données chiffré — architecture en 2 couches : ZIP standard (archiver v7) + chiffrement AES-256-GCM du fichier entier via crypto natif. En-tête v2 (83 octets) : MAGIC(4) + version(2) + KDF_ALGO_ID(1) + KDF_PARAMS_LEN(2) + KDF_PARAMS memoryCost/timeCost/parallelism/hashLength(14) + salt(32) + IV(12) + tag(16). Argon2id (memoryCost 65536, timeCost 3, parallelism 4, hashLength 32) au lieu de PBKDF2. `chiffrer`/`dechiffrer` devenues `async` (retournent `Promise<Buffer>`). Compatibilité arrière v1 (PBKDF2 legacy 100K) pour lecture. `deballerDekParPhrase` câblée (type async, validation DEK 32 octets, validation phrase incorrecte). Protection anti-path-traversal (vérification `relative()` sur chaque entrée ZIP avant extraction). Mot de passe obligatoire (rejet chaîne vide dans `archiverDonnees`). Fonctions : archiverDonnees, restaurerDonnees (déchiffrement + extraction ZIP + validation manifeste + phrase de récupération), listerSauvegardes, appliquerRetention (30 quotidiennes + 12 mensuelles), nommerSauvegarde, chiffrer/dechiffrer (exportés pour tests). DEK et utilisateur.bin jamais inclus dans l'archive.
+- **contrats/sauvegarde.ts (NOUVEAU)** : types IPC — SauvegardeVue, ArchiverDonneesParams, ResultatExportSauvegarde, RestaurerDonneesParams, ResultatRestaurationSauvegarde, RetentionParams, ResultatRetention.
+- **contrats/journal.ts (NOUVEAU)** : types IPC — EntreeJournalVue, EcrireLogParams, LireLogsParams, ResultatLectureJournal, ResultatExportJournal.
+- **contrats/canaux.ts** : 8 nouveaux canaux — sauvegarde.{archiver,restaurer,lister,appliquerRetention,nommer} + journal.{ecrire,lire,exporter}.
+- **contrats/index.ts** : ApiEgto.sauvegarde + ApiEgto.journal + re-exports types.
+- **electron/ipc/ipc-sauvegarde.ts (NOUVEAU)** : 5 handlers IPC — validation des entrées, déléguations aux fonctions métier, chemins construits via obtenirDossierUserData(). `deballerDekParPhrase` importée depuis `../securite/session` et câblée dans le handler `restaurer` — suppression du TODO.
+- **electron/ipc/ipc-journal.ts (NOUVEAU)** : 3 handlers IPC — ecrire (horodatage auto-généré), lire (filtres optionnels), exporter (chemin validation).
+- **electron/ipc/enregistrer-ipc.ts** : import + enregistrement des handlers sauvegarde + journal (conditionnel sur obtenirDossierUserData).
+- **electron/construire-api-egto.ts** : branches sauvegarde + journal (8 IPC invokes).
+- **Dépendances** : archiver v7, unzipper v0.12, @types/archiver, @types/unzipper. Retiré archiver-zip-encrypted (incompatible avec unzipper pour AES-256).
+- **Tests tests/journal.test.ts (NOUVEAU)** : 20 tests — écriture basique, niveaux, lecture triée, filtre par niveau, limite, rotation, export, détection secrets (5 patterns : mot de passe, clé, token, bearer, phrase de récupération), nettoyage anciens logs, initialisation.
+- **Tests tests/sauvegarde.test.ts (NOUVEAU/REWRITTEN)** : 32 tests — chiffrement 10 tests (header validation v1/v2, nonce/tag/salt/version tampering, déchiffrement bon/mdp, rejet tronqué, rejet mauvais magic) ; archivage 6 tests (base manquante, enveloppe manquante, utilisateur.bin exclu, mdp vide, archive corrompue) ; restauration 9 tests (inexistante, mauvais mdp, vierge, non vide, phrase récupération, tronquée, path traversal, phrase récupération success/failure/skip) ; rétention ; listing.
+
+### Décisions — V2b-3
+
+- **Chiffrement AES-256-GCM (pas ZIP-level)** : unzipper ne supporte pas AES-256 WinZip (seul ZipCrypto). Architecture 2 couches : ZIP standard archiver + chiffrement fichier entier par crypto natif (GCM = chiffrement authentifié, tag d'intégrité). Le fichier exporté n'est pas un .zip ouvrable nativement, mais un blob chiffré EGTO — conforme à l'exigence AES-256.
+- **archiver-zip-encrypted abandonné** : incompatibilité archiver v8 + v7, unzipper incapable de déchiffrer AES-256. Solution plus robuste avec crypto natif.
+- **archiver v7** (pas v8) : v8 supprime registerFormat et cassent l'API create().
+- **Argon2id pour le chiffrement archive** : même KDF que l'enveloppe DEK (Argon2id, memoryCost 65536, timeCost 3, parallelism 4, hashLength 32). Les paramètres KDF sont stockés dans l'en-tête v2, rendant le format extensible (futur changement de paramètres sans casser la lecture d'anciennes archives).
+- **deballerDekParPhrase câblée** : flux complet mot de passe d'archive → déchiffrement GCM → extraction ZIP → validation manifeste → phrase → déballage DEK → copie fichiers. La DEK existante est conservée, aucune nouvelle DEK générée.
+- **Protection anti-path-traversal** : chaque entrée ZIP validée avant extraction via `relative()` + test `..`.
+
+### En cours / bloqué
+
+- **Rien de bloqué.** V2b-3 hardening terminé. **En attente de validation utilisateur** (démonstration restauration) avant de poursuivre.
+
+### Prochaine étape prévue
+
+- **Validation V2b-3** par l'utilisateur (démonstration restauration chiffrée) — condition avant de lancer **V2b-4** (DQE, déclarations mensuelles, facturation).
+
+---
+
+## Historique — Phase E (clôturée le 16/08/2026, bilan refonte validé)
 
 **Refonte 15-16/08/2026 clôturée et documentée.** `npm run verifier` : **22 fichiers / 541 tests, tout vert** (typecheck node+web, ESLint, garde-domaine, Vitest).
 
