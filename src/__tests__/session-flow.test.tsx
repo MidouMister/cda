@@ -14,7 +14,23 @@ const mockSession = {
   activite: vi.fn(),
 }
 
-vi.stubGlobal('egto', { session: mockSession, diagnostic: vi.fn() })
+const mockClients = {
+  lister: vi.fn().mockResolvedValue([]),
+  creer: vi.fn(),
+  lire: vi.fn(),
+  modifier: vi.fn(),
+  supprimer: vi.fn(),
+  creerContact: vi.fn(),
+  listerContacts: vi.fn().mockResolvedValue([]),
+  modifierContact: vi.fn(),
+  supprimerContact: vi.fn(),
+  creerInteraction: vi.fn(),
+  listerInteractions: vi.fn().mockResolvedValue([]),
+  supprimerInteraction: vi.fn(),
+  calculerScore: vi.fn(),
+}
+
+vi.stubGlobal('egto', { session: mockSession, diagnostic: vi.fn(), clients: mockClients })
 
 function reinitialiserStore() {
   utiliserSession.setState({

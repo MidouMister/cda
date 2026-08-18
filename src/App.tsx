@@ -1,10 +1,16 @@
 ﻿import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { utiliserSession } from './etat-session'
 import { Connexion } from './ecrans/Connexion'
 import { PremierDemarrage } from './ecrans/PremierDemarrage'
 import { Shell } from './Shell'
+import { Clients } from './ecrans/Clients'
+import { FicheClient } from './ecrans/FicheClient'
+import { Catalogue } from './ecrans/Catalogue'
+import { FicheProduit } from './ecrans/FicheProduit'
+import { Import } from './ecrans/Import'
 
-export function App() {
+function AppInterne() {
   const ecran = utiliserSession((s) => s.ecran)
   const definirEcran = utiliserSession((s) => s.definirEcran)
   const definirErreur = utiliserSession((s) => s.definirErreur)
@@ -35,5 +41,25 @@ export function App() {
 
   if (ecran === 'premier_demarrage') return <PremierDemarrage />
   if (ecran === 'connexion') return <Connexion />
-  return <Shell />
+
+  return (
+    <Shell>
+      <Routes>
+        <Route path="/" element={<Navigate to="/clients" replace />} />
+        <Route path="/clients" element={<Clients />} />
+        <Route path="/clients/:id" element={<FicheClient />} />
+        <Route path="/catalogue" element={<Catalogue />} />
+        <Route path="/catalogue/:id" element={<FicheProduit />} />
+        <Route path="/import" element={<Import />} />
+      </Routes>
+    </Shell>
+  )
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <AppInterne />
+    </BrowserRouter>
+  )
 }

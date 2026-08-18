@@ -1,42 +1,37 @@
 ﻿import type { ReactNode } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
 
 const SECTIONS_NAV = [
   {
-    titre: 'Pilotage',
-    entrees: [{ id: 'tableau-de-bord', label: 'Tableau de bord' }],
-  },
-  {
     titre: 'Commercial',
     entrees: [
-      { id: 'clients', label: 'Clients' },
-      { id: 'devis', label: 'Devis' },
-      { id: 'affaires', label: 'Affaires' },
+      { path: '/clients', label: 'Clients' },
+      { path: '/devis', label: 'Devis' },
+      { path: '/affaires', label: 'Affaires' },
     ],
   },
   {
     titre: 'Facturation',
     entrees: [
-      { id: 'facturation', label: 'Facturation' },
-      { id: 'encaissements', label: 'Encaissements' },
-    ],
-  },
-  {
-    titre: 'Garanties',
-    entrees: [
-      { id: 'cautions', label: 'Cautions' },
-      { id: 'retenues', label: 'Retenues de garantie' },
+      { path: '/facturation', label: 'Facturation' },
+      { path: '/encaissements', label: 'Encaissements' },
     ],
   },
   {
     titre: 'Ressources',
     entrees: [
-      { id: 'sous-traitants', label: 'Sous-traitants' },
-      { id: 'catalogue', label: 'Catalogue' },
+      { path: '/catalogue', label: 'Catalogue' },
+    ],
+  },
+  {
+    titre: 'Données',
+    entrees: [
+      { path: '/import', label: 'Import' },
     ],
   },
   {
     titre: 'Système',
-    entrees: [{ id: 'parametrage', label: 'Paramétrage' }],
+    entrees: [{ path: '/parametrage', label: 'Paramétrage' }],
   },
 ]
 
@@ -64,9 +59,14 @@ export function Shell({ children }: { children?: ReactNode }) {
           <div key={section.titre}>
             <div className="section-titre">{section.titre}</div>
             {section.entrees.map((entree) => (
-              <a key={entree.id} className="entree" href={`#${entree.id}`}>
+              <NavLink
+                key={entree.path}
+                to={entree.path}
+                end={entree.path === '/'}
+                className={({ isActive }) => `entree${isActive ? ' activee' : ''}`}
+              >
                 {entree.label}
-              </a>
+              </NavLink>
             ))}
           </div>
         ))}
@@ -76,7 +76,7 @@ export function Shell({ children }: { children?: ReactNode }) {
       </nav>
 
       <main className="contenu">
-        {children ?? <p style={{ color: 'var(--text-secondary)' }}>Sélectionnez un module dans la barre latérale.</p>}
+        {children || <Outlet />}
       </main>
 
       <footer className="statusbar">

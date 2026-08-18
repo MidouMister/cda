@@ -122,6 +122,59 @@ export const listerClients = (base: Base): Client[] => {
   return base.prepare('SELECT * FROM clients WHERE supprime_le IS NULL ORDER BY raison_sociale').all() as Client[]
 }
 
+export const modifierClient = (
+  base: Base,
+  id: number,
+  donneesPartielles: Partial<DonneesClient>,
+): boolean => {
+  const existant = lireClientParId(base, id)
+  if (existant === null) {
+    return false
+  }
+  const champs: string[] = []
+  const valeurs: unknown[] = []
+
+  const MAPPAGE: Record<string, string> = {
+    code_client: 'code_client',
+    type_client: 'type_client',
+    raison_sociale: 'raison_sociale',
+    categorie: 'categorie',
+    statut: 'statut',
+    sigle: 'sigle',
+    secteur: 'secteur',
+    nom_groupe: 'nom_groupe',
+    adresse: 'adresse',
+    wilaya: 'wilaya',
+    commune: 'commune',
+    tel_mobile: 'tel_mobile',
+    email: 'email',
+    nif: 'nif',
+    nis: 'nis',
+    rc: 'rc',
+    mode_reglement_prefere: 'mode_reglement_prefere',
+    plafond_credit_centimes: 'plafond_credit_centimes',
+  }
+
+  for (const [cle, colonne] of Object.entries(MAPPAGE)) {
+    if (cle in donneesPartielles) {
+      champs.push(`${colonne} = ?`)
+      valeurs.push(donneesPartielles[cle as keyof DonneesClient] ?? null)
+    }
+  }
+
+  if (champs.length === 0) {
+    return true
+  }
+
+  champs.push("modifie_le = datetime('now')")
+  valeurs.push(id)
+
+  const resultat = base
+    .prepare(`UPDATE clients SET ${champs.join(', ')} WHERE id = ? AND supprime_le IS NULL`)
+    .run(...valeurs)
+  return resultat.changes === 1
+}
+
 export const supprimerLogiquementClient = (base: Base, id: number): boolean => {
   const resultat = base
     .prepare(

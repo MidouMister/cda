@@ -19,9 +19,11 @@
     "admin-reset": "electron out/main/egto-admin-reset.js"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
     "archiver": "^7.0.1",
     "argon2": "^0.45.1",
     "better-sqlite3-multiple-ciphers": "^13.0.3",
+    "exceljs": "^4.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
@@ -35,6 +37,7 @@
     "@testing-library/user-event": "^14.6.4",
     "@types/archiver": "^8.0.0",
     "@types/better-sqlite3": "^9.6.0",
+    "@types/exceljs": "^0.5.3",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

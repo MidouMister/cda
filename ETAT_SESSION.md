@@ -1,8 +1,77 @@
 # État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 17/08/2026 — Jalon 2 / V2b-3 « Sauvegarde chiffrée + journal rotatif »
+## Dernière session : 19/08/2026 — Phase 4 UI (R5, R8, R9, R10)
 
-**Unité de travail V2b-2 (Jalon 2, coquille UI).** `npm run verifier` : **31 fichiers / 704 tests, tout vert** (typecheck node+web, ESLint, garde-domaine, Vitest).
+**Phase 4 — couche UI Clients, Catalogue, Import.** `npm run verifier` (typecheck node+web + lint + garde-domaine + vitest) : **34 fichiers / 785 tests, tout vert**.
+
+### Fait — Phase 4 : UI layer (R5, R8, R9, R10)
+
+- **`@tanstack/react-table@8.21.3` ajouté** (dependency production) — tableaux generiques avec tri, filtre global, pagination, selection.
+- **`src/composants/Liste.tsx` (NOUVEAU)** : composant tableau generique — colonnes via props `ColumnDef<T>`, barre de recherche, tri cliquable, selection par checkbox, pagination `«‹›»`, etat vide, `onLigneClique` pour navigation, `onSelectionChange`.
+- **`src/composants/FicheAOnglets.tsx` (NOUVEAU)** : onglets tabulés — barre d'onglets avec etat actif (accent), navigation clavier `←→`, `role="tablist"` / `role="tab"`.
+- **`src/composants/Formulaire.tsx` (NOUVEAU)** : formulaire vertical — champs texte/nombre/email/select/date/textarea, labels avec obligatoire `*`, messages d'erreur, bouton soumettre conditionnel.
+- **`src/ecrans/Clients.tsx` (NOUVEAU, R8)** : ecran liste clients — `Liste<ClientVue>` avec colonnes code/raisonSociale/categorie/secteur/score(statut)+badge colore, navigation au clic, bouton "Nouveau client".
+- **`src/ecrans/FicheClient.tsx` (NOUVEAU, R8)** : fiche client avec `FicheAOnglets` — 4 onglets : General (lecture + edition via `Formulaire`), Contacts (`Liste` + ajout modal), Interactions (`Liste` + ajout modal), Score (bouton Calculer → `calculerScore` IPC). `window.egto.clients.*` pour toutes les operations.
+- **`src/ecrans/Catalogue.tsx` (NOUVEAU, R9)** : ecran liste produits — `Liste<ProduitVue>` avec resolution famille par `familles.lister()`, formatage centimes→DA, navigation au clic.
+- **`src/ecrans/FicheProduit.tsx` (NOUVEAU, R9)** : fiche produit avec `FicheAOnglets` — 2 onglets : General (lecture + edition), Tarifs (`Liste<TarifVue>` + ajout modal). `window.egto.produits.*` + `window.egto.tarifs.*`.
+- **`src/ecrans/Import.tsx` (NOUVEAU, R10)** : assistant 3 etapes — Etape 1 (selection type + fichier via `lireFichier`), Etape 2 (previsualisation `validerLignes`, badges erreurs), Etape 3 (rapport `executer` avec chiffres). Bouton importer conditionnel sur lignes valides.
+- **`src/Shell.tsx` (MODIFIE)** : navigation `NavLink` react-router-dom au lieu de `<a href>`, import section "Données / Import", `<Outlet>` pour routes imbriquees.
+- **`src/App.tsx` (MODIFIE)** : `BrowserRouter` + `Routes` — `/` → redirect `/clients`, `/clients`, `/clients/:id`, `/catalogue`, `/catalogue/:id`, `/import`. `AppInterne` interne avec session check.
+- **`src/styles.css` (MODIFIE)** : 250+ lignes CSS — `.liste-container`, `.tableau`, `.onglet-barre`/`.onglet-actif`, `.formulaire`, `.champ-lecture`, `.badge-score-{a,b,c,d}`, `.modal-superposition`, `.import-barre-etapes`/`.import-etape-active`, `.bouton`/`.bouton-secondaire`, `.bandeau-erreur`. Toutes les couleurs via variables CSS, dark mode media query existant.
+- **`src/__tests__/session-flow.test.tsx` (MODIFIE)** : mock etendu avec `window.egto.clients` (lister, contacts, interactions) pour eviter crash au chargement Client.
+
+### Décisions — Phase 4
+
+- **`@tanstack/react-table` v8** (pas v9) : v9 a une API complètement differente (hooks differently named, TableFeatures constraint). v8 stable et documentee.
+- **Pas de calcul financier dans React** : formatage centimes→DA fait dans les colonnes de la table, aucun montant calcule dans le renderer.
+- **Navigation via `NavLink`** : etat actif gere par react-router-dom (pas de state local pour la sidebar).
+- **Modales simples** : overlay fixe + conteneur card, pas de library externe (shadcn/ui prevu en Jalon 2).
+
+### En cours / bloqué
+
+- **Rien de bloqué.** Phase 4 UI terminee.
+
+### Prochaine étape prévue
+
+- **Jalon 2** (securite enveloppe, sauvegarde/restauration, coquille) — ou poursuite modules commerciaux.
+
+### Fait — Couche produits + sous-familles + classifications (complète)
+
+- **`electron/depots/depot-produits.ts` (NOUVEAU)** : CRUD produits — `creerProduit`, `lireProduitParId`, `listerProduits`, `modifierProduit` (UPDATE dynamique), `supprimerLogiquementProduit`, `listerProduitsParFamille`. Types : `Unite`, `TypeTarification`, `DonneesCreationProduit`, `Produit`, `DonneesPartiellesProduit`.
+- **`electron/depots/depot-sous-familles.ts` (NOUVEAU)** : CRUD sous-familles — `creerSousFamille`, `lireSousFamilleParId`, `listerSousFamilles`, `listerSousFamillesParFamille`, `supprimerLogiquementSousFamille`.
+- **`electron/depots/depot-classifications.ts` (NOUVEAU)** : CRUD classifications — `creerClassification`, `lireClassificationParSousFamille`, `listerClassifications`, `modifierClassification`. Type : `CategorieClassification`.
+- **`contrats/produits.ts` (NOUVEAU)** : types Vue — `ProduitVue`, `DonneesCreationProduitVue`, `SousFamilleVue`, `DonneesCreationSousFamilleVue`, `ClassificationVue`, `DonneesCreationClassificationVue`.
+- **`contrats/canaux.ts` (ÉTENDU)** : 13 canaux — produits.{creer,lister,lire,modifier,supprimer,listerParFamille} + sousFamilles.{creer,lister,listerParFamille,supprimer} + classifications.{creer,lister,modifier}.
+- **`contrats/index.ts` (ÉTENDU)** : `ApiEgto.produits` + `ApiEgto.sousFamilles` + `ApiEgto.classifications` + re-exports types.
+- **`electron/ipc/ipc-produits.ts` (NOUVEAU)** : 13 handlers IPC — validate, map, call depot. Mappers : `mapperProduitEnVue`, `mapperSousFamilleEnVue`, `mapperClassificationEnVue`, `mapperDonneesCreationProduitVersDepot`, `mapperDonneesCreationSousFamilleVersDepot`, `mapperDonneesCreationClassificationVersDepot`.
+- **`electron/ipc/enregistrer-ipc.ts` (ÉTENDU)** : import + enregistrement `enregistrerHandlersProduits`.
+- **`electron/construire-api-egto.ts` (ÉTENDU)** : 13 méthodes produits/sousFamilles/classifications branchées via `ipcRenderer.invoke`.
+
+### Fait — Extension clients (contacts + scoring)
+
+- **`electron/depots/depot-contacts.ts` (NOUVEAU)** : table `contacts` — `creerContact`, `lireContactParId`, `listerContactsParClient`, `modifierContact` (UPDATE dynamique avec MAPPAGE fixe), `supprimerLogiquementContact`.
+- **`electron/depots/depot-interactions.ts` (NOUVEAU)** : table `interactions` — `creerInteraction` (validation type par `TYPES_INTERACTION`), `lireInteractionParId`, `listerInteractionsParClient`, `supprimerLogiquementInteraction`.
+- **`electron/depots/depot-clients.ts` (ÉTENDU)** : ajout `modifierClient` (UPDATE dynamique, MAPPAGE fixe, pas de concaténation de colonnes utilisateur).
+- **`contrats/clients-extension.ts` (NOUVEAU)** : types Vue — `ContactVue`, `DonneesCreationContactVue`, `InteractionVue`, `DonneesCreationInteractionVue`, `ResultatScoreVue`.
+- **`contrats/canaux.ts` (ÉTENDU)** : 11 canaux clients ajoutés — `lire`, `modifier`, `supprimer`, `creerContact`, `listerContacts`, `modifierContact`, `supprimerContact`, `creerInteraction`, `listerInteractions`, `supprimerInteraction`, `calculerScore`.
+- **`contrats/index.ts` (ÉTENDU)** : `ApiEgto.clients` étendu (11 méthodes) + re-exports types contacts/interactions/score.
+- **`electron/ipc/ipc-clients.ts` (ÉTENDU)** : 3 handlers ajoutés — `lire`, `modifier`, `supprimer`.
+- **`electron/ipc/ipc-clients-extension.ts` (NOUVEAU)** : 8 handlers IPC — contacts CRUD, interactions CRUD, `calculerScore` (lit client → appelle `calculerScoreClient` du domaine → écrit `score_client` + `derniere_evaluation_score_le` → retourne `ResultatScoreVue`).
+- **`electron/ipc/enregistrer-ipc.ts` (ÉTENDU)** : import + enregistrement `enregistrerHandlersClientsExtension` + import manquant `enregistrerHandlersTarifs`/`enregistrerHandlersProduits` (correction pré-existante).
+- **`electron/construire-api-egto.ts` (ÉTENDU)** : 11 méthodes clients branchées via `ipcRenderer.invoke`.
+
+### Décisions
+
+- **Scores placeholders** : `caAnnuelTtcCentimes`, `nombreAffairesAnnee`, `nombreFacturesEnRetard12Mois`, `creanceImpayeeEcheancePlus90Jours` = 0/false — calculés en J4/J5.
+- **MAPPAGE fixe** : `modifierClient` et `modifierContact` utilisent un dictionnaire de colonnes fixes (pas de concaténation SQL), validé par les garde-fous de types.
+
+### En cours / bloqué
+
+- **Rien de bloqué.**
+
+### Prochaine étape prévue
+
+- **Jalon 2** (sécurité enveloppe, sauvegarde/restauration, coquille) — ou poursuite modules commerciaux.
 
 ### Fait — V2b-1 IPC session + contrats + main.ts bascule (validé par l'utilisateur)
 

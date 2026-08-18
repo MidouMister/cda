@@ -1,6 +1,6 @@
 import type { Base } from '../db/connexion'
 import { obtenirBase as obtenirBaseParDefaut } from '../db/connexion'
-import { creerClient, listerClients } from '../depots/depot-clients'
+import { creerClient, listerClients, lireClientParId, modifierClient, supprimerLogiquementClient } from '../depots/depot-clients'
 import type { Client, DonneesClient } from '../depots/depot-clients'
 import type { ClientVue, DonneesCreationClient } from '../../contrats'
 import { CANAUX } from '../../contrats'
@@ -68,5 +68,36 @@ export const enregistrerHandlersClients = (
   enregistreur.handle(CANAUX.clients.creer, (_evenement, donnees) => {
     const validees = verifierDonneesCreation(donnees)
     return { id: creerClient(obtenirBase(), mapperDonneesCreationVersDepot(validees)) }
+  })
+
+  enregistreur.handle(CANAUX.clients.lire, (_evenement, id) => {
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) {
+      throw new TypeError('« id » doit être un entier strictement positif.')
+    }
+    const client = lireClientParId(obtenirBase(), id)
+    return client === null ? null : mapperClientEnVue(client)
+  })
+
+  enregistreur.handle(CANAUX.clients.modifier, (_evenement, id, donnees) => {
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) {
+      throw new TypeError('« id » doit être un entier strictement positif.')
+    }
+    if (donnees !== undefined && donnees !== null) {
+      const source = donnees as Record<string, unknown>
+      if (source.codeClient !== undefined && (typeof source.codeClient !== 'string' || (source.codeClient as string).trim() === '')) {
+        throw new TypeError('« codeClient » doit être une chaîne non vide.')
+      }
+      if (source.raisonSociale !== undefined && (typeof source.raisonSociale !== 'string' || (source.raisonSociale as string).trim() === '')) {
+        throw new TypeError('« raisonSociale » doit être une chaîne non vide.')
+      }
+    }
+    return modifierClient(obtenirBase(), id, donnees as Partial<DonneesClient>)
+  })
+
+  enregistreur.handle(CANAUX.clients.supprimer, (_evenement, id) => {
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) {
+      throw new TypeError('« id » doit être un entier strictement positif.')
+    }
+    return supprimerLogiquementClient(obtenirBase(), id)
   })
 }
