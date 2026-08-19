@@ -47,6 +47,11 @@ import type {
   DefinitionImportVue,
   RapportImport,
 } from './import'
+import type { AffaireVue, DonneesCreationAffaire, DonneesModificationAffaire } from './affaires'
+import type { DevisVue, LigneDevisVue, DonneesCreationDevis, DonneesCreationLigneDevis } from './devis'
+import type { PosteDqeVue, DonneesCreationPosteDqe, DonneesModificationPosteDqe } from './postes-dqe'
+import type { AvenantVue, AvenantPosteVue, DonneesCreationAvenant, DonneesCreationAvenantPoste } from './avenants'
+import type { EvenementDelaiVue, DonneesCreationEvenementDelai } from './evenements-delais'
 
 export interface ApiEgto {
   diagnostic: () => Promise<Diagnostic>
@@ -136,6 +141,42 @@ export interface ApiEgto {
     validerLignes: (lignes: LigneExcel[], type: 'CLIENTS' | 'PRODUITS') => Promise<LigneImporteeVue[]>
     executer: (definition: DefinitionImportVue, lignes: LigneExcel[]) => Promise<RapportImport>
   }
+  affaires: {
+    lister: () => Promise<AffaireVue[]>
+    creer: (donnees: DonneesCreationAffaire) => Promise<{ id: number }>
+    lire: (id: number) => Promise<AffaireVue | null>
+    modifier: (id: number, donnees: DonneesModificationAffaire) => Promise<boolean>
+    supprimer: (id: number) => Promise<boolean>
+  }
+  devis: {
+    lister: () => Promise<DevisVue[]>
+    creer: (donnees: DonneesCreationDevis) => Promise<{ id: number }>
+    lire: (id: number) => Promise<DevisVue | null>
+    modifier: (id: number, donnees: Partial<DonneesCreationDevis>) => Promise<boolean>
+    supprimer: (id: number) => Promise<boolean>
+    creerLigne: (donnees: DonneesCreationLigneDevis & { devisId: number }) => Promise<{ id: number }>
+    listerLignes: (devisId: number) => Promise<LigneDevisVue[]>
+    supprimerLigne: (id: number) => Promise<boolean>
+  }
+  postesDqe: {
+    listerParAffaire: (affaireId: number) => Promise<PosteDqeVue[]>
+    creer: (donnees: DonneesCreationPosteDqe) => Promise<{ id: number }>
+    modifier: (id: number, donnees: DonneesModificationPosteDqe) => Promise<boolean>
+    supprimer: (id: number) => Promise<boolean>
+  }
+  avenants: {
+    listerParAffaire: (affaireId: number) => Promise<AvenantVue[]>
+    creer: (donnees: DonneesCreationAvenant) => Promise<{ id: number }>
+    modifierStatut: (id: number, statut: string) => Promise<boolean>
+    supprimer: (id: number) => Promise<boolean>
+    creerPoste: (donnees: DonneesCreationAvenantPoste & { avenantId: number }) => Promise<{ id: number }>
+    listerPostes: (avenantId: number) => Promise<AvenantPosteVue[]>
+  }
+  evenementsDelais: {
+    listerParAffaire: (affaireId: number) => Promise<EvenementDelaiVue[]>
+    creer: (donnees: DonneesCreationEvenementDelai) => Promise<{ id: number }>
+    supprimer: (id: number) => Promise<boolean>
+  }
 }
 
 export { CANAUX } from './canaux'
@@ -187,3 +228,8 @@ export type {
   LigneImporteeVue,
   DefinitionImportVue,
 } from './import'
+export type { AffaireVue, DonneesCreationAffaire, DonneesModificationAffaire } from './affaires'
+export type { DevisVue, LigneDevisVue, DonneesCreationDevis, DonneesCreationLigneDevis } from './devis'
+export type { PosteDqeVue, DonneesCreationPosteDqe, DonneesModificationPosteDqe } from './postes-dqe'
+export type { AvenantVue, AvenantPosteVue, DonneesCreationAvenant, DonneesCreationAvenantPoste } from './avenants'
+export type { EvenementDelaiVue, DonneesCreationEvenementDelai } from './evenements-delais'

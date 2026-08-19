@@ -14,6 +14,11 @@ import { enregistrerHandlersSauvegarde } from './ipc-sauvegarde'
 import { enregistrerHandlersTarifs } from './ipc-tarifs'
 import { enregistrerHandlersJournal } from './ipc-journal'
 import { enregistrerHandlersImport } from './ipc-import'
+import { enregistrerHandlersAffaires } from './ipc-affaires'
+import { enregistrerHandlersDevis } from './ipc-devis'
+import { enregistrerHandlersPostesDqe } from './ipc-postes-dqe'
+import { enregistrerHandlersAvenants } from './ipc-avenants'
+import { enregistrerHandlersEvenementsDelais } from './ipc-evenements-delais'
 import type { EtatSessionGere } from './ipc-session'
 import type { CompteurInactivite, DepsSession } from '../securite/session'
 
@@ -45,6 +50,11 @@ export const enregistrerHandlersIpc = (
   enregistrerHandlersEncaissements(enregistreur, obtenirBase)
   enregistrerHandlersProduits(enregistreur, obtenirBase)
   enregistrerHandlersImport(enregistreur, obtenirBase)
+  enregistrerHandlersAffaires(enregistreur, obtenirBase)
+  enregistrerHandlersDevis(enregistreur, obtenirBase)
+  enregistrerHandlersPostesDqe(enregistreur, obtenirBase)
+  enregistrerHandlersAvenants(enregistreur, obtenirBase)
+  enregistrerHandlersEvenementsDelais(enregistreur, obtenirBase)
   enregistrerHandlersDiagnostic(enregistreur)
   if (depsSession && etatSession && compteurActivite && obtenirDossierUserData) {
     enregistrerHandlersSession(enregistreur, obtenirDossierUserData, etatSession, depsSession, compteurActivite)

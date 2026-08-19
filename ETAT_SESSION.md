@@ -1,9 +1,18 @@
 ﻿# État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 19/08/2026 — Jalon 4 Phase 1 (D14, D15, Q8, Q11)
+## Dernière session : 19/08/2026 — Jalon 4 Phase 2 dépôts (5 fichiers créés)
 
-**Jalon 4 Phase 1 — domaine pur : délais, alertes, conversion devis→affaire.** 
-pm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **37 fichiers / 832 tests, tout vert**.
+**Jalon 4 Phase 2 — dépôts : affaires, devis, postes DQE, avenants, événements délai.**
+5 fichiers de dépôts créés dans `electron/depots/`, couvrant les tables métier du jalon 4.
+
+### Fait — Jalon 4 Phase 2 dépôts (5 fichiers)
+
+- **`electron/depots/depot-affaires.ts` (NOUVEAU)** : `DonneesAffaireDepot` (43 champs), `AffaireDepot`, `creerAffaire`, `lireAffaireParId`, `listerAffaires`, `modifierAffaire` (MAPPAGE 43 champs), `supprimerLogiquementAffaire` — 5 fonctions.
+- **`electron/depots/depot-devis.ts` (NOUVEAU)** : `DonneesDevisDepot`, `DevisDepot`, `DonneesLigneDevisDepot`, `LigneDevisDepot`, `creerDevis`, `lireDevisParId`, `listerDevis`, `modifierDevis`, `supprimerLogiquementDevis`, `creerLigneDevis`, `listerLignesDevis`, `supprimerLogiquementLigneDevis` — 8 fonctions.
+- **`electron/depots/depot-postes-dqe.ts` (NOUVEAU)** : `DonneesPosteDqeDepot`, `PosteDqeDepot`, `creerPosteDqe`, `lirePosteDqeParId`, `listerPostesDqeParAffaire`, `modifierPosteDqe`, `supprimerLogiquementPosteDqe` — 5 fonctions.
+- **`electron/depots/depot-avenants.ts` (NOUVEAU)** : `DonneesAvenantDepot`, `AvenantDepot`, `DonneesAvenantPosteDepot`, `AvenantPosteDepot`, `creerAvenant`, `lireAvenantParId`, `listerAvenantsParAffaire`, `modifierStatutAvenant`, `supprimerLogiquementAvenant`, `creerAvenantPoste`, `listerAvenantsPostes` — 7 fonctions.
+- **`electron/depots/depot-evenements-delais.ts` (NOUVEAU)** : `DonneesEvenementDepot`, `EvenementDepot`, `creerEvenementDelai`, `listerEvenementsDelaiParAffaire`, `supprimerLogiquementEvenementDelai` — 3 fonctions.
+- **Total** : 28 fonctions CRUD déposées, toutes préparées SQL, pattern MAPPAGE pour les updates dynamiques, suppression logique.
 
 ### Fait — Jalon 4 Phase 1 : domaine (D14, D15, conversion devis→affaire) + tests (Q8, Q11)
 
