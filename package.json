@@ -19,7 +19,9 @@
     "admin-reset": "electron out/main/egto-admin-reset.js"
   },
   "dependencies": {
+    "@ag-grid-community/styles": "^32.3.9",
     "@tanstack/react-table": "^8.21.3",
+    "ag-grid-community": "^36.1.0",
     "archiver": "^7.0.1",
     "argon2": "^0.45.1",
     "better-sqlite3-multiple-ciphers": "^13.0.3",

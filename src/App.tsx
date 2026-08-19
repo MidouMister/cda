@@ -9,6 +9,10 @@ import { FicheClient } from './ecrans/FicheClient'
 import { Catalogue } from './ecrans/Catalogue'
 import { FicheProduit } from './ecrans/FicheProduit'
 import { Import } from './ecrans/Import'
+import { Devis } from './ecrans/Devis'
+import { FicheDevis } from './ecrans/FicheDevis'
+import { Affaires } from './ecrans/Affaires'
+import { FicheAffaire } from './ecrans/FicheAffaire'
 
 function AppInterne() {
   const ecran = utiliserSession((s) => s.ecran)
@@ -51,6 +55,10 @@ function AppInterne() {
         <Route path="/catalogue" element={<Catalogue />} />
         <Route path="/catalogue/:id" element={<FicheProduit />} />
         <Route path="/import" element={<Import />} />
+        <Route path="/devis" element={<Devis />} />
+        <Route path="/devis/:id" element={<FicheDevis />} />
+        <Route path="/affaires" element={<Affaires />} />
+        <Route path="/affaires/:id" element={<FicheAffaire />} />
       </Routes>
     </Shell>
   )

@@ -1,9 +1,9 @@
 ﻿# État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 19/08/2026 — Jalon 4 Phases 1+2 (D14, D15, Q8, Q11, Q13 + dépôts/contrats/IPC)
+## Dernière session : 19/08/2026 — Jalon 4 Phase 3 (UI: R11, R12, R13, R14)
 
-**Jalon 4 complet (hors UI).** 
-pm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **38 fichiers / 858 tests, tout vert**.
+**Jalon 4 complet.** 
+npm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **42 fichiers / 917 tests, tout vert**.
 
 ### Fait — Jalon 4 Phase 1 : domaine pur (D14, D15, conversion devis→affaire)
 
@@ -52,14 +52,43 @@ pm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **38 fich
 - **Dépendances domaine→domaine uniquement** : aucune extension externe dans domaine/.
 - **Contrats partagés** : contrats/ au root (hors electron/), importés par main ET renderer.
 - **Dépôts = requêtes préparées** : SQL dans electron/depots/, zero concaténation, suppression logique.
+- **vitest.config.ts** : ajout `esbuild: { jsx: 'automatic' }` pour supporter JSX dans les fichiers `tests/` (hors `tsconfig.web.json` include).
+
+### Fait — Jalon 4 Phase 3 : écrans UI (R11, R12, R13, R14)
+
+**Screens R11 (Devis) :**
+- `src/ecrans/Devis.tsx` (liste) : colonnes numeroDevis/clientId/dateDevis/dateValidite/statut/rabaisGlobalBps/affaireId, badge statut (BROUILLON/ENVOYE/ACCEPTE/REFUSE/EXPIRE), filtrage par statut, bouton « Nouveau devis ».
+- `src/ecrans/FicheDevis.tsx` (fiche) : onglets Général/Lignes/Aperçu PDF. Lignes via `Liste` + modal `Formulaire` (ajout ligne). Bouton « Convertir en affaire » conditionné au statut ENVOYE (placeholder alert — IPC non encore câblé).
+
+**Screens R12 (Affaires) :**
+- `src/ecrans/Affaires.tsx` (liste) : colonnes reference/typeAffaire(clientId)/objet/statut/dateFin/délai restant. Badges type (MARCHE_PUBLIC/CONTRAT_PRIVE/BC), badges délai (ok/alerte/dépassé), calcul jours restants via dateFinRevisee/dateFinContractuelle.
+- `src/ecrans/FicheAffaire.tsx` (fiche) : onglets Général/DQE/Avenants/Délais. Fiche complète avec tous les champs AffaireVue en lecture seule.
+
+**Composant R13 (Grille DQE) :**
+- `src/composants/GrilleDqe.tsx` : table HTML éditable (double-clic → inline edit), colonnes numéro/désignation/unite/quantité/PU HT/montant HT/famille/classification. Persistance via `window.egto.postesDqe.modifier()` au blur. Navigation Tab/Enter. Total HT en pied.
+
+**Composants R14 (Délais + Alertes) :**
+- `src/composants/SuiviDelais.tsx` : timeline événements délai (ODS/SUSPENSION/REPRISE/PROROGATION) avec badges couleur, dates, durée, motif, impact.
+- `src/composants/BandeauAlertes.tsx` : bannière alertes niveaux CRITIQUE/AVERTISSEMENT/INFO, icônes, couleurs CSS customisées.
+
+**CSS et routes :**
+- `src/styles.css` : 160+ lignes ajoutées (bandeau alertes, badges statut/délai, timeline, grille DQE éditable).
+- `src/App.tsx` : 4 routes ajoutées (`/devis`, `/devis/:id`, `/affaires`, `/affaires/:id`).
+- AG Grid community installé (`ag-grid-community` + `@ag-grid-community/styles`). Utilisé comme fallback possible, la grille DQE actuelle est une table HTML éditable pour simplicité et fiabilité.
+
+**Tests UI R11-R14 (59 tests, 4 fichiers) :**
+- `tests/ui-devis.test.tsx` (19 tests) : liste Devis (filtrage, navigation, badges statut), fiche Devis (onglets Général/Lignes/Aperçu PDF, modal ajout ligne).
+- `tests/ui-affaires.test.tsx` (17 tests) : liste Affaires (badges type/délai, navigation), fiche Affaire (onglets Général/DQE/Avenants/Délais, bandeau alertes).
+- `tests/ui-dqe.test.tsx` (9 tests) : grille DQE (chargement, état vide, colonnes, total HT, double-clic édition, Enter sauvegarde, Escape annulation).
+- `tests/ui-delais-alertes.test.tsx` (14 tests) : SuiviDelais (chargement, état vide, timeline, badges type, durée, impact), BandeauAlertes (CSS niveaux, icônes, absence sans alerte).
 
 ### En cours / bloqué
 
-- **Rien de bloqué.** Jalon 4 Phases 1+2 terminées.
+- **Rien de bloqué.** Jalon 4 complet (Phase 1 + 2 + 3).
 
 ### Prochaine étape prévue
 
-- **Jalon 4 Phase 3** : écrans UI (R11 liste+fiche devis, R12 liste+fiche affaire, R13 grille DQE AG Grid, R14 suivi des délais + alertes).
+- **Jalon 5** : numérotation, facturation, PDF, impression.
 
 ## Historique — Phase E (clôturée le 16/08/2026, bilan refonte validé)
 
