@@ -1,42 +1,65 @@
 ﻿# État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 19/08/2026 — Jalon 4 Phase 2 dépôts (5 fichiers créés)
+## Dernière session : 19/08/2026 — Jalon 4 Phases 1+2 (D14, D15, Q8, Q11, Q13 + dépôts/contrats/IPC)
 
-**Jalon 4 Phase 2 — dépôts : affaires, devis, postes DQE, avenants, événements délai.**
-5 fichiers de dépôts créés dans `electron/depots/`, couvrant les tables métier du jalon 4.
+**Jalon 4 complet (hors UI).** 
+pm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **38 fichiers / 858 tests, tout vert**.
 
-### Fait — Jalon 4 Phase 2 dépôts (5 fichiers)
+### Fait — Jalon 4 Phase 1 : domaine pur (D14, D15, conversion devis→affaire)
 
-- **`electron/depots/depot-affaires.ts` (NOUVEAU)** : `DonneesAffaireDepot` (43 champs), `AffaireDepot`, `creerAffaire`, `lireAffaireParId`, `listerAffaires`, `modifierAffaire` (MAPPAGE 43 champs), `supprimerLogiquementAffaire` — 5 fonctions.
-- **`electron/depots/depot-devis.ts` (NOUVEAU)** : `DonneesDevisDepot`, `DevisDepot`, `DonneesLigneDevisDepot`, `LigneDevisDepot`, `creerDevis`, `lireDevisParId`, `listerDevis`, `modifierDevis`, `supprimerLogiquementDevis`, `creerLigneDevis`, `listerLignesDevis`, `supprimerLogiquementLigneDevis` — 8 fonctions.
-- **`electron/depots/depot-postes-dqe.ts` (NOUVEAU)** : `DonneesPosteDqeDepot`, `PosteDqeDepot`, `creerPosteDqe`, `lirePosteDqeParId`, `listerPostesDqeParAffaire`, `modifierPosteDqe`, `supprimerLogiquementPosteDqe` — 5 fonctions.
-- **`electron/depots/depot-avenants.ts` (NOUVEAU)** : `DonneesAvenantDepot`, `AvenantDepot`, `DonneesAvenantPosteDepot`, `AvenantPosteDepot`, `creerAvenant`, `lireAvenantParId`, `listerAvenantsParAffaire`, `modifierStatutAvenant`, `supprimerLogiquementAvenant`, `creerAvenantPoste`, `listerAvenantsPostes` — 7 fonctions.
-- **`electron/depots/depot-evenements-delais.ts` (NOUVEAU)** : `DonneesEvenementDepot`, `EvenementDepot`, `creerEvenementDelai`, `listerEvenementsDelaiParAffaire`, `supprimerLogiquementEvenementDelai` — 3 fonctions.
-- **Total** : 28 fonctions CRUD déposées, toutes préparées SQL, pattern MAPPAGE pour les updates dynamiques, suppression logique.
+- **domaine/delais.ts (D14)** : jouterJoursDateIso, calculerDelaisAffaire (ODS, suspensions, reprises, prorogations, dépassement, % consommé, est_en_cours). Horloge injectée (Date), déterministe.
+- **domaine/alertes.ts (D15)** : evaluerAlertesAffaire (5 catégories : DELAI_50/80/J-15/DEPASSE/SUSPENSION), evaluerAlertesDevis (VALIDITE_EXPIREE/BIENTOT_EXPIREE). Toutes informatives, jamais bloquantes.
+- **domaine/conversion-devis.ts** : convertirDevisEnAffaire — valide statut ENVOYÉ, transite vers ACCEPTE, crée affaire CONTRAT_PRIVE/SIGNE, reprend lignes dans DQE (origine DEVIS, ligne_devis_id).
+- **Tests Q8** : 23 tests délais. **Tests Q11** : 10 tests conversion.
 
-### Fait — Jalon 4 Phase 1 : domaine (D14, D15, conversion devis→affaire) + tests (Q8, Q11)
+### Fait — Jalon 4 Phase 2 : dépôts, contrats et IPC (affaires, devis, DQE, avenants, événements délai)
 
-- **domaine/delais.ts (NOUVEAU, D14)** : calcul des délais d'affaire — jouterJoursDateIso (ajout de jours ISO pur), calculerDelaisAffaire (date fin contractuelle, suspensions, reprises, prorogations, date fin révisée, dépassement, pourcentage consommé, est_en_cours). Horloge injectée (Date), déterministe.
-- **domaine/alertes.ts (NOUVEAU, D15)** : évaluation d'alertes — evaluerAlertesAffaire (5 catégories : DELAI_50_POURCENT/INFO, DELAI_80_POURCENT/AVERTISSEMENT, DELAI_J_15/AVERTISSEMENT, DELAI_DEPASSE/CRITIQUE, SUSPENSION_A_LEVER/INFO), evaluerAlertesDevis (2 catégories : VALIDITE_DEVIS_EXPIREE/CRITIQUE, VALIDITE_DEVIS_BIENTOT_EXPIREE/AVERTISSEMENT). Toutes informatives, jamais bloquantes.
-- **domaine/conversion-devis.ts (NOUVEAU)** : convertirDevisEnAffaire — valide statut ENVOYÉ, transite vers ACCEPTE via machine à états, crée affaire CONTRAT_PRIVE/SIGNE, reprend lignes devis dans DQE (origine DEVIS, ligne_devis_id pour traçabilité), calcule montant initial HT.
-- **	ests/delais.test.ts (NOUVEAU, Q8)** : 23 tests — ajouterJoursDateIso (7), ODS seul, suspension, durée depuis dates, multiples suspensions, reprise, prorogation, dépassement, pas d'ODS, pourcentage consommé, est_en_cours, override date_fin_revisee.
-- **	ests/alertes.test.ts (NOUVEAU, tests D15)** : 14 tests — 50%/80%/J-15/dépassement/suspension, pas d'ODS, combinaisons, devis ENVOYÉ/BROUILLON/ACCEPTE, sans date.
-- **	ests/conversion-devis.test.ts (NOUVEAU, Q11)** : 10 tests — conversion basique, intégrité montants, numérotation DQE, traçabilité, statuts invalides, somme postes, produit_id présent/null, devis vide.
+**Contrats** (types IPC, 5 fichiers) :
+- contrats/affaires.ts : AffaireVue, DonneesCreationAffaire, DonneesModificationAffaire
+- contrats/devis.ts : DevisVue, LigneDevisVue, DonneesCreationDevis, DonneesCreationLigneDevis
+- contrats/postes-dqe.ts : PosteDqeVue, DonneesCreationPosteDqe, DonneesModificationPosteDqe
+- contrats/avenants.ts : AvenantVue, AvenantPosteVue, DonneesCreationAvenant, DonneesCreationAvenantPoste
+- contrats/evenements-delais.ts : EvenementDelaiVue, DonneesCreationEvenementDelai
+- canaux.ts mis à jour : 5 groupes de canaux ajoutés (28 canaux IPC au total)
+- index.ts mis à jour : ApiEgto enrichi + exports des 5 nouveaux types
 
-### Décisions — Jalon 4 Phase 1
+**Dépôts SQLite** (requêtes préparées, 5 fichiers, 28 fonctions) :
+- depot-affaires.ts : CRUD complet (creer, lire, lister, modifier, supprimer logiquement)
+- depot-devis.ts : CRUD devis + lignes_devis (8 fonctions)
+- depot-postes-dqe.ts : CRUD postes DQE par affaire
+- depot-avenants.ts : CRUD avenants + avenants_postes (7 fonctions)
+- depot-evenements-delais.ts : CRUD événements délai (3 fonctions)
 
-- **Horloge injectée** : calculerDelaisAffaire prend un paramètre Date (pas de service), tests déterministes.
-- **Alertes = fonctions pures** : evaluerAlertes* reçoivent des données pré-calculées + dateCourante, le handler IPC passera la date réelle.
-- **Conversion = fonction pure** : convertirDevisEnAffaire retourne des données normalisées (pas d'écriture DB), le dépôt IPC orchestrera la transaction.
-- **Dépendances domaine→domaine uniquement** : alertes importe ResultatDelais de delais ; conversion importe 	ransiter/machineEtatsDevis de machines-etats. Aucun import externe.
+**IPC Handlers** (5 fichiers, 26 handlers) :
+- ipc-affaires.ts : lister, creer, lire, modifier, supprimer + mappers snake_case→camelCase
+- ipc-devis.ts : CRUD devis + creerLigne, listerLignes, supprimerLigne (8 handlers)
+- ipc-postes-dqe.ts : listerParAffaire, creer, modifier, supprimer
+- ipc-avenants.ts : listerParAffaire, creer, modifierStatut, supprimer, creerPoste, listerPostes
+- ipc-evenements-delais.ts : listerParAffaire, creer, supprimer
+
+**Wiring** :
+- enregistrer-ipc.ts : 5 enregistrerHandlers* ajoutés
+- construire-api-egto.ts : 5 sections ajoutées (affaires, devis, postesDqe, avenants, evenementsDelais)
+
+**Tests Q13** (intégration dépôts sur base chiffrée, 26 tests) :
+- 	ests/depots-affaires-devis-integration.test.ts : affaires (7), devis (6), postes DQE (6), avenants (4), événements délai (4)
+
+### Décisions — Jalon 4
+
+- **Horloge injectée** pour calculerDelaisAffaire (tests déterministes).
+- **Alertes = fonctions pures** : reçoivent données pré-calculées + dateCourante.
+- **Conversion = fonction pure** : retourne données normalisées, dépôt IPC orchestre la transaction.
+- **Dépendances domaine→domaine uniquement** : aucune extension externe dans domaine/.
+- **Contrats partagés** : contrats/ au root (hors electron/), importés par main ET renderer.
+- **Dépôts = requêtes préparées** : SQL dans electron/depots/, zero concaténation, suppression logique.
 
 ### En cours / bloqué
 
-- **Rien de bloqué.** Jalon 4 Phase 1 (domaine) terminée.
+- **Rien de bloqué.** Jalon 4 Phases 1+2 terminées.
 
 ### Prochaine étape prévue
 
-- **Jalon 4 Phase 2** : dépôts + IPC (affaires, devis, DQE, avenants, événements délai) + UI (R11, R12, R13, R14).
+- **Jalon 4 Phase 3** : écrans UI (R11 liste+fiche devis, R12 liste+fiche affaire, R13 grille DQE AG Grid, R14 suivi des délais + alertes).
 
 ## Historique — Phase E (clôturée le 16/08/2026, bilan refonte validé)
 
