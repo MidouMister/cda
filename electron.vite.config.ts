@@ -1,4 +1,5 @@
-import { resolve } from 'node:path'
+import { cpSync, mkdirSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
@@ -16,9 +17,27 @@ const durcirCspEnProduction = (): Plugin => ({
   },
 })
 
+const copierAssetsSql = (): Plugin => ({
+  name: 'egto:copier-assets-sql',
+  apply: 'build',
+  writeBundle(outputOptions) {
+    const dossierSortie = outputOptions.dir ?? dirname(outputOptions.file!)
+    const dossierSource = join(process.cwd(), 'electron', 'db')
+    const dossierCible = dossierSortie
+    cpSync(join(dossierSource, 'schema.sql'), join(dossierCible, 'schema.sql'))
+    mkdirSync(join(dossierCible, 'migrations'), { recursive: true })
+    cpSync(join(dossierSource, 'migrations'), join(dossierCible, 'migrations'), { recursive: true })
+    cpSync(
+      join(process.cwd(), 'electron', 'pdf', 'polices'),
+      join(dossierCible, 'polices'),
+      { recursive: true },
+    )
+  },
+})
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [copierAssetsSql(), externalizeDepsPlugin({ exclude: ['pdfmake'] })],
     build: {
       rollupOptions: {
         input: {

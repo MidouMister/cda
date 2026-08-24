@@ -298,8 +298,12 @@ describe('calculerPiedFacture — paramétrage, aucun taux en dur', () => {
 describe('calculerPiedFacture — entrées invalides', () => {
   const ligneValide: DonneesLignePied = { quantiteMilliemes: 1000, puHtCentimes: 10000, remiseBps: 0, rabaisMarcheBps: 0 }
 
-  it('refuse une quantité négative', () => {
+  it('refuse une quantité négative pour une facture normale', () => {
     expect(() => pied([{ ...ligneValide, quantiteMilliemes: -1 }])).toThrow(TypeError)
+  })
+
+  it('accepte une quantité négative avec autoriserQuantitesNegatives (avoir)', () => {
+    expect(() => pied([{ ...ligneValide, quantiteMilliemes: -1 }], { autoriserQuantitesNegatives: true })).not.toThrow()
   })
 
   it('refuse un prix unitaire négatif', () => {

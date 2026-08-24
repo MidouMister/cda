@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 const SECTIONS_NAV = [
@@ -13,8 +13,8 @@ const SECTIONS_NAV = [
   {
     titre: 'Facturation',
     entrees: [
-      { path: '/facturation', label: 'Facturation' },
-      { path: '/encaissements', label: 'Encaissements' },
+      { path: '/factures', label: 'Factures' },
+      { path: '/bons-livraison', label: 'Bons de livraison' },
     ],
   },
   {

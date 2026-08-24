@@ -1,9 +1,211 @@
-﻿# État de la session — EGTO Gestion Commerciale
 
-## Dernière session : 19/08/2026 — Jalon 4 Phase 3 (UI: R11, R12, R13, R14)
+## Session : 24/08/2026 — Correctifs numérotation avoir (branche jalon-5-phase5)
 
-**Jalon 4 complet.** 
-npm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **42 fichiers / 917 tests, tout vert**.
+**Jalon 5 complet (Phase 1 + 2 + 3 + 4 + 5).** Tous les livrables livrés et vérifiés. Corrections post-Phase 5 appliquées.
+
+### Fait — Phase 5 : Tests E2E Playwright
+
+**Q16 — Harnais Playwright** :
+- playwright.config.ts (testDir: ./e2e, timeout: 60s, workers: 1, projects: chromium)
+- e2e/helpers/fixture.ts : fixture Electron (lancement app, session auto-unlock, temp DB, cleanup)
+- e2e/smoke.spec.ts : fumée (fenêtre, session, page Factures) — vert en 2.8s
+- electron/main.ts : hook EGTO_E2E + EGTO_E2E_USER_DATA_DIR (34-35)
+- package.json : script "test:e2e": "npx playwright test"
+- Corrections infrastructure : electron.vite.config.ts (exclude pdfmake + copierAssetsSql plugin + copie polices), src/App.tsx (BrowserRouter → HashRouter)
+
+**Q17 — Parcours devis→affaire→facture→PDF** (10 étapes, vert en 3.9s) :
+- Client → devis + 2 lignes → ENVOYE (IPC) → conversion affaire → facture BROUILLON → 2 lignes → validation FA-2026-XXXX → PDF direct → aperçu UI → impression (VALIDE→IMPRIMEE, DUPLICATA) → Marquer envoyée → ENVOYEE
+- **Correctifs production découverts** : signatures IPC lignes (4 handlers), affaire statut CHECK, pdfmake API singleton, fonts/polices copie build, JSX \uXXXX littéraux, ESLint artifacts
+
+**Q18 — Parcours BL→facture groupée→PDF** (8 étapes, vert en 3.5s) :
+- 2 BL EMIS avec lignes → génération facture groupée → lignes reprises + montants vérifiés → BL FACTURE/liés → validation FA → PDF (mentions légales vérifiées via décodage CMap) → rabais marché transféré (1000 bps)
+- **Correctif rabais marché** : genererFactureDepuisBons lit désormais abais_marche_bps depuis ffaires via lireAffaireParId (au lieu de hardcoder 0)
+
+**Q30 — Import clients Excel** (vert en 2.8s) :
+- e2e/parcours-import.spec.ts : lecture Excel via IPC, validation avec anomalie, exécution, vérification lignes importées
+
+**Cohérence — 8 vérifications transversales** (8 tests, tous verts) :
+1. Aperçu PDF sans incrément nombreImpressions
+2. Impression avec incrément (1→2) ; réimpression refusée (VALIDE requise)
+3. DUPLICATA filigrane dès 2ème génération
+4. Absence droit de timbre dans le pied (TTC = HT + TVA)
+5. Absence timbre dans le PDF (décompression zlib + recherche CMap)
+6. Avoir non encaissable (refus IPC + absence bouton UI)
+7. Avoir non archivable (absence bouton + canal)
+8. Polices PDF présentes et fonctionnelles
+
+### Commandes obligatoires — 6/6 vertes
+
+| # | Commande | Résultat |
+|---|---|---|
+| 1 | 	sc --noEmit -p tsconfig.node.json | ✅ Vert |
+| 2 | 	sc --noEmit -p tsconfig.web.json | ✅ Vert |
+| 3 | eslint . | ✅ Vert |
+| 4 | 
+ode scripts/garde-domaine.mjs | ✅ Vert |
+| 5 | 
+px vitest run | ✅ 48 fichiers / 1010 tests |
+| 6 | 
+px playwright test | ✅ 12 tests / 12 passés (48.9s) |
+
+### Corrections production (Phase 5)
+
+| Fichier | Correction |
+|---|---|
+| electron/depots/depot-bons-livraison.ts | BL query sélectionne ffaire_id, abais_marche_bps lu depuis ffaires via lireAffaireParId |
+| electron/depots/ipc-devis.ts, ipc-factures.ts, ipc-bons-livraison.ts, ipc-avenants.ts | Signatures IPC lignes alignées sur contrat (payload unique au lieu de (event, parentId, data)) |
+| electron/ipc/ipc-affaires.ts | Statut création affaire = SIGNE (au lieu de BROUILLON rejeté par CHECK) |
+| electron/pdf/generer-pdf.ts | Réécrit sur API singleton officielle pdfmake (createPdf + getBuffer()) |
+| electron.vite.config.ts | exclude pdfmake (ESM), plugin copie SQL + polices, ignore artifacts ESLint |
+| src/App.tsx | BrowserRouter → HashRouter (compatibilité file:// Electron) |
+| src/ecrans/FicheFacture.tsx, FicheDevis.tsx, Factures.tsx | JSX \uXXXX → accents réels |
+
+### Notes techniques
+
+- e2e/smoke.spec.ts : ses 2 blocages documentés (assets SQL + HashRouter) sont levés
+- e2e/parcours-bl-facturation.spec.ts : ÉTAPE 7 documente la lacune rabais (désormais corrigée)
+- genererFactureDepuisBons : la facture BROUILLON est créée avec numéro FA déjà attribué (compteur avancé), puis aliderFacture ré-attribue un second numéro → trous de séquence à arbitrer (note technique, non bloquant)
+- e2e/cohérence.spec.ts : interface PiedCalculeE2E supprimée (lint fix)
+- Tests UI R15-R18 (40 tests) : inchangés depuis Phase 4, tous verts
+
+### Bloqué : rien
+
+### Prochaine étape
+
+- **Arbitrage** : trous de séquence FA sur factures issues de BL (numéro attribué au BROUILLON puis ré-attribué à la validation)
+- **Jalon 6** : ne pas enchaîner sans validation utilisateur explicite de la Phase 5
+
+---
+# État de la session — EGTO Gestion Commerciale
+
+## Dernière session : 23/08/2026 — Correctif transfert rabais marché BL → FA (branche jalon-5-phase5)
+
+**Fait** :
+- **`electron/depots/depot-bons-livraison.ts` — lacune Phase 2 corrigée** : `genererFactureDepuisBons` ne hardcode plus `rabais_marche_bps: 0`. La requête BL sélectionne désormais `affaire_id` (interface `BLValide` enrichie) ; le taux est lu depuis `affaires.rabais_marche_bps` via `lireAffaireParId` (import ajouté, réutilisé comme dans depot-factures) sur l'`affaire_id` du premier BL (tous les BL du lot partagent le même client, contrôle ligne 327 ; affaire absente/supprimée ou NULL → 0). Le taux est figé sur **chaque ligne** de la facture générée (décision 15/08/2026 §4.4.5bis).
+- **`e2e/cohérence.spec.ts`** : suppression de l'interface inutilisée `PiedCalculeE2E` (lint KO documenté en session précédente, fichier d'une session parallèle — correction minimale type-only pour verdir `npm run verifier`, aucun comportement modifié).
+- **Rebuild `out/` requis** : l'e2e lance le bundle compilé (`out/main`) — un `npm run build` est nécessaire après toute modification des sources avant `npx playwright test`.
+
+**Vérifications** : `npx playwright test e2e/parcours-bl-facturation.spec.ts` **Q18 vert** (8 étapes, y compris ÉTAPE 7 rabais marché : 1000 bps repris depuis l'affaire, rabais ligne 5 000 000 c, net 45 000 000 c) ; `npx vitest run` 48 fichiers / 1010 tests verts ; `npm run verifier` vert (typecheck node+web, ESLint, garde-domaine, tests).
+
+**Bloqué** : rien.
+
+**Décisions** : aucune décision produit/fiscale. **Résolu** (24/08/2026) : `genererFactureDepuisBons` crée désormais en BROUILLON avec numero=NULL ; le compteur n'est consommé qu'à la validation.
+
+**Prochaine étape** : relancer `npx playwright test e2e/smoke.spec.ts`.
+
+## Session précédente : 23/08/2026 — Jalon 5 Phase 5 : e2e parcours BL → facture groupée (branche jalon-5-phase5)
+
+**Fait** :
+- **`e2e/parcours-bl-facturation.spec.ts` (NOUVEAU)** — Q18, parcours en 7 étapes via IPC (`window.egto.*`) + contrôles UI HashRouter : 2 BL EMIS avec lignes → `bonsLivraison.genererFacture` groupée → lignes reprises et montants nets vérifiés → BL passés FACTURE + liés (`facture_id`) → validation VALIDE + numéro `FA-AAAA-NNNN` → **PDF** (en-tête %PDF-, extraction textuelle réelle du buffer par décodage des CMap ToUnicode glyphe→caractère avec suivi de police courante `/Fn Tf` — les flux pdfmake sont en Identity-H/glyph IDs, une recherche de chaîne brute est impossible) vérifiant les **10 mentions légales** du pied + numéro + client + absence de « timbre », aperçu UI iframe — puis **ÉTAPE 7 rabais marché**.
+- **Correctif production découvert par l'e2e** : `bonsLivraison.creer` écrivait `statut: 'BROUILLON'` + `numero_bl: ''` → violait le CHECK du schéma (`EMIS|FACTURE`) et l'UNIQUE de `numero_bl`. Nouveau `creerBonLivraisonEmis` dans `electron/depots/depot-bons-livraison.ts` (transaction : compteur `BL-AAAA-NNNN` via `lireCompteur`/`attribuerNumero`/`incrementerCompteur`, statut EMIS) branché dans `ipc-bons-livraison.ts`. Le schéma BL n'a pas d'état BROUILLON ; `modifier` ne permet pas le changement de statut (champs limités).
+- **Vérifications** : `npm run typecheck` vert ; lint vert sur les fichiers modifiés ; `tests/depots-factures-bl-integration.test.ts` 20/20 ; `npx playwright test e2e/parcours-facturation.spec.ts` (Q17) toujours vert.
+
+**Bloqué** :
+- **ÉTAPE 7 du nouvel e2e échoue VOLONTAIREMENT** avec le message attendu : « BLOCAGE: genererFactureDepuisBons ne transfère pas rabais_marche_bps » — lacune documentée depuis la Phase 2 (`electron/depots/depot-bons-livraison.ts` hardcode `rabais_marche_bps: 0` au lieu de lire `affaires.rabais_marche_bps`). À corriger sur décision utilisateur (lecture du rabais depuis l'affaire + reprise ligne par ligne).
+- Lint KO sur `e2e/cohérence.spec.ts` (type inutilisé) — fichier créé par une session parallèle le 23/08 soir, non touché.
+
+**Décisions** : aucune décision produit/fiscale. Notes techniques : numérotation BL attribuée à la création (pas d'état BROUILLON dans le schéma BL) ; constat non corrigé signalé : `genererFactureDepuisBons` insère la facture BROUILLON **avec** numéro FA déjà attribué (compteur avancé), puis `validerFacture` ré-attribue un second numéro → trous de séquence à arbitrer.
+
+**Prochaine étape** : arbitrage utilisateur sur le transfert `rabais_marche_bps` (débloque ÉTAPE 7), puis arbitrage sur la double attribution de numéro FA des factures issues de BL ; relancer `npx playwright test e2e/smoke.spec.ts`.
+
+## Session précédente : 23/08/2026 — Jalon 5 Phase 5 : e2e parcours facturation (branche jalon-5-phase5)
+
+**Fait** :
+- **`e2e/parcours-facturation.spec.ts` (NOUVEAU)** — parcours complet en 10 étapes, vert en ~4 s : client → devis + ligne → ENVOYE → conversion affaire (dialog « Conversion » capturé) → facture BROUILLON (numéro null) → 2 lignes + pied calculé via IPC (HT 600 000 / TVA 114 000 / TTC 714 000 DA) → validation `FA-2026-XXXX` → PDF direct (%PDF-, statut VALIDE conservé, impressions = 0) → aperçu UI (« Générer le PDF » → iframe + Télécharger) → impression (VALIDE→IMPRIMEE, impressions = 1, bandeau DUPLICATA) → Marquer envoyée → ENVOYEE visible dans la liste.
+- **Correctifs production découverts par l'e2e** :
+  1. **Signatures IPC des lignes** : 4 handlers attendaient `(evenement, parentId, donnees)` alors que contrat/preload/renderer envoient un payload unique — alignés sur le contrat : `ipc-devis.ts` (devis.creerLigne), `ipc-factures.ts` (factures.creerLigne), `ipc-bons-livraison.ts` (bonsLivraison.creerLigne), `ipc-avenants.ts` (avenants.creerPoste).
+  2. **`ipc-affaires.ts`** : le mapper de création forçait `statut: 'BROUILLON'`, rejeté par le CHECK du schéma (`SIGNE|ODS_RECU|…`) → `'SIGNE'`.
+  3. **`electron/pdf/generer-pdf.ts` réécrit** : la classe `pdfmake/src/printer` de pdfmake 0.3 n'a **pas** de `createPdf` (seulement `createPdfKitDocument`) → bascule sur l'API singleton officielle (`import { createPdf, setFonts } from 'pdfmake'` + `getBuffer()`). Suppression de `electron/pdf/pdfmake-printer.d.ts` (déclaration obsolète et erronée). Les tests unitaires PDF ne couvraient que gabarits/polices — d'où la non-détection.
+  4. **`electron.vite.config.ts`** : le plugin copie désormais aussi `electron/pdf/polices/` vers `out/main/polices` (en plus de schema.sql/migrations).
+  5. **Bug JSX `\uXXXX` littéraux** : échappements unicode en position texte JSX rendus tels quels à l'écran (interface illisible) — corrigés avec accents réels dans `FicheFacture.tsx` («Générer le PDF», «Marquer envoyée», «← Retour», «Aucun PDF généré», «Chargement…»), `FicheDevis.tsx` (3 occurrences), `Factures.tsx` (1). Les échappements en chaînes JS (interprétés) sont inchangés.
+  6. **Lint** : `eslint.config.js` ignore désormais `playwright-report/` + `test-results/` (+ `.gitignore`) — les artefacts Playwright faisaient échouer `npm run verifier` (2845 erreurs sur des bundles minifiés) ; `debug-launch.js` : `catch(e){}` → `catch {}`.
+
+**Vérification** : `npm run verifier` vert (typecheck node+web, ESLint, garde-domaine, 48 fichiers / 1010 tests Vitest) ; `npx playwright test e2e/parcours-facturation.spec.ts` vert.
+
+**Décisions** : aucune décision produit/fiscale. Notes techniques : unités e2e en majuscules (`'M3'`, `'U'`) conformes au CHECK du schéma ; format numéro `FA-2026-0001` ; `HashRouter` déjà en place dans `src/App.tsx` (compatible `file://`).
+
+**Bloqué** : rien.
+
+**Prochaine étape** : relancer `npx playwright test e2e/smoke.spec.ts` (ses 2 blocages documentés le 23/08 matin sont levés : assets SQL copiés par plugin, HashRouter présent), puis validation utilisateur avant tout commit.
+
+## Session précédente : 23/08/2026 — Correctif lancement (pdfmake) + diagnostic e2e (branche jalon-5-phase5)
+
+**Correctif appliqué** : `electron.vite.config.ts` — `externalizeDepsPlugin({ exclude: ['pdfmake'] })` dans la section **main uniquement** (preload inchangé). Cause : `pdfmake/src/printer.js` est en ESM et plantait en CJS (`ERR_MODULE_NOT_FOUND … PDFDocument`) quand externalisé. Build OK ; lancement vérifié sans crash (stderr vide).
+
+**Diagnostic e2e (smoke.spec.ts toujours KO — 2 blocages résiduels découverts une fois le crash levé)** :
+1. **Assets SQL absents de `out/main`** : `electron/db/migrations.ts` résout `schema.sql` + `migrations/*.sql` relativement au module compilé, mais electron-vite ne les copie pas → `ENOENT … out\main\schema.sql` au déverrouillage. Confirmé par copie manuelle dans `out/main` (artefact de build, non versionné — sera écrasé au prochain build) : le déverrouillage passe ensuite.
+2. **BrowserRouter incompatible avec `file://`** : en build, le renderer est chargé via `loadFile` → `location.pathname = /C:/…/index.html`, aucune route ne matche (« No routes matched location »), `<main>` vide → l'écran Factures ne s'affiche jamais. Correction candidate (non appliquée, hors périmètre autorisé) : `HashRouter` ou `MemoryRouter` dans `src/App.tsx`.
+
+**Fait** :
+- `electron.vite.config.ts` : exclusion pdfmake de l'externalisation (section main) — 1 ligne.
+- Scripts temporaires de diagnostic créés puis supprimés ; copies `schema.sql`/`migrations/` laissées dans `out/main` (artefacts).
+
+**Décisions** : aucune décision produit/fiscale ; strictement infrastructure.
+
+**Bloqué** : smoke e2e dépend des 2 correctifs ci-dessus (à valider par l'utilisateur avant application).
+
+**Prochaine étape** : sur validation — copier les assets SQL vers `out/main` (plugin vite ou script) et basculer `src/App.tsx` sur un routeur compatible `file://` ; relancer `npx playwright test e2e/smoke.spec.ts`.
+
+## Session précédente : 21/08/2026 — Jalon 5 Phase 4 (UI R15–R18 — complet)
+
+**Jalon 5 Phase 1 + 2 + 3 + 4 complets.** 
+npm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **48 fichiers / 1010 tests, tout vert**.
+
+### Fait — Jalon 5 Phase 4 : écrans UI R15–R18 (21/08/2026)
+
+**R15 — Factures (liste + fiche) :**
+- **src/ecrans/Factures.tsx** : liste avec colonnes N°/Type/Client/Affaire/Date/Échéance/Total TTC/Solde/Statut. Badges statut (BROUILLON/VALIDE/IMPRIMEE/ENVOYEE/PAYEE/ARCHIVEE) et type (FA/AC/AV). Filtrage par statut. Bouton « Nouvelle facture ».
+- **src/ecrans/FicheFacture.tsx** : fiche avec 5 onglets — Général (champs lecture seule + boutons Valider/Imprimer/Envoyer/Avoir selon statut), Lignes (tableau + ajout ligne via modal), Pied (appel calculerPied + affichage totaux), Historique encaissements (liste ENC), Aperçu PDF (composant ApercuPdf).
+
+**R16 — Aperçu PDF :**
+- **src/composants/ApercuPdf.tsx** : composant réutilisable — reçoit un Uint8Array depuis genererPdf, crée un Blob → iframe inline pour visualisation. Boutons Télécharger et Imprimer.
+
+**R17 — Bons de livraison (liste + fiche) :**
+- **src/ecrans/BonsLivraison.tsx** : liste avec colonnes N° BL/Client/Affaire/Date livraison/Poids/Statut. Badges statut (EMIS/FACTURE). Sélection multiple + bouton « Générer facture » conditionné à toutEmis + au moins 2 BL.
+- **src/ecrans/FicheBonLivraison.tsx** : fiche avec 2 onglets — Général et Lignes.
+
+**R18 — Avoirs :**
+- **src/ecrans/FicheAvoir.tsx** : assistant 3 étapes — sélection facture d’origine (VALIDE/IMPRIMEE/ENVOYEE) → mode (Total/Par lignes/Partiel) → détail (cases à cocher, quantité partielle bornée, motif ≥ 3 car., date AAAA-MM-JJ).
+
+**Câblage :**
+- **src/App.tsx** : 7 routes ajoutées (factures, factures/nouveau, factures/:id, factures/avoir/nouveau, bons-livraison, bons-livraison/nouveau, bons-livraison/:id).
+- **src/Shell.tsx** : section Facturation (Factures + Bons de livraison).
+- **src/styles.css** : classes badge (valide/imprimee/envoyee/payee/archivee/fa/ac/av).
+
+**Tests UI R15–R18 (40 tests, 3 fichiers) :**
+- tests/ui-factures.test.tsx (18 tests) : liste + fiche facture.
+- tests/ui-bl.test.tsx (15 tests) : liste + fiche BL.
+- tests/ui-avoirs.test.tsx (7 tests) : création avoir.
+
+### Fait — Jalon 5 Phase 1 : types contrats + domaine avoir + tests purs
+
+- **contrats/factures.ts** : StatutFacture, TypeDocumentFacture, FactureVue, LigneFactureVue, DonneesCreationFacture, DonneesCreationLigneFacture, DonneesAvoir
+- **contrats/bons-livraison.ts** : StatutBonLivraisonVue, BonLivraisonVue, LigneBonLivraisonVue, DonneesCreationBonLivraison
+- **contrats/canaux.ts** : 26 canaux IPC (16 factures + 10 BL)
+- **domaine/avoir.ts** : genererLignesAvoir (3 modes), validerDonneesAvoir
+- **tests/avoirs-domaine.test.ts** : 21 tests purs
+
+### Fait — Jalon 5 Phase 2 : depots SQLite + handlers IPC
+
+**Depots SQLite** (2 fichiers) :
+- depot-factures.ts (829 lignes) : 17 fonctions (CRUD factures + lignes + validation + avoirs)
+- depot-bons-livraison.ts (374 lignes) : 10 fonctions (CRUD BL + lignes + genererFacture)
+
+**IPC Handlers** (2 fichiers) :
+- ipc-factures.ts (330 lignes) : 16 handlers (CRUD + validation + avoirs + impression)
+- ipc-bons-livraison.ts (229 lignes) : 10 handlers (CRUD + generation facture)
+
+**Wiring** : enregistrer-ipc.ts + construire-api-egto.ts + contrats/index.ts mis a jour
+
+
+**Corrections architecture** :
+- domaine/pied-facture.ts : drapeau `autoriserQuantitesNegatives` sur `ParametresPiedFacture` (seul `creerAvoir` l'active) ; `verifierLigne` conditionne la validation selon le drapeau.
+- depot-factures.ts : drapeau propage dans `ParametresMaterialisationFacture`, `materialiserLignesEtPiedFacture` et `calculerEcartCentimes` ; `creerAvoir` definit le drapeau a true.
+- depot-bons-livraison.ts : remise_bps/rabais_marche_bps = 0 (colonnes absentes du schema BL — lacune documentee)
+- tests/pied-facture.test.ts : split du test quantite negative en 2 — generique rejette, AV accepte via drapeau
+
+**Tests integration** (20 tests) :
+- tests/depots-factures-bl-integration.test.ts : factures CRUD, lignes, validation, avoirs, BL CRUD, BL lignes, generation facture
 
 ### Fait — Jalon 4 Phase 1 : domaine pur (D14, D15, conversion devis→affaire)
 
@@ -82,13 +284,72 @@ npm run verifier (typecheck node+web + lint + garde-domaine + vitest) : **42 fic
 - `tests/ui-dqe.test.tsx` (9 tests) : grille DQE (chargement, état vide, colonnes, total HT, double-clic édition, Enter sauvegarde, Escape annulation).
 - `tests/ui-delais-alertes.test.tsx` (14 tests) : SuiviDelais (chargement, état vide, timeline, badges type, durée, impact), BandeauAlertes (CSS niveaux, icônes, absence sans alerte).
 
+### Validation Phase 2 — rapport 20/08/2026
+
+Les 8 points de validation ont été vérifiés et rapportés :
+1. ETAT_SESSION.md corrigé (Phase 3 = PDF, pas UI)
+2. Fichiers exacts avec statistiques de lignes
+3. verifierEntier remplacé par drapeau autoriserQuantitesNegatives (architecture propre)
+4. BL→FA rabais marché = lacune documentée (voir ci-dessous)
+5. DonneesAvoirDepot = type de mapping SQL pur, validations 100% dans domaine/avoir.ts
+6. Transactions vérifiées : validerFacture, creerAvoir, genererFactureDepuisBons — toutes avec base.transaction()
+7. Tests : 69/69 ciblés verts ; typecheck+lint+garde-domaine verts ; 2 timeouts pré-existants Jalon 2
+8. Aucun commit ni Phase 3 démarrés
+
+### Fait — Jalon 5 Phase 3 : PDF (complet — 21/08/2026)
+
+**Infrastructure PDF** :
+- `electron/pdf/types.ts` (95 lignes) : interfaces `DonneesPdfFacture` (imbriquée `DonneesFacturePdf`), `DonneesPdfDevis`, `DonneesPdfBl`, `DonneesLignePdf`, `DonneesPiedPdf`, `DonneesClientPdf`, `DonneesAffairePdf`, `DonneesEntreprisePdf`
+- `electron/pdf/polices.ts` (36 lignes) : singleton `chargerPolices()` — Roboto (pdfmake build) + NotoNaskhArabic (polices/)
+- `electron/pdf/polices/NotoNaskhArabic-Regular.ttf` : police arabe (308 Ko)
+- `electron/pdf/pdfmake-printer.d.ts` (12 lignes) : déclaration de type pour `pdfmake/src/printer`
+
+**Gabarits A4** :
+- `electron/pdf/gabarit-facture.ts` (298 lignes) : en-tête entreprise + numéro, infos document (date, échéance, BC), bloc client (raison sociale, NIF, adresse), bloc affaire, tableau lignes (7 colonnes : Désignation/Unité/Qté/PU HT/Remise/Rabais/Net HT), pied facture (HT lignes → remises → net commercial → retenue → HT → TVA → TTC → NET À PAYER), mentions légales footer, filigrane DUPLICATA SVG
+- `electron/pdf/gabarit-devis.ts` (135 lignes) : DEVIS, tableau 5 colonnes, Total HT, mentions légales dans content, DUPLICATA
+- `electron/pdf/gabarit-bl.ts` (134 lignes) : BON DE LIVRAISON, tableau 3 colonnes (Désignation/Unité/Qté), poids, mentions légales, DUPLICATA
+
+**Orchestrateur** :
+- `electron/pdf/generer-pdf.ts` (36 lignes) : `genererPdfBuffer()` singleton PdfPrinter, `genererPdfFacture/Devis/Bl` (wrappers)
+
+**Handlers IPC (wiring)** :
+- `electron/ipc/ipc-factures.ts` (510 lignes) : handlers `genererPdf` (lecture dépôt → mapping entreprise/client/affaire → gabarit → buffer) et `imprimer` (VALIDE→IMPRIMEE + increment impressions) — données lues depuis dépôt, zéro re-calcul
+
+**Tests** :
+- `tests/pdf-generation.test.ts` (197 lignes, 11 tests) :
+  - A4 + content non vide
+  - 10 mentions légales obligatoires (PRD §5.2)
+  - Aucun timbre dans le document
+  - Formatage montants HT/TVA/TTC/NET À PAYER
+  - Police Roboto par défaut + NotoNaskhArabic
+  - DUPLICATA absent/présent selon nombre_impressions
+  - Désignations dans le tableau
+  - Vérification : aucun calcul financier dans electron/pdf/
+
+### Corrections appliquées lors de la revue Phase 3
+
+1. ipc-factures.ts : `donneesPdf` restructurée avec `facture: {}` imbriqué (conforme `DonneesPdfFacture`)
+2. ipc-factures.ts : `entreprise` corrigée (`raisonSociale`/`capital`/`telephone` au lieu de `denomination`/`capitalCentimes`)
+3. ipc-factures.ts : `typeLigne` ajouté au mapping des lignes
+4. ipc-factures.ts : `affaire: null` → `affaire: undefined` (conforme `DonneesAffairePdf | undefined`)
+5. ipc-factures.ts : import `DonneesEntreprisePdf` ajouté
+6. tests/pdf-generation.test.ts : `ENTREPRISE_DEFAUT` alignée avec `DonneesEntreprisePdf`
+7. tests/pdf-generation.test.ts : `donneesDefaut()` restructurée avec `facture: {}` imbriqué + dates ISO
+8. tests/pdf-generation.test.ts : `background()` appelé avec `ContextPageSize` complet (width/height/orientation)
+9. tests/pdf-generation.test.ts : mentions légales testées via `gabarit.footer()` (le footer est une fonction, JSON.stringify la skip)
+
+### Lacunes connues
+
+- **BL→FA rabais marché** : `genererFactureDepuisBons` hardcode `rabais_marche_bps: 0` au lieu de lire `affaires.rabais_marche_bps`. Documenté en Phase 2, hors périmètre Phase 3.
+- **Avoir PDF** : `gabarit-facture.ts` gère `typeDocument='AVOIR'` via `libelleTypeDocument()`, mais le handler `creerAvoir` n'appelle pas encore `genererPdf`. Le gabarit est prêt.
+
 ### En cours / bloqué
 
-- **Rien de bloqué.** Jalon 4 complet (Phase 1 + 2 + 3).
+- **Rien de bloqué.** Phase 4 complète et validée. Diff à commiter sur jalon-5-phase4.
 
 ### Prochaine étape prévue
 
-- **Jalon 5** : numérotation, facturation, PDF, impression.
+- **Jalon 5 Phase 5** : Tests e2e Playwright — ne pas enchaîner sans validation utilisateur explicite de la Phase 4.
 
 ## Historique — Phase E (clôturée le 16/08/2026, bilan refonte validé)
 

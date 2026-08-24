@@ -121,12 +121,22 @@ export const enregistrerHandlersDevis = (
     }
     return supprimerLogiquementDevis(obtenirBase(), id)
   })
-  enregistreur.handle(CANAUX.devis.creerLigne, (_evenement, devisId, donnees) => {
-    if (typeof devisId !== 'number' || !Number.isSafeInteger(devisId) || devisId < 1) {
+  enregistreur.handle(CANAUX.devis.creerLigne, (_evenement, donnees) => {
+    const source = donnees as DonneesCreationLigneDevis & { devisId: number }
+    if (
+      typeof source?.devisId !== 'number' ||
+      !Number.isSafeInteger(source.devisId) ||
+      source.devisId < 1
+    ) {
       throw new TypeError('« devisId » doit être un entier strictement positif.')
     }
     const validees = verifierDonneesCreationLigne(donnees)
-    return { id: creerLigneDevis(obtenirBase(), mapperDonneesCreationLigneVersDepot(devisId, validees)) }
+    return {
+      id: creerLigneDevis(
+        obtenirBase(),
+        mapperDonneesCreationLigneVersDepot(source.devisId, validees),
+      ),
+    }
   })
   enregistreur.handle(CANAUX.devis.listerLignes, (_evenement, devisId) => {
     if (typeof devisId !== 'number' || !Number.isSafeInteger(devisId) || devisId < 1) {

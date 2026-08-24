@@ -109,12 +109,22 @@ export const enregistrerHandlersAvenants = (
     }
     return supprimerLogiquementAvenant(obtenirBase(), id)
   })
-  enregistreur.handle(CANAUX.avenants.creerPoste, (_evenement, avenantId, donnees) => {
-    if (typeof avenantId !== 'number' || !Number.isSafeInteger(avenantId) || avenantId < 1) {
+  enregistreur.handle(CANAUX.avenants.creerPoste, (_evenement, donnees) => {
+    const source = donnees as DonneesCreationAvenantPoste & { avenantId: number }
+    if (
+      typeof source?.avenantId !== 'number' ||
+      !Number.isSafeInteger(source.avenantId) ||
+      source.avenantId < 1
+    ) {
       throw new TypeError('« avenantId » doit être un entier strictement positif.')
     }
     const validees = verifierDonneesCreationPoste(donnees)
-    return { id: creerAvenantPoste(obtenirBase(), mapperDonneesCreationPosteVersDepot(avenantId, validees)) }
+    return {
+      id: creerAvenantPoste(
+        obtenirBase(),
+        mapperDonneesCreationPosteVersDepot(source.avenantId, validees),
+      ),
+    }
   })
   enregistreur.handle(CANAUX.avenants.listerPostes, (_evenement, avenantId) => {
     if (typeof avenantId !== 'number' || !Number.isSafeInteger(avenantId) || avenantId < 1) {

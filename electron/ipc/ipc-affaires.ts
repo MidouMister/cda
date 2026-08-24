@@ -56,7 +56,7 @@ export const mapperAffaireEnVue = (affaire: AffaireDepot): AffaireVue => ({
 })
 
 export const mapperDonneesCreationVersDepot = (donnees: DonneesCreationAffaire): DonneesAffaireDepot => ({
-  statut: 'BROUILLON',
+  statut: 'SIGNE',
   reference: donnees.reference,
   type_affaire: donnees.typeAffaire,
   client_id: donnees.clientId,

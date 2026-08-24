@@ -61,7 +61,7 @@ const regleInterdireImportExterne = {
 
 module.exports = [
   {
-    ignores: ['node_modules/**', 'out/**', 'dist/**'],
+    ignores: ['node_modules/**', 'out/**', 'dist/**', 'playwright-report/**', 'test-results/**'],
   },
   ...tseslint.configs.recommended,
   {

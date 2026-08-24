@@ -31,6 +31,10 @@ const depsSession: DepsSession = {
 
 const obtenirDossierUserData = (): string => app.getPath('userData')
 
+if (process.env['EGTO_E2E'] === '1' && process.env['EGTO_E2E_USER_DATA_DIR']) {
+  app.setPath('userData', process.env['EGTO_E2E_USER_DATA_DIR'])
+}
+
 const creerFenetreDiagnostic = (): void => {
   const fenetre = new BrowserWindow({
     width: 960,

@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light dark;
 
   --bg-window: #EDEDEF;
@@ -764,6 +764,14 @@ input { font-family: inherit; font-size: 13px; }
 .badge-marche-public { background: var(--accent-soft); color: var(--accent); }
 .badge-contrat-prive { background: var(--green-soft); color: var(--green); }
 .badge-bc { background: var(--gray-soft); color: var(--text-secondary); }
+.badge-valide { background: var(--accent-soft); color: var(--accent); }
+.badge-imprimee { background: var(--purple-soft); color: var(--purple); }
+.badge-envoyee { background: var(--accent-soft); color: var(--accent); }
+.badge-payee { background: var(--green-soft); color: var(--green); }
+.badge-archivee { background: var(--gray-soft); color: var(--text-secondary); }
+.badge-fa { background: var(--accent-soft); color: var(--accent); }
+.badge-ac { background: var(--green-soft); color: var(--green); }
+.badge-av { background: var(--red-soft); color: var(--red); }
 
 /* ─── Badges délai ─── */
 .badge-delai {

@@ -1,5 +1,5 @@
-﻿import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { utiliserSession } from './etat-session'
 import { Connexion } from './ecrans/Connexion'
 import { PremierDemarrage } from './ecrans/PremierDemarrage'
@@ -13,6 +13,11 @@ import { Devis } from './ecrans/Devis'
 import { FicheDevis } from './ecrans/FicheDevis'
 import { Affaires } from './ecrans/Affaires'
 import { FicheAffaire } from './ecrans/FicheAffaire'
+import { Factures } from './ecrans/Factures'
+import { FicheFacture } from './ecrans/FicheFacture'
+import { BonsLivraison } from './ecrans/BonsLivraison'
+import { FicheBonLivraison } from './ecrans/FicheBonLivraison'
+import { FicheAvoir } from './ecrans/FicheAvoir'
 
 function AppInterne() {
   const ecran = utiliserSession((s) => s.ecran)
@@ -59,6 +64,13 @@ function AppInterne() {
         <Route path="/devis/:id" element={<FicheDevis />} />
         <Route path="/affaires" element={<Affaires />} />
         <Route path="/affaires/:id" element={<FicheAffaire />} />
+        <Route path="/factures" element={<Factures />} />
+        <Route path="/factures/nouveau" element={<FicheFacture />} />
+        <Route path="/factures/avoir/nouveau" element={<FicheAvoir />} />
+        <Route path="/factures/:id" element={<FicheFacture />} />
+        <Route path="/bons-livraison" element={<BonsLivraison />} />
+        <Route path="/bons-livraison/nouveau" element={<FicheBonLivraison />} />
+        <Route path="/bons-livraison/:id" element={<FicheBonLivraison />} />
       </Routes>
     </Shell>
   )
@@ -66,8 +78,8 @@ function AppInterne() {
 
 export function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppInterne />
-    </BrowserRouter>
+    </HashRouter>
   )
 }

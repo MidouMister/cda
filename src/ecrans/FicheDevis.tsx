@@ -64,7 +64,7 @@ export function FicheDevis() {
   }
 
   if (!devis) {
-    return <div className="ecran-chargement">Chargement\u2026</div>
+    return <div className="ecran-chargement">Chargement…</div>
   }
 
   const colonnesLignes: ColumnDef<LigneDevisVue, unknown>[] = [
@@ -144,7 +144,7 @@ export function FicheDevis() {
 
   const ongletPdf = (
     <p style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-      Aper\u00e7u PDF \u2014 \u00e0 venir en Jalon 5
+      Aperçu PDF — à venir en Jalon 5
     </p>
   )
 
@@ -162,7 +162,7 @@ export function FicheDevis() {
             </button>
           )}
           <button className="bouton-secondaire" onClick={() => naviguer('/devis')}>
-            \u2190 Retour
+            ← Retour
           </button>
         </div>
       </div>

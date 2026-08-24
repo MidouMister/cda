@@ -52,6 +52,22 @@ import type { DevisVue, LigneDevisVue, DonneesCreationDevis, DonneesCreationLign
 import type { PosteDqeVue, DonneesCreationPosteDqe, DonneesModificationPosteDqe } from './postes-dqe'
 import type { AvenantVue, AvenantPosteVue, DonneesCreationAvenant, DonneesCreationAvenantPoste } from './avenants'
 import type { EvenementDelaiVue, DonneesCreationEvenementDelai } from './evenements-delais'
+import type {
+  FactureVue,
+  LigneFactureVue,
+  PiedCalcule,
+  ParametresPiedPreview,
+  DonneesCreationFacture,
+  DonneesCreationLigneFacture,
+  DonneesAvoir,
+} from './factures'
+import type {
+  BonLivraisonVue,
+  LigneBonLivraisonVue,
+  DonneesCreationBonLivraison,
+  DonneesCreationLigneBonLivraison,
+  DonneesGenerationFactureDepuisBons,
+} from './bons-livraison'
 
 export interface ApiEgto {
   diagnostic: () => Promise<Diagnostic>
@@ -177,6 +193,43 @@ export interface ApiEgto {
     creer: (donnees: DonneesCreationEvenementDelai) => Promise<{ id: number }>
     supprimer: (id: number) => Promise<boolean>
   }
+  factures: FacturesApi
+  bonsLivraison: BonsLivraisonApi
+}
+
+// Interfaces preparatoires Jalon 5 — separees d ApiEgto.
+// Le preload et les handlers seront branches en Phase 2.
+
+export interface FacturesApi {
+  lister: (filtres?: { statut?: string; clientId?: number; affaireId?: number }) => Promise<FactureVue[]>
+  creer: (donnees: DonneesCreationFacture) => Promise<{ id: number }>
+  lire: (id: number) => Promise<FactureVue | null>
+  modifier: (id: number, donnees: Partial<DonneesCreationFacture>) => Promise<boolean>
+  supprimer: (id: number) => Promise<boolean>
+  valider: (id: number) => Promise<FactureVue>
+  calculerPied: (donnees: ParametresPiedPreview) => Promise<PiedCalcule>
+  listerLignes: (factureId: number) => Promise<LigneFactureVue[]>
+  creerLigne: (donnees: DonneesCreationLigneFacture & { factureId: number }) => Promise<{ id: number }>
+  modifierLigne: (id: number, donnees: Partial<DonneesCreationLigneFacture>) => Promise<boolean>
+  supprimerLigne: (id: number) => Promise<boolean>
+  genererPdf: (id: number) => Promise<Uint8Array>
+  imprimer: (id: number) => Promise<Uint8Array>
+  marquerEnvoyee: (id: number) => Promise<boolean>
+  creerAvoir: (donnees: DonneesAvoir) => Promise<{ id: number }>
+  listerAvoirs: (factureId: number) => Promise<FactureVue[]>
+}
+
+export interface BonsLivraisonApi {
+  lister: (filtres?: { statut?: string; clientId?: number; affaireId?: number }) => Promise<BonLivraisonVue[]>
+  creer: (donnees: DonneesCreationBonLivraison) => Promise<{ id: number }>
+  lire: (id: number) => Promise<BonLivraisonVue | null>
+  modifier: (id: number, donnees: Partial<DonneesCreationBonLivraison>) => Promise<boolean>
+  supprimer: (id: number) => Promise<boolean>
+  listerLignes: (blId: number) => Promise<LigneBonLivraisonVue[]>
+  creerLigne: (donnees: DonneesCreationLigneBonLivraison & { blId: number }) => Promise<{ id: number }>
+  modifierLigne: (id: number, donnees: Partial<DonneesCreationLigneBonLivraison>) => Promise<boolean>
+  supprimerLigne: (id: number) => Promise<boolean>
+  genererFacture: (donnees: DonneesGenerationFactureDepuisBons) => Promise<{ factureId: number }>
 }
 
 export { CANAUX } from './canaux'
@@ -233,3 +286,26 @@ export type { DevisVue, LigneDevisVue, DonneesCreationDevis, DonneesCreationLign
 export type { PosteDqeVue, DonneesCreationPosteDqe, DonneesModificationPosteDqe } from './postes-dqe'
 export type { AvenantVue, AvenantPosteVue, DonneesCreationAvenant, DonneesCreationAvenantPoste } from './avenants'
 export type { EvenementDelaiVue, DonneesCreationEvenementDelai } from './evenements-delais'
+export type {
+  FactureVue,
+  LigneFactureVue,
+  PiedCalcule,
+  ParametresPiedPreview,
+  ParametreLignePied,
+  DonneesCreationFacture,
+  DonneesCreationLigneFacture,
+  DonneesAvoir,
+  SelectionLigneAvoir,
+  ModeAvoir,
+  ActionFactureVue,
+  StatutFactureVue,
+  TypeDocumentFactureVue,
+} from './factures'
+export type {
+  BonLivraisonVue,
+  LigneBonLivraisonVue,
+  DonneesCreationBonLivraison,
+  DonneesCreationLigneBonLivraison,
+  DonneesGenerationFactureDepuisBons,
+  StatutBonLivraisonVue,
+} from './bons-livraison'

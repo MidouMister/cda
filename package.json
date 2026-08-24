@@ -14,6 +14,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:e2e": "npx playwright test",
     "garde": "node scripts/garde-domaine.mjs",
     "verifier": "npm run typecheck && npm run lint && npm run garde && npm test",
     "admin-reset": "electron out/main/egto-admin-reset.js"
@@ -26,6 +27,7 @@
     "argon2": "^0.45.1",
     "better-sqlite3-multiple-ciphers": "^13.0.3",
     "exceljs": "^4.4.0",
+    "pdfmake": "^0.3.11",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -41,6 +44,7 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/exceljs": "^0.5.3",
     "@types/node": "^26.2.0",
+    "@types/pdfmake": "^0.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/unzipper": "^0.10.11",

@@ -15,6 +15,7 @@ export interface ParametresPiedFacture {
   remboursementAvanceCentimes: number
   marchePublic: boolean
   tauxTvaBps?: number
+  autoriserQuantitesNegatives?: boolean
 }
 
 const TAUX_TVA_DEFAUT_BPS = 1900
@@ -25,8 +26,14 @@ const verifierBps = (valeur: number, libelle: string): void => {
   }
 }
 
-const verifierLigne = (ligne: DonneesLignePied): void => {
-  verifierEntierNonNegatif(ligne.quantiteMilliemes, 'quantité de la ligne')
+const verifierLigne = (ligne: DonneesLignePied, accepterNegatifs?: boolean): void => {
+  if (accepterNegatifs) {
+    if (typeof ligne.quantiteMilliemes !== 'number' || !Number.isSafeInteger(ligne.quantiteMilliemes)) {
+      throw new TypeError(`« quantité de la ligne » doit être un entier (reçu : ${String(ligne.quantiteMilliemes)}).`)
+    }
+  } else {
+    verifierEntierNonNegatif(ligne.quantiteMilliemes, 'quantité de la ligne')
+  }
   verifierEntierNonNegatif(ligne.puHtCentimes, 'prix unitaire HT de la ligne')
   verifierBps(ligne.remiseBps, 'remise de ligne en bps')
   verifierBps(ligne.rabaisMarcheBps, 'rabais marché de ligne en bps')
@@ -90,7 +97,7 @@ export const calculerPiedFacture = (parametres: ParametresPiedFacture): PiedFact
   verifierBps(tauxTvaBps, 'taux de TVA en bps')
   verifierEntierNonNegatif(parametres.remboursementAvanceCentimes, 'remboursement d’avance en centimes')
   for (const ligne of parametres.lignes) {
-    verifierLigne(ligne)
+    verifierLigne(ligne, parametres.autoriserQuantitesNegatives)
   }
 
   const lignesCalculees = calculerLignes(parametres.lignes)
