@@ -17,6 +17,7 @@ import {
   type DonneesSaisieEncaissement,
 } from '../electron/depots/depot-encaissements'
 import type { ModeReglementEffectif } from '../domaine/entites-referentielles'
+import { machineEtatsFacture, transiter } from '../domaine/machines-etats'
 
 const CLE_VALIDE = 'clé-de-test-depot-encaissements-egto'
 const CHEMIN_ESSAI = join(tmpdir(), `egto-depot-encaissements-${randomUUID()}.db`)
@@ -51,6 +52,17 @@ const creerFacture = (base: Base, montantDuCentimes: number, statut = 'ENVOYEE')
        VALUES ('FA', '2026-08-15', ?, ?, ?)`,
     )
     .run(idClient, statut, montantDuCentimes)
+  return Number(insertion.lastInsertRowid)
+}
+
+const creerAvoir = (base: Base, montantCentimes: number, statut = 'ENVOYEE'): number => {
+  const idClient = creerClient(base)
+  const insertion = base
+    .prepare(
+      `INSERT INTO factures (type_document, date_facture, client_id, statut, net_a_payer_centimes)
+       VALUES ('AV', '2026-08-15', ?, ?, ?)`,
+    )
+    .run(idClient, statut, montantCentimes)
   return Number(insertion.lastInsertRowid)
 }
 
@@ -343,6 +355,27 @@ describe('Dépôt encaissements (M21) — base chiffrée temporaire', () => {
       const id = creerEncaissement(base, saisie(factureId, 40000))
       expect(lireEncaissement(base, id)).not.toBeNull()
       expect(lireStatutFacture(base, factureId)).toBe('ENVOYEE')
+    })
+  })
+
+  describe('garde : un avoir ne peut jamais être encaissé', () => {
+    it.each(['BROUILLON', 'VALIDE', 'IMPRIMEE', 'ENVOYEE', 'PAYEE', 'ARCHIVEE'] as const)(
+      'refuse tout encaissement sur un avoir %s, quel que soit son statut',
+      (statut) => {
+        const base = obtenirBase()
+        const avoirId = creerAvoir(base, 100000, statut)
+        expect(() => creerEncaissement(base, saisie(avoirId, 100000))).toThrow(/Un avoir ne peut pas être encaissé/)
+        expect(listerEncaissements(base, avoirId)).toHaveLength(0)
+        expect(lireStatutFacture(base, avoirId)).toBe(statut)
+      },
+    )
+
+    it('la machine autorise ENCAISSER sur ENVOYEE ; la garde dépôt bloque le passage d un avoir vers PAYEE puis ARCHIVEE', () => {
+      const base = obtenirBase()
+      expect(transiter(machineEtatsFacture, 'ENVOYEE', 'ENCAISSER')).toBe('PAYEE')
+      const avoirId = creerAvoir(base, 100000, 'ENVOYEE')
+      expect(() => creerEncaissement(base, saisie(avoirId, 100000))).toThrow(/Un avoir ne peut pas être encaissé/)
+      expect(lireStatutFacture(base, avoirId)).toBe('ENVOYEE')
     })
   })
 

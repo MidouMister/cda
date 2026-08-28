@@ -51,7 +51,7 @@ describe('Base chiffrée EGTO — connexion, migrations, schéma, seeds', () => 
     expect(nombre.n).toBe(3)
   })
 
-  it('crée les 31 tables du schéma J0 + migrations 2 et 3', () => {
+  it('crée les 31 tables : 29 du schéma initial J0 + encaissements (migration 2) + contexte_audit (migration 3)', () => {
     const tables = obtenirBase()
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
       .all() as { name: string }[]

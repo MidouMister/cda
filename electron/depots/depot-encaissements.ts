@@ -58,12 +58,15 @@ export interface EnregistrementEncaissement {
 interface FacturePourEncaissement {
   id: number
   statut: StatutFacture
+  type_document: 'FA' | 'AV'
   net_a_payer_centimes: number
 }
 
 const lireFacturePourEncaissement = (base: Base, factureId: number): FacturePourEncaissement | null => {
   const ligne = base
-    .prepare('SELECT id, statut, net_a_payer_centimes FROM factures WHERE id = ? AND supprime_le IS NULL')
+    .prepare(
+      'SELECT id, statut, type_document, net_a_payer_centimes FROM factures WHERE id = ? AND supprime_le IS NULL',
+    )
     .get(factureId) as FacturePourEncaissement | undefined
   return ligne ?? null
 }
@@ -102,6 +105,14 @@ export const creerEncaissement = (base: Base, donnees: DonneesSaisieEncaissement
     const facture = lireFacturePourEncaissement(base, donnees.facture_id)
     if (facture === null) {
       throw new Error('Impossible d’encaisser : la facture est introuvable ou a été supprimée.')
+    }
+
+    // Un avoir ne peut jamais être encaissé, quel que soit son statut :
+    // l'avoir est un document de correction, seule sa régularisation est
+    // comptabilisée (via la facture correspondante). Vérifié avant les
+    // contrôles de statut et d'insertion.
+    if (facture.type_document === 'AV') {
+      throw new Error('Un avoir ne peut pas être encaissé.')
     }
 
     // Décision utilisateur 16/08/2026 : tout encaissement (total ou partiel)

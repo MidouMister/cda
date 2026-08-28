@@ -45,6 +45,7 @@ Dernières versions stables, **aucune version figée**. Revue trimestrielle des 
 - **Rabais marché appliqué ligne par ligne** : net ligne = brut − remise ligne − rabais marché (base = **brut**, taux figé depuis l'affaire, bps) — plus de rabais global au pied (champ `rabais_global_bps` historique). Écart d'arrondi (≤ 2 centimes, signé) ajusté sur la **ligne éligible de montant net le plus élevé** (marchés publics, avec trace d'audit) ou via une ligne `AJUSTEMENT_ARRONDI` optionnelle (documents privés, jamais si écart nul) — isolé dans `calculerPiedFacture` (D9) et `calculerSoldeFacture` (D17).
 - **NIS à 15 chiffres** : `MOTIF_NIS = /^\d{15}$/` (zéros initiaux conservés, champ texte) — ni plus, ni moins.
 - **TAP supprimée** : définitivement supprimée (aucun remplacement TLS) — ne rien implémenter, ne pas réintroduire.
+- **Restauration & sauvegarde (28/08/2026)** : retour sur définition — la restauration s'appuie sur `egto-admin-reset` (objet autonome, exige la phrase de récupération, ne réinitialise rien sans elle) ; sauvegarde manuelle de secours `--recuperation` dans `main.ts` (ne reste un script autonome que si l'export est direct).
 
 #### Limites assumées
 

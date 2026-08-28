@@ -27,11 +27,7 @@ const copierAssetsSql = (): Plugin => ({
     cpSync(join(dossierSource, 'schema.sql'), join(dossierCible, 'schema.sql'))
     mkdirSync(join(dossierCible, 'migrations'), { recursive: true })
     cpSync(join(dossierSource, 'migrations'), join(dossierCible, 'migrations'), { recursive: true })
-    cpSync(
-      join(process.cwd(), 'electron', 'pdf', 'polices'),
-      join(dossierCible, 'polices'),
-      { recursive: true },
-    )
+    cpSync(join(process.cwd(), 'assets', 'fonts'), join(dossierCible, 'assets', 'fonts'), { recursive: true })
   },
 })
 

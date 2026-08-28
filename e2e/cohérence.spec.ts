@@ -383,9 +383,9 @@ test.describe('Cohérence — polices PDF disponibles', () => {
 
     const racineProjet = process.cwd()
     const cheminsPolices = [
-      join(racineProjet, 'out', 'main', 'polices', 'NotoNaskhArabic-Regular.ttf'),
-      join(racineProjet, 'node_modules', 'pdfmake', 'build', 'fonts', 'Roboto', 'Roboto-Regular.ttf'),
-      join(racineProjet, 'node_modules', 'pdfmake', 'build', 'fonts', 'Roboto', 'Roboto-Medium.ttf'),
+      join(racineProjet, 'out', 'main', 'assets', 'fonts', 'NotoNaskhArabic-Regular.ttf'),
+      join(racineProjet, 'assets', 'fonts', 'Roboto-Regular.ttf'),
+      join(racineProjet, 'assets', 'fonts', 'Roboto-Medium.ttf'),
     ]
     for (const chemin of cheminsPolices) {
       expect(existsSync(chemin), `Police manquante : ${chemin}`).toBe(true)

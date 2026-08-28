@@ -36,6 +36,7 @@ import {
 import { NumeroDocument } from '../domaine/identites'
 import { formaterNumero } from '../domaine/numerotation'
 import { versCentimes } from '../electron/depots/conversion-centimes'
+import { creerAffaire } from '../electron/depots/depot-affaires'
 import type { Base } from '../electron/db/connexion'
 
 const CLE_TEST = 'cle-test-factures-bl-egto-j5'
@@ -652,6 +653,65 @@ describe('Dépôts factures + BL — intégration sur base chiffrée', () => {
         .prepare('SELECT COUNT(*) AS total FROM factures WHERE supprime_le IS NULL')
         .get() as { total: number }
       expect(nombreFacturesApres.total).toBe(nombreFacturesAvant.total)
+    })
+
+    it('applique le rabais marché de l affaire ligne par ligne (2 BL, taux figé 1000 bps)', () => {
+      const base = obtenirBase()
+      const idAffaireMarche = creerAffaire(base, {
+        statut: 'SIGNE',
+        reference: 'AFG-2026-MARCHE-RABAIS',
+        type_affaire: 'MARCHE_PUBLIC',
+        client_id: idClient,
+        rabais_marche_bps: 1000,
+      })
+
+      const creerBlAvecLigne = (designation: string): number => {
+        const idBl = creerBonLivraison(base, {
+          statut: 'EMIS',
+          numero_bl: prochainNumeroBL(),
+          date_livraison: '2026-08-15',
+          client_id: idClient,
+          affaire_id: idAffaireMarche,
+        })
+        creerLigneBonLivraison(base, {
+          bon_livraison_id: idBl,
+          designation,
+          unite: 'U',
+          quantite_milliemes: 1000,
+          pu_ht_centimes: 50000,
+          montant_ht_centimes: versCentimes(50000000),
+        })
+        return idBl
+      }
+
+      const idBl1 = creerBlAvecLigne('Article marché 1')
+      const idBl2 = creerBlAvecLigne('Article marché 2')
+
+      const factureId = genererFactureDepuisBons(base, {
+        blIds: [idBl1, idBl2],
+        clientId: idClient,
+        affaireId: idAffaireMarche,
+        dateFacture: '2026-08-20',
+        retenueGarantieBps: 0,
+        remboursementAvanceCentimes: 0,
+        marchePublic: true,
+      })
+
+      const facture = lireFactureParId(base, factureId)
+      expect(facture?.type_document).toBe('FA')
+      expect(facture?.total_ht_lignes_centimes).toBe(100000)
+      expect(facture?.net_commercial_ht_centimes).toBe(90000)
+      expect(facture?.total_ttc_centimes).toBe(107100)
+
+      const lignes = lireLignesFacture(base, factureId)
+      expect(lignes).toHaveLength(2)
+      for (const ligne of lignes) {
+        expect(ligne.rabais_marche_bps).toBe(1000)
+        expect(ligne.montant_ht_brut_centimes).toBe(50000)
+        expect(ligne.montant_ht_remise_centimes).toBe(50000)
+        expect(ligne.montant_rabais_marche_centimes).toBe(5000)
+        expect(ligne.montant_ht_net_centimes).toBe(45000)
+      }
     })
   })
 })

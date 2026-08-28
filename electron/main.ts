@@ -4,10 +4,32 @@ import { ouvrirBase, fermerBase } from './db/connexion'
 import { appliquerMigrations } from './db/migrations'
 import { insererSeeds } from './db/seeds'
 import { verrouiller, CompteurInactivite } from './securite/session'
+import { masquerEntree, executerExportSecours } from './securite/recuperation'
 import { enregistrerHandlersIpc } from './ipc/enregistrer-ipc'
 import type { DepsSession } from './securite/session'
 
 export const DUREE_INACTIVITE_MS = 30 * 60 * 1000
+
+const MODE_RECUPERATION = process.argv.includes('--recuperation')
+
+const executerRecuperation = async (): Promise<void> => {
+  const dossierUserData = obtenirDossierUserData()
+  const phrase = await masquerEntree('Phrase de recuperation : ')
+  if (!phrase || phrase.trim().length === 0) {
+    console.error('Phrase de recuperation requise.')
+    app.exit(1)
+    return
+  }
+
+  const resultat = await executerExportSecours(dossierUserData, phrase.trim())
+  if (resultat.succes) {
+    console.log(`Sauvegarde de secours creee : ${resultat.chemin}`)
+    app.exit(0)
+  } else {
+    console.error(`Echec : ${resultat.erreur}`)
+    app.exit(1)
+  }
+}
 
 const etatSession: { dekCourante: Buffer | null; base: { close: () => void } | null } = {
   dekCourante: null,
@@ -72,6 +94,11 @@ const creerFenetreDiagnostic = (): void => {
 }
 
 app.whenReady().then(() => {
+  if (MODE_RECUPERATION) {
+    void executerRecuperation()
+    return
+  }
+
   enregistrerHandlersIpc(
     undefined,
     depsSession,

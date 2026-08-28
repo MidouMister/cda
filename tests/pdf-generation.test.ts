@@ -157,8 +157,8 @@ describe('gabarit-facture', () => {
 
 describe('polices', () => {
   it('chargerPolices retourne les clés Roboto et NotoNaskhArabic ou throw si fichiers manquants', () => {
-    const policesRoboto = resolve(__dirname, '..', 'node_modules/pdfmake/build/fonts/Roboto/Roboto-Regular.ttf')
-    const policesArabe = resolve(__dirname, '..', 'electron/pdf/polices/NotoNaskhArabic-Regular.ttf')
+    const policesRoboto = resolve(__dirname, '..', 'assets/fonts/Roboto-Regular.ttf')
+    const policesArabe = resolve(__dirname, '..', 'assets/fonts/NotoNaskhArabic-Regular.ttf')
     const fichiersExistants = existsSync(policesRoboto) && existsSync(policesArabe)
 
     if (fichiersExistants) {

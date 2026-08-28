@@ -1,4 +1,53 @@
 
+## Session : 28/08/2026 — Jalon 6 Phase 1 : fondations environnement & packaging (branche jalon-6-prep)
+
+Phase 1 du Jalon 6 sur branche `jalon-6-prep` (HEAD `4655af6`, aucun commit). Pas d'implémentation des phases 2-4 du Jalon 6 : aucune UI, aucun canal IPC `--recuperation`, aucun ordonnanceur, 0 migration SQL.
+
+### Fait — DC-6 : nettoyage documentaire
+- `ETAT_SESSION.md` : entrée de session en tête (celle-ci). Correction du libellé « Q30 — Import clients Excel » → **Q20**. Correction de la ligne J2 : « J2 ❌ non démarré » → **« J2 livré de fait »** (enveloppe DEK chiffrée, egto-admin-reset, tests chiffrement — Jalon 1 Phase 2-3), appellation **[PÉRIMÉ le 28/08/2026]**.
+- Suppression par index (lignes corrompues : suppression regex impossible) de la note obsolète « genererFactureDepuisBons : la facture BROUILLON est créée avec numéro FA… trous de séquence à arbitrer » (ligne ~69/72). Restent 2 mentions historiques « trous de séquence » (l.83 bloc Arbitrage, l.115 Décisions) — conservées.
+- `debug-launch.js` supprimé.
+- `tests/base.integration.test.ts` : titre reformulé → « crée les 31 tables : 29 du schéma initial J0 + encaissements (migration 2) + contexte_audit (migration 3) ». Compte vérifié par grep : 29 CREATE TABLE dans `schema.sql` + 1 `encaissements` (002) + 1 `contexte_audit` (003) = 31.
+- `docs/decisions-j0.md` §16.9 : décision 09/08/2026 **RÉVOQUÉE le 28/08/2026** (règle archivée) ; nouvelle décision : **format archive V3 auto-chiffrée, clé unique = DEK** (déballée via la phrase de récupération), phrase seule, pas de mot de passe ZIP séparé.
+- `AGENTS.md` : ajout du point « **Restauration & sauvegarde (28/08/2026)** » dans Décisions métier définitives.
+
+### Fait — DC-3 : polices PDF dans assets/fonts
+- `assets/fonts/` créé : `Roboto-Regular.ttf` (157 208 o), `Roboto-Medium.ttf` (157 392 o), `NotoNaskhArabic-Regular.ttf` (307 592 o). `electron/pdf/polices/` supprimé.
+- `electron/pdf/polices.ts` réécrit : API préservée (`POLICE_PAR_DEFAUT='Roboto'`, `POLICE_ARABE='NotoNaskhArabic'`, `PolicesPdfmake`, `chargerPolices()` singleton) + **`resoudreDossierFontes()` exporté** (4 candidats : `process.resourcesPath/assets/fonts` si défini, `__dirname/assets/fonts`, `__dirname/../assets/fonts`, `__dirname/../../assets/fonts` ; erreur listant les chemins essayés ; aucun `any`).
+- `electron.vite.config.ts` : le plugin `copierAssetsSql` copie `assets/fonts` → `out/main/assets/fonts` (garde schema.sql + migrations).
+- Chemins mis à jour dans `tests/pdf-generation.test.ts` (l.160-161) et `e2e/cohérence.spec.ts` (l.386-388). Grep : plus aucune référence au dossier `pdf/polices/` dans le code source.
+- Build vérifié : `out/main/schema.sql` ✓, `out/main/migrations/{002_rabais-marche-et-encaissements,003_ajustement-arrondi-lignes}.sql` + README ✓, `out/main/assets/fonts/` (3 ttf) ✓, `electron/pdf/polices` inexistant ✓.
+
+### Fait — DC-5 partiel : fondations packaging + sauvegarde de secours
+- `electron-builder` installé en devDependency (**warnings allow-scripts** : argon2, electron-winstaller — scripts d'install non couverts ; better-sqlite3 allowScripts=false).
+- `electron-builder.yml` créé : appId `com.egto.gestion-commerciale`, productName « EGTO - Gestion Commerciale », files `out/**/*` + package.json, asarUnpack `node_modules/better-sqlite3-multiple-ciphers/**/*`, **`node_modules/argon2/**/*` (ajouté : natif déverrouillage/sauvegarde)** et `out/main/egto-admin-reset.js`, extraResources `db/schema.sql`, `db/migrations`, `assets/fonts` (double sécu prod), win nsis x64, publisherName « E.G.T.O », icône commentée (**PO-1** en attente).
+- Scripts package.json : `electron:build`, `dist`, `postinstall = electron-builder install-app-deps`.
+- `electron/securite/recuperation.ts` (nouveau) : `masquerEntree` (saisie masquée via raw mode, exporté et désormais importé par `egto-admin-reset.ts` — une seule source de vérité) ; `executerExportSecours(dossierUserData, phrase)` → `deballerDekParPhrase` puis `archiverDonnees` manuelle avec `motDePasse = dek.toString('hex')` (archive V3 auto-chiffrée, décision 28/08), retour `{succes, chemin}` / `{succes, erreur}`.
+- `electron/main.ts` : détection `process.argv.includes('--recuperation')` (constante `MODE_RECUPERATION`), dans `app.whenReady` → `executerRecuperation()` (masquerEntree → executerExportSecours → `app.exit(0)` succès / `app.exit(1)` échec), **aucune fenêtre ni IPC ni base ouverte en mode récupération** ; hook `EGTO_E2E`/`EGTO_E2E_USER_DATA_DIR` préservé. `egto-admin-reset.ts` : wrapper autonome conservé (2e input de build inchangé), `masquerEntree` local supprimé au profit de l'import.
+- Vérification build : `out/main/egto-admin-reset.js` autonome (2,93 kB) + chunk `chunks/recuperation-*.js` généré. **Point de vigilance AC-1** : en app installée, `out/main/egto-admin-reset.js` est dépaqueté mais son chunk reste dans l'asar — l'exécution de l'utilitaire depuis l'app installée est à valider (non exercée ici). Usage nominal depuis le projet : OK.
+
+### Fait — Tests ajoutés (Étapes 3, 4, 5, 6)
+- `tests/polices.test.ts` (3 tests) : résolution racine Vitest (`assets/fonts`), priorité `process.resourcesPath` (mkdtemp + restauration propre), 3 entrées de `chargerPolices`. Correction TS nécessaire : `Omit<NodeJS.Process,'resourcesPath'>` pour autoriser `delete`.
+- `tests/recuperation.test.ts` (4 tests) : archive manuelle créée chiffrée dans `sauvegardes/` (`egto-manuelle-*.zip`), phrase trimée acceptée, phrase fausse sans création, phrase vide/espaces refusée.
+- `tests/depots-factures-bl-integration.test.ts` : **test rabais marché ligne par ligne** — affaire `MARCHE_PUBLIC` `rabais_marche_bps=1000`, 2 BL EMIS chacun 1 ligne (50 000 c brut) → `genererFactureDepuisBons` : lignes `rabais_marche_bps=1000`, brut 50 000 c, rabais 5 000 c, net 45 000 c ; pieds `total_ht_lignes=100 000`, `net_commercial=90 000`, TTC 107 100. (Valeurs ajustées auprès de l'exécution : le dépôt recalculé la ligne depuis PU×qté, le `montant_ht_centimes` du BL n'est pas repris ; `montant_ht_remise_centimes` stocke brut−remise, pas le montant de remise.)
+- `electron/depots/depot-encaissements.ts` : **garde AV** — `type_document` ajouté au SELECT facture, erreur **« Un avoir ne peut pas être encaissé. »** déclenchée avant les contrôles de statut et d'insertion.
+- `tests/depot-encaissements.test.ts` : nouveau describe « garde : un avoir ne peut jamais être encaissé » — refus sur AV quel que soit le statut (6 statuts) + démonstration que la machine autorise `ENVOYEE→ENCAISSER→PAYEE` (donc la garde dépôt est nécessaire pour empêcher l'avoir d'atteindre PAYEE puis ARCHIVEE).
+
+### Vérifications (Étape 7) — tout vert
+- `npm run typecheck` (node + web) ✓ · `npm run lint` ✓ · `npm run garde` (aucun import externe dans domaine/) ✓
+- `npm run verifier` : **50 fichiers / 1035 tests passés** ✓
+- `npm run build` : out/main (index.js, egto-admin-reset.js, chunks/), out/preload, out/renderer + ressources copiées ✓
+
+### Bloqué / points d'attention
+- Rien de bloquant.
+- **AC-1** (ci-dessus) : chunk de `egto-admin-reset.js` vs. asar en app installée — à trancher en phase packaging complet.
+- **PO-1** : icône Windows manquante (`icon` commenté dans electron-builder.yml).
+- **31 vs 29 tables** : le test « 31 tables » est volontaire (schema J0 + migrations 002/003) ; la phrase « 29 tables » du PRD réfère au schéma initial uniquement.
+- `allow-scripts` : argon2 & electron-winstaller non couverts — à revoir si un build final s'appuie sur leurs scripts d'install (npm install a fonctionné).
+- Aucun commit/push/tag/fusion effectué (conforme consigne).
+
+---
+
 ## Session : 24/08/2026 — Correctifs numérotation avoir (branche jalon-5-phase5)
 
 **Jalon 5 complet (Phase 1 + 2 + 3 + 4 + 5).** Tous les livrables livrés et vérifiés. Corrections post-Phase 5 appliquées.
@@ -21,7 +70,7 @@
 - 2 BL EMIS avec lignes → génération facture groupée → lignes reprises + montants vérifiés → BL FACTURE/liés → validation FA → PDF (mentions légales vérifiées via décodage CMap) → rabais marché transféré (1000 bps)
 - **Correctif rabais marché** : genererFactureDepuisBons lit désormais abais_marche_bps depuis ffaires via lireAffaireParId (au lieu de hardcoder 0)
 
-**Q30 — Import clients Excel** (vert en 2.8s) :
+**Q20 — Import clients Excel** (vert en 2.8s) :
 - e2e/parcours-import.spec.ts : lecture Excel via IPC, validation avec anomalie, exécution, vérification lignes importées
 
 **Cohérence — 8 vérifications transversales** (8 tests, tous verts) :
@@ -64,7 +113,6 @@ px playwright test | ✅ 12 tests / 12 passés (48.9s) |
 
 - e2e/smoke.spec.ts : ses 2 blocages documentés (assets SQL + HashRouter) sont levés
 - e2e/parcours-bl-facturation.spec.ts : ÉTAPE 7 documente la lacune rabais (désormais corrigée)
-- genererFactureDepuisBons : la facture BROUILLON est créée avec numéro FA déjà attribué (compteur avancé), puis aliderFacture ré-attribue un second numéro → trous de séquence à arbitrer (note technique, non bloquant)
 - e2e/cohérence.spec.ts : interface PiedCalculeE2E supprimée (lint fix)
 - Tests UI R15-R18 (40 tests) : inchangés depuis Phase 4, tous verts
 
@@ -358,7 +406,7 @@ Les 8 points de validation ont été vérifiés et rapportés :
 ### Fait — Phase E (revue transversale de clôture, terminée le 16/08/2026)
 
 - **Revue de cohérence domaine → dépôts → IPC → preload → renderer** (sous-agent explore) : **CONFORME** — 12 canaux IPC déclarés ↔ 12 handlers (correspondance 1-1 via `enregistrerHandlersIpc`, unique `ipcMain.handle`), aucun canal SQL générique, preload `window.egto` = API `ApiEgto` 100 % `CANAUX.*`, renderer `src/` minimal n'importe que `contrats/` et ne contient aucun calcul financier, `domaine/` TypeScript pur (double garde ESLint + scripts/garde-domaine.mjs), sécurité fenêtre (contextIsolation/nodeIntegration/sandbox/CSP/will-navigate/windowOpenHandler deny) testée. Nuances non bloquantes : SQL dans migrations.ts/seeds.ts (couche base), CSP dev `style-src 'unsafe-inline'` neutralisée en prod, `electron-builder.yml` absent, canaux affaires/factures absents (modules futurs).
-- **Vérification des DoD J1→J4** : **J1 ✅ 5/5** (10 cas pied, timbre manuel testé, verifier vert 541 tests, tests sans Electron, base illisible sans clé testée l.229 base.integration) ; **J2 ❌ non démarré** (securite/ = placeholder, pas d'egto-admin-reset/sauvegarde/coquille) ; **J3 ❌ fondations partielles** (dépôt clients + IPC, entités produit/tarif ; calculerScoreClient/resoudreTarif/import absents) ; **J4 ❌ fondations partielles** (entités commerciales + machines à états ; calculerDelaisAffaire/evaluerAlertes/convertirDevisEnAffaire/UI absents).
+- **Vérification des DoD J1→J4** : **J1 ✅ 5/5** (10 cas pied, timbre manuel testé, verifier vert 541 tests, tests sans Electron, base illisible sans clé testée l.229 base.integration) ; **J2 livré de fait** (enveloppe DEK chiffrée, egto-admin-reset, tests chiffrement — Jalon 1 Phase 2-3) ; appellation « ❌ non démarré » **[PÉRIMÉ le 28/08/2026]** ; **J3 ❌ fondations partielles** (dépôt clients + IPC, entités produit/tarif ; calculerScoreClient/resoudreTarif/import absents) ; **J4 ❌ fondations partielles** (entités commerciales + machines à états ; calculerDelaisAffaire/evaluerAlertes/convertirDevisEnAffaire/UI absents).
 - **AGENTS.md mis à jour** : sous-section « Décisions métier définitives (15-16/08/2026) » (6 règles : encaissement ENVOYEE, 4 modes effectifs, timbre manuel hors TTC, rabais marché ligne par ligne, NIS 15, TAP supprimée) + « Limites assumées » + 5 lignes nouvelles dans la table des interdits.
 - **Bilan final créé** : `docs/bilan-refonte-2026-08-16.md` — document de clôture complet (résumé exécutif, périmètre par phase, revue transversale, DoD J1-J4, règles définitives, limites assumées, vigilance/prochaines étapes, métriques 22 fichiers/541 tests, source du bilan).
 

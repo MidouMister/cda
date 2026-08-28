@@ -1,8 +1,8 @@
-import { createInterface } from 'node:readline'
+import { randomBytes } from 'node:crypto'
 import { deballerDekParPhrase, MINIMUM_CARACTERES_MDP } from './session'
 import { NOM_ENVELOPPE_UTILISATEUR, ecrireEnveloppe } from './gestionnaire-enveloppes'
-import { randomBytes } from 'node:crypto'
 import { deriverCle, envelopperDek, TAILLE_SEL_OCTETS } from './chiffrement-enveloppe'
+import { masquerEntree } from './recuperation'
 
 export type ResultatReset =
   | { succes: true }
@@ -34,39 +34,6 @@ export const executerReset = async (
 
   return { succes: true }
 }
-
-const masquerEntree = (question: string): Promise<string> =>
-  new Promise((resolve) => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout })
-    const processus = process as NodeJS.Process & { stdin: NodeJS.ReadStream & { isTTY?: boolean } }
-    if (processus.stdin.isTTY) {
-      process.stdout.write(question)
-      let resultat = ''
-      const onData = (octet: Buffer): void => {
-        const char = octet.toString()
-        if (char === '\n' || char === '\r') {
-          process.stdout.write('\n')
-          process.stdin.removeListener('data', onData)
-          rl.close()
-          resolve(resultat)
-        } else if (char === '\u007F' || char === '\b') {
-          if (resultat.length > 0) {
-            resultat = resultat.slice(0, -1)
-          }
-        } else {
-          resultat += char
-        }
-      }
-      process.stdin.setRawMode?.(true)
-      process.stdin.resume()
-      process.stdin.on('data', onData)
-    } else {
-      rl.question(question, (reponse) => {
-        rl.close()
-        resolve(reponse)
-      })
-    }
-  })
 
 const saisirMotDePasse = async (): Promise<string | null> => {
   const mdp1 = await masquerEntree('Nouveau mot de passe : ')

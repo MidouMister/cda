@@ -48,7 +48,9 @@ Document de décision du cadrage, répondant au livrable « Décision documenté
 ### §16.8 — Retenue à la source sous-traitants — hors périmètre (M8, Phase 2).
 
 ### §16.9 — Mot de passe des exports ZIP
-**Décision (validée le 09/08/2026)** : **mot de passe distinct du mot de passe applicatif**, conservé par la direction au même titre que la phrase de récupération (§9.1, §4.7.7). Non dérivé de la phrase de récupération. Sans impact schéma (politique de chiffrement, J2/M14).
+**Décision (validée le 09/08/2026 — RÉVOQUÉE le 28/08/2026)** : l'ancienne règle « **mot de passe distinct du mot de passe applicatif**, conservé par la direction au même titre que la phrase de récupération (§9.1, §4.7.7), non dérivé de la phrase de récupération » est **archivée en référence historique**.
+
+**Nouvelle décision (2026-08-28) — format d'archive des exports** : **format V3 auto-chiffrée**, **clé unique = DEK** (déballée au moment de l'export via la phrase de récupération), **phrase seule** — aucun mot de passe ZIP séparé à conserver. Sans impact schéma (politique de chiffrement, J2/M14).
 
 ### §16.10 — Rabais des marchés publics : application ligne par ligne
 **Décision (validée le 15/08/2026, chef du département Commercial)** :
