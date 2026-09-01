@@ -24,6 +24,9 @@ import type {
   ResultatRestaurationSauvegarde,
   RetentionParams,
   ResultatRetention,
+  ConfigurerSauvegardeParams,
+  EtatSauvegardeVue,
+  ResultatChoixDestination,
 } from './sauvegarde'
 import type {
   EcrireLogParams,
@@ -127,6 +130,9 @@ export interface ApiEgto {
     lister: () => Promise<SauvegardeVue[]>
     appliquerRetention: (params?: RetentionParams) => Promise<ResultatRetention>
     nommer: (typeBackup: 'quotidienne' | 'mensuelle' | 'manuelle') => Promise<string>
+    configurer: (params: ConfigurerSauvegardeParams) => Promise<void>
+    etat: () => Promise<EtatSauvegardeVue>
+    choisirDestination: () => Promise<ResultatChoixDestination>
   }
   journal: {
     ecrire: (params: EcrireLogParams) => Promise<void>
@@ -255,6 +261,9 @@ export type {
   ResultatRestaurationSauvegarde,
   RetentionParams,
   ResultatRetention,
+  ConfigurerSauvegardeParams,
+  EtatSauvegardeVue,
+  ResultatChoixDestination,
 } from './sauvegarde'
 export type {
   EntreeJournalVue,

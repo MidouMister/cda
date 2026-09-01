@@ -50,6 +50,9 @@ export const CANAUX = {
     lister: 'sauvegarde.lister',
     appliquerRetention: 'sauvegarde.appliquerRetention',
     nommer: 'sauvegarde.nommer',
+    configurer: 'sauvegarde.configurer',
+    etat: 'sauvegarde.etat',
+    choisirDestination: 'sauvegarde.choisirDestination',
   },
   journal: {
     ecrire: 'journal.ecrire',

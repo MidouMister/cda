@@ -1,12 +1,15 @@
 ﻿import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { ouvrirBase, fermerBase } from './db/connexion'
+import type { Base } from './db/connexion'
 import { appliquerMigrations } from './db/migrations'
 import { insererSeeds } from './db/seeds'
 import { verrouiller, CompteurInactivite } from './securite/session'
 import { masquerEntree, executerExportSecours } from './securite/recuperation'
 import { enregistrerHandlersIpc } from './ipc/enregistrer-ipc'
 import type { DepsSession } from './securite/session'
+import { ecrireLog, DOSSIER_JOURNAL } from './journal'
+import { creerOrdonnanceurSauvegarde, type OrdonnanceurSauvegarde } from './ordonnanceur-sauvegarde'
 
 export const DUREE_INACTIVITE_MS = 30 * 60 * 1000
 
@@ -52,6 +55,8 @@ const depsSession: DepsSession = {
 }
 
 const obtenirDossierUserData = (): string => app.getPath('userData')
+
+let ordonnanceur: OrdonnanceurSauvegarde | null = null
 
 if (process.env['EGTO_E2E'] === '1' && process.env['EGTO_E2E_USER_DATA_DIR']) {
   app.setPath('userData', process.env['EGTO_E2E_USER_DATA_DIR'])
@@ -99,15 +104,34 @@ app.whenReady().then(() => {
     return
   }
 
+  const apresDeverrouillage = (): void => {
+    void ordonnanceur?.verifierEcheance()
+  }
+
+  ordonnanceur = creerOrdonnanceurSauvegarde({
+    obtenirDossierUserData,
+    obtenirDek: () => etatSession.dekCourante,
+    obtenirBase: () => etatSession.base as Base | null,
+    ecrireLog: (entree) =>
+      ecrireLog({
+        dossierJournal: join(app.getPath('userData'), DOSSIER_JOURNAL),
+        entree,
+      }),
+    maintenant: () => new Date(),
+  })
+
   enregistrerHandlersIpc(
     undefined,
     depsSession,
     () => etatSession,
     compteurActivite,
     obtenirDossierUserData,
+    ordonnanceur ?? undefined,
+    apresDeverrouillage,
   )
 
   creerFenetreDiagnostic()
+  ordonnanceur.demarrer()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -117,6 +141,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  ordonnanceur?.arreter()
   if (etatSession.dekCourante !== null) {
     try {
       verrouiller(etatSession, depsSession)

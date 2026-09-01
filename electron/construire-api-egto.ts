@@ -63,6 +63,9 @@ export const construireApiEgto = (ipcRenderer: IpcRenderer): ApiEgto => ({
     lister: () => ipcRenderer.invoke(CANAUX.sauvegarde.lister),
     appliquerRetention: (params) => ipcRenderer.invoke(CANAUX.sauvegarde.appliquerRetention, params),
     nommer: (typeBackup) => ipcRenderer.invoke(CANAUX.sauvegarde.nommer, typeBackup),
+    configurer: (params) => ipcRenderer.invoke(CANAUX.sauvegarde.configurer, params),
+    etat: () => ipcRenderer.invoke(CANAUX.sauvegarde.etat),
+    choisirDestination: () => ipcRenderer.invoke(CANAUX.sauvegarde.choisirDestination),
   },
   journal: {
     ecrire: (params) => ipcRenderer.invoke(CANAUX.journal.ecrire, params),

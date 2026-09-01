@@ -875,3 +875,72 @@ input { font-family: inherit; font-size: 13px; }
   .phrase-a-imprimer, .phrase-a-imprimer * { visibility: visible; }
   .phrase-a-imprimer { position: absolute; left: 0; top: 0; width: 100%; padding: 40px; }
 }
+
+/* ─── Paramétrage (J6 R7) ─── */
+.ecran-parametrage { min-height: 0; }
+
+.parametrage-contenu {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 760px;
+}
+
+.parametrage-section {
+  background: var(--bg-card);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-panel);
+  padding: 20px 22px;
+}
+
+.parametrage-section h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+
+.parametrage-notes {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.parametrage-notes + .parametrage-notes,
+.parametrage-section .fiche-champs + .parametrage-notes,
+.parametrage-section .formulaire + .parametrage-historique { margin-top: 12px; }
+
+.parametrage-champ-booleen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.parametrage-champ-booleen input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.parametrage-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.parametrage-ligne input[type="text"] { flex: 1; }
+
+.parametrage-succes {
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: var(--green-soft);
+  border-radius: var(--radius-ctl);
+  color: var(--green);
+  font-size: 12px;
+}
+
+.parametrage-historique {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.parametrage-journal th,
+.parametrage-journal td { white-space: nowrap; }
+.parametrage-journal-message { white-space: normal; min-width: 240px; }

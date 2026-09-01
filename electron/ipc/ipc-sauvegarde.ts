@@ -1,6 +1,11 @@
 import { join } from 'node:path'
+import { dialog } from 'electron'
+import type { Base } from '../db/connexion'
+import { obtenirBase as obtenirBaseParDefaut, baseEstOuverte as baseEstOuverteParDefaut } from '../db/connexion'
 import { CANAUX } from '../../contrats'
 import type { EnregistreurIpc } from './enregistrer-ipc'
+import type { OrdonnanceurSauvegarde } from '../ordonnanceur-sauvegarde'
+import { configurerSauvegarde, lireConfigSauvegarde, lireParametre, SAUVEGARDE_DERNIERE_ERREUR } from '../depots/depot-parametres'
 import {
   archiverDonnees,
   restaurerDonnees,
@@ -13,9 +18,14 @@ import {
 } from '../sauvegarde'
 import { deballerDekParPhrase } from '../securite/session'
 
+const ERREUR_SESSION_VERROUILLEE = 'Session verrouillée : la base n\'est pas ouverte.'
+
 export const enregistrerHandlersSauvegarde = (
   enregistreur: EnregistreurIpc,
   obtenirDossierUserData: () => string,
+  obtenirBase: () => Base = obtenirBaseParDefaut,
+  baseEstOuverte: () => boolean = baseEstOuverteParDefaut,
+  ordonnanceur?: OrdonnanceurSauvegarde,
 ): void => {
   enregistreur.handle(CANAUX.sauvegarde.archiver, async (_evenement, donnees: unknown) => {
     if (
@@ -94,5 +104,61 @@ export const enregistrerHandlersSauvegarde = (
       throw new TypeError('Type de backup invalide.')
     }
     return nommerSauvegarde({ typeBackup })
+  })
+
+  enregistreur.handle(CANAUX.sauvegarde.configurer, async (_evenement, donnees: unknown) => {
+    if (!baseEstOuverte()) {
+      throw new Error(ERREUR_SESSION_VERROUILLEE)
+    }
+    if (donnees === null || donnees === undefined || typeof donnees !== 'object') {
+      throw new TypeError('« donnees » doit être un objet valide.')
+    }
+    const d = donnees as Record<string, unknown>
+    if (typeof d.activee !== 'boolean') {
+      throw new TypeError('« activee » doit être un booléen.')
+    }
+    if (typeof d.horaireQuotidienne !== 'string') {
+      throw new TypeError('« horaireQuotidienne » doit être une chaîne.')
+    }
+    if (typeof d.destination !== 'string') {
+      throw new TypeError('« destination » doit être une chaîne.')
+    }
+    configurerSauvegarde(obtenirBase(), obtenirDossierUserData(), {
+      activee: d.activee,
+      horaireQuotidienne: d.horaireQuotidienne,
+      destination: d.destination,
+    })
+    if (ordonnanceur) {
+      void ordonnanceur.verifierEcheance()
+    }
+  })
+
+  enregistreur.handle(CANAUX.sauvegarde.etat, async () => {
+    if (!baseEstOuverte()) {
+      throw new Error(ERREUR_SESSION_VERROUILLEE)
+    }
+    const base = obtenirBase()
+    const config = lireConfigSauvegarde(base)
+    const erreurPersistee = lireParametre(base, SAUVEGARDE_DERNIERE_ERREUR)
+    return {
+      activee: config.activee,
+      horaireQuotidienne: config.horaireQuotidienne,
+      destination: config.destination,
+      derniereExecution: config.derniereExecution,
+      derniereErreur: ordonnanceur?.derniereErreur() ?? erreurPersistee,
+    }
+  })
+
+  enregistreur.handle(CANAUX.sauvegarde.choisirDestination, async () => {
+    if (!baseEstOuverte()) {
+      throw new Error(ERREUR_SESSION_VERROUILLEE)
+    }
+    const resultat = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (resultat.canceled || resultat.filePaths.length === 0) {
+      return { annule: true }
+    }
+    return { annule: false, destination: resultat.filePaths[0] }
   })
 }

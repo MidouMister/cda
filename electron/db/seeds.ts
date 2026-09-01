@@ -38,6 +38,12 @@ const PARAMETRES_ENTREPRISE = [
 export const SEUIL_ESPECES_CLE = 'timbre.seuil_max_especes_centimes'
 export const SEUIL_ESPECES_CENTIMES = '100000000'
 
+const PARAMETRES_SAUVEGARDE = [
+  { cle: 'sauvegarde.activee', valeur: '1', description: 'Activation de la sauvegarde automatique quotidienne (1 = activée, 0 = désactivée)' },
+  { cle: 'sauvegarde.horaire_quotidienne', valeur: '03:00', description: 'Heure quotidienne de la sauvegarde automatique (format HH:MM, 24 heures)' },
+  { cle: 'sauvegarde.destination', valeur: '', description: 'Dossier de destination des sauvegardes automatiques (vide tant que non configuré)' },
+] as const
+
 export const insererSeeds = (base: Base): void => {
   const inserer = base.transaction(() => {
     const insererFamille = base.prepare(
@@ -81,6 +87,9 @@ export const insererSeeds = (base: Base): void => {
     )
     for (const parametre of PARAMETRES_ENTREPRISE) {
       insererParametre.run(parametre.cle, '', parametre.description)
+    }
+    for (const parametre of PARAMETRES_SAUVEGARDE) {
+      insererParametre.run(parametre.cle, parametre.valeur, parametre.description)
     }
   })
   inserer()

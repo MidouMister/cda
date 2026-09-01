@@ -18,6 +18,7 @@ import { FicheFacture } from './ecrans/FicheFacture'
 import { BonsLivraison } from './ecrans/BonsLivraison'
 import { FicheBonLivraison } from './ecrans/FicheBonLivraison'
 import { FicheAvoir } from './ecrans/FicheAvoir'
+import { Parametrage } from './ecrans/Parametrage'
 
 function AppInterne() {
   const ecran = utiliserSession((s) => s.ecran)
@@ -71,6 +72,7 @@ function AppInterne() {
         <Route path="/bons-livraison" element={<BonsLivraison />} />
         <Route path="/bons-livraison/nouveau" element={<FicheBonLivraison />} />
         <Route path="/bons-livraison/:id" element={<FicheBonLivraison />} />
+        <Route path="/parametrage" element={<Parametrage />} />
       </Routes>
     </Shell>
   )

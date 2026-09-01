@@ -37,3 +37,22 @@ export interface RetentionParams {
 export interface ResultatRetention {
   supprimees: number
 }
+
+export interface ConfigurerSauvegardeParams {
+  activee: boolean
+  horaireQuotidienne: string
+  destination: string
+}
+
+export interface EtatSauvegardeVue {
+  activee: boolean
+  horaireQuotidienne: string
+  destination: string
+  derniereExecution: string | null
+  derniereErreur: string | null
+}
+
+export interface ResultatChoixDestination {
+  annule: boolean
+  destination?: string
+}

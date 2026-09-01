@@ -21,6 +21,7 @@ export const enregistrerHandlersSession = (
   obtenirEtatSession: () => EtatSessionGere,
   deps: DepsSession,
   compteurActivite: CompteurInactivite,
+  apresDeverrouillage?: () => void,
 ): void => {
   enregistreur.handle(CANAUX.session.etat, () => {
     const dossier = obtenirDossierUserData()
@@ -59,6 +60,7 @@ export const enregistrerHandlersSession = (
     const etat = obtenirEtatSession()
     etat.dekCourante = dekCourante
     etat.base = base
+    await apresDeverrouillage?.()
   })
 
   enregistreur.handle(CANAUX.session.verrouiller, () => {

@@ -1,4 +1,52 @@
 
+## Session : 02/09/2026 — Jalon 6 Phase 2 : paramétrage & sauvegardes automatiques (R7 + ordonnanceur) — complet et vérifié
+
+Phase 2 du Jalon 6 (branche `jalon-6-prep`) : **R7 écran Paramétrage + sauvegarde quotidienne automatique responsable avec ordonnanceur**. Aucun commit. Pas de Phase 3 (restauration) — hors périmètre, `egto-admin-reset` existant gère la restauration ; aucune migration SQL ; `FORMAT_VERSION`/chiffrement inchangés ; aucun SQL dans le renderer.
+
+### Fait — Étape 1 : paramètres de sauvegarde + seeds
+- `electron/depots/depot-parametres.ts` : constantes `SAUVEGARDE_ACTIVEE`/`SAUVEGARDE_HORAIRE_QUOTIDIENNE`/`SAUVEGARDE_DESTINATION`/`SAUVEGARDE_DERNIERE_EXECUTION`/`SAUVEGARDE_DERNIERE_ERREUR` ; `HORAIRE_QUOTIDIENNE_PAR_DEFAUT='03:00'` ; `MOTIF_HORAIRE_QUOTIDIENNE = /^([01]\d|2[0-3]):([0-5]\d)$/` (2 groupes de capture) ; interface `ConfigSauvegarde` ; `lireConfigSauvegarde` (`activee !== '0'`, `horaire ?? défaut`, `destination ?? ''`) ; `configurerSauvegarde(base, dossierRepertoireBase, params)` — validations (horaire invalide, destination non existante, destination = répertoire de la base) + persistance `'1'`/`'0'`.
+- `electron/db/seeds.ts` : `PARAMETRES_SAUVEGARDE` (3 clés en littéraux, évite le cycle d'import `depot-parametres.ts`↔`seeds.ts`) insérées dans la transaction après `PARAMETRES_ENTREPRISE`.
+
+### Fait — Étape 2 : ordonnanceur de sauvegarde
+- `electron/ordonnanceur-sauvegarde.ts` (NOUVEAU) : `INTERVALLE_VERIFICATION_MS=60*60*1000` ; `estSauvegardeDue` (pure — échéance locale à HH:MM, due si `maintenant >= échéance` ET (`derniereExecutionIso` null OU `Date(iso) < échéance`)) ; `creerOrdonnanceurSauvegarde` (base verrouillée → `{skippee:true}` ; destination vide/inexistante → `{skippee:true}` + log avertissement ; succès → rétention + persistance dernière exécution + log info « Sauvegarde quotidienne automatique réussie : <nom> » ; échec → erreur mémorisée + persistée + log erreur générique, jamais `resultat.erreur` (secret « enveloppe »)) ; `demarrer`/`arreter`/`derniereErreur` ; `creerIntervalleReel` setInterval/clearInterval ; `deps.creerIntervalle` **optionnel** (tests) — pas de wrapper `creerOrdonnanceurSauvegardeReel`. Rétention : `appliquerRetention` (30 quotidiennes / 12 mensuelles).
+
+### Fait — Étape 3 : contrats + IPC
+- `contrats/canaux.ts` (+ `configurer`/`etat`/`choisirDestination`), `contrats/sauvegarde.ts` (`ConfigurerSauvegardeParams`, `EtatSauvegardeVue`, `ResultatChoixDestination`), `contrats/index.ts` + `electron/construire-api-egto.ts` (3 méthodes).
+- `electron/ipc/ipc-sauvegarde.ts` : signature étendue (5e param `ordonnanceur`) ; garde session « Session verrouillée : la base n'est pas ouverte. » sur les 3 handlers ; `configurer` (validations + `void ordonnanceur?.verifierEcheance()` = rattrapage au déverrouillage) ; `etat` (inclut `derniereErreur` : mémoire ordonnanceur sinon clé persistée) ; `choisirDestination` (`dialog.showOpenDialog({properties:['openDirectory','createDirectory']})`).
+- `electron/ipc/ipc-session.ts` : 6e param optionnel `apresDeverrouillage`, `await apresDeverrouillage?.()` après déverrouillage. `electron/ipc/enregistrer-ipc.ts` : params optionnels `ordonnanceur`/`apresDeverrouillage` transmis.
+
+### Fait — Étape 4 : `electron/main.ts`
+- imports `ecrireLog`/`DOSSIER_JOURNAL`/`creerOrdonnanceurSauvegarde`/type `Base` ; `let ordonnanceur: OrdonnanceurSauvegarde | null` ; `apresDeverrouillage` → `void ordonnanceur?.verifierEcheance()` ; création dans `whenReady` (ecrireLog vers `join(userData, DOSSIER_JOURNAL)`) ; `demarrer()` après `creerFenetreDiagnostic()` ; `before-quit` → `ordonnanceur?.arreter()` en premier.
+
+### Fait — Étape 5 : UI (R7)
+- `src/ecrans/Sauvegardes.tsx` (NOUVEAU) : option activer, horaire (input `time`), planification manuelle, destination + « Parcourir… » + sélection dossier, « Enregistrer la configuration », bandeau erreur, bandeau « Échec de la dernière sauvegarde automatique : … », dernière exécution `JJ/MM/AAAA HH:MM` sinon « Aucune sauvegarde automatique effectuée. ».
+- `src/ecrans/Parametrage.tsx` (NOUVEAU) : sections Entreprise / Sauvegardes / Journaux (`journal.lire({nombre:20})`) / Barème du timbre (libellé exact « Module désactivé — le droit de timbre est traité manuellement à l'encaissement (décision du 15/08/2026). ») / Exercices / Numérotation / Alertes (« disponible dans une version ultérieure »).
+- `src/App.tsx` : route `/parametrage` ; `src/styles.css` : bloc « Paramétrage (J6 R7) » ajouté en fin de fichier.
+
+### Fait — Étape 6 : tests (34 nouveaux)
+- `tests/ordonnanceur-sauvegarde.test.ts` (16) : 8 `estSauvegardeDue` purs + 8 intégration réelle sur base temporaire chiffrée (horloge simulée, verrouillage, destination vide/inexistante, échec réel d'archivage, rattrapage au déverrouillage, pas de double exécution, désactivation, demarrer/arreter/redémarrer avec `creerIntervalle` simulé).
+- `tests/depot-parametres-sauvegarde.test.ts` (8) : défauts seeds, rejets horaire (`25:00`/`3:05`/`10h30`) et destination (vide, inexistante, = répertoire de la base — `DOSSIER_BASE` créé en `beforeAll`), persistance, idempotence.
+- `tests/ipc-sauvegarde.test.ts` (10) : 8 canaux enregistrés (aucun canal SQL), verrouillage, `etat` défauts, `nommer` opérationnel, `configurer` invalide/valide, erreur persistée, hooks ordonnanceur mockés.
+
+### Vérifications — tout vert
+- `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run garde` (aucun import externe dans domaine/) ✓
+- **`npm run verifier` : 53 fichiers / 1069 tests passés** ✓
+- `npm run build` : out/main (index.js, egto-admin-reset.js, chunks/), out/preload, out/renderer ✓
+
+### Bugs corrigés pendant le debug (échecs vitest ciblés)
+1. **`MOTIF_HORAIRE_QUOTIDIENNE` sans groupe sur les minutes** → `correspondance[2]` = `undefined` → `Number` = NaN → `new Date(..., NaN, ...)` = Date invalide → `estSauvegardeDue` se comportait à l'envers (les 4 échecs ordonnanceur au premier passage). Corrigé : `/^([01]\d|2[0-3]):([0-5]\d)$/` (2 groupes).
+2. **handler IPC `etat`** : throw synchrone propagé tel quel par le mock (pas de conversion en rejet comme `ipcMain.handle`) → handler marqué `async` (parité avec le comportement Electron).
+3. **test `nommer`** : regex `/^egto-quotidienne-\d{8}-…/` invalide — le format réel porte des tirets : `egto-quotidienne-AAAA-MM-JJ-HHmm.zip` → `/^egto-quotidienne-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/`.
+
+### Bloqué / points d'attention
+- Rien de bloquant. Aucun commit/push/tag/fusion (conforme consigne).
+- **Phase 3 (restauration) NON implémentée** : décision 28/08/2026 — la restauration s'appuie sur `egto-admin-reset` ; l'écran de restauration reste hors périmètre de cette session.
+- 3 nouvelles clés de paramétrage en base (`parametres`) : `sauvegarde_activee`, `sauvegarde_horaire_quotidienne`, `sauvegarde_destination`.
+- Timer actif toutes les heures (vérification d'échéance) — penser aux tests e2e/verrouillage éventuels.
+- Ordinateur de dev en UTC+1 : comportement d'échéance local confirmé par debug (échéance 03:00, UTC+1).
+
+---
+
 ## Session : 28/08/2026 — Jalon 6 Phase 1 : fondations environnement & packaging (branche jalon-6-prep)
 
 Phase 1 du Jalon 6 sur branche `jalon-6-prep` (HEAD `4655af6`, aucun commit). Pas d'implémentation des phases 2-4 du Jalon 6 : aucune UI, aucun canal IPC `--recuperation`, aucun ordonnanceur, 0 migration SQL.

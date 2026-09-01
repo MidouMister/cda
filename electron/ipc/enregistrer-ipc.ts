@@ -23,6 +23,7 @@ import { enregistrerHandlersFactures } from './ipc-factures'
 import { enregistrerHandlersBonsLivraison } from './ipc-bons-livraison'
 import type { EtatSessionGere } from './ipc-session'
 import type { CompteurInactivite, DepsSession } from '../securite/session'
+import type { OrdonnanceurSauvegarde } from '../ordonnanceur-sauvegarde'
 
 export interface EnregistreurIpc {
   handle(canal: string, appel: (evenement: unknown, ...args: unknown[]) => unknown): void
@@ -40,6 +41,8 @@ export const enregistrerHandlersIpc = (
   etatSession?: () => EtatSessionGere,
   compteurActivite?: CompteurInactivite,
   obtenirDossierUserData?: () => string,
+  ordonnanceur?: OrdonnanceurSauvegarde,
+  apresDeverrouillage?: () => void,
 ): void => {
   const enregistreur = creerEnregistreurIpc()
   enregistrerHandlersParametres(enregistreur, obtenirBase)
@@ -61,10 +64,17 @@ export const enregistrerHandlersIpc = (
   enregistrerHandlersBonsLivraison(enregistreur, obtenirBase)
   enregistrerHandlersDiagnostic(enregistreur)
   if (depsSession && etatSession && compteurActivite && obtenirDossierUserData) {
-    enregistrerHandlersSession(enregistreur, obtenirDossierUserData, etatSession, depsSession, compteurActivite)
+    enregistrerHandlersSession(
+      enregistreur,
+      obtenirDossierUserData,
+      etatSession,
+      depsSession,
+      compteurActivite,
+      apresDeverrouillage,
+    )
   }
   if (obtenirDossierUserData) {
-    enregistrerHandlersSauvegarde(enregistreur, obtenirDossierUserData)
+    enregistrerHandlersSauvegarde(enregistreur, obtenirDossierUserData, undefined, undefined, ordonnanceur)
     enregistrerHandlersJournal(enregistreur, obtenirDossierUserData)
   }
 }
