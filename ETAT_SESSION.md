@@ -1,4 +1,46 @@
 
+## Session : 02/09/2026 — Jalon 6 Phase 3 : restauration poste vierge (phrase seule, V3) — complet et vérifié
+
+Phase 3 du Jalon 6 (branche `jalon-6-prep`) : la restauration d'archive fonctionne avec la **phrase de récupération seule**, y compris sur poste vierge. Aucun commit. Pas de migration SQL, pas de Phase 4.
+
+### Fait — Moteur (`electron/sauvegarde.ts`)
+- `FORMAT_VERSION = 3` ; `dechiffrer()` accepte `version === 2` dans le même bloc Argon2id (`version === FORMAT_VERSION || version === 2`) — archives V2 toujours lisibles.
+- `restaurerDonnees` : `motDePasse` supprimé du param, `phraseRecuperation` et `deballerDekParPhrase` obligatoires. Flow : cherche `recours.bin` **à côté du ZIP** → déballage DEK via phrase → `dechiffrer(fichierChiffre, dek.toString('hex'))` → extraction → validation manifeste → copie. Sans `recours.bin` à côté, la phrase est utilisée telle quelle comme mot de passe (retro-compat).
+- `archiverDonnees` : copie `recours.bin` de `dossierSource/enveloppes/` vers le répertoire parent de la destination (à côté du ZIP) — import `dirname`.
+
+### Fait — Handler IPC (`electron/ipc/ipc-sauvegarde.ts`)
+- Garde `baseEstOuverte()` → « La restauration est interdite pendant une session active. »
+- `donnees.archive` absent → `dialog.showOpenDialog({openFile, zip|enc})` ; annulé → `{succes:false, erreur:'Sélection annulée.'}`.
+- `restaurerDonnees` appelé avec phrase seule (pas de motDePasse) ; parser phrase non vide.
+
+### Fait — Contrats & export
+- `contrats/sauvegarde.ts` : `RestaurerDonneesParams = { archive?, dossierDestination?, phraseRecuperation: string }`.
+- `electron/securite/recuperation.ts` : inchangé (logique (C) — `archiverDonnees` copie désormais `recours.bin` ; le `dossierSource` contient `enveloppes/recours.bin`).
+
+### Fait — UI
+- `src/etat-session.ts` : `EcranSession` + `'restauration'`.
+- `src/App.tsx` : `if (ecran === 'restauration') return <Restauration />` + import.
+- `src/ecrans/Restauration.tsx` (NOUVEAU) : champ phrase (password), « Sélectionner et restaurer » → `window.egto.sauvegarde.restaurer({phraseRecuperation})`, bandeau erreur/succès, barre de progression indéterminée, après succès « Aller à la connexion ».
+- `src/ecrans/Connexion.tsx` : lien « Restaurer une sauvegarde ? » ; `src/ecrans/PremierDemarrage.tsx` : lien « Restaurer une sauvegarde existante » — tous deux → `definirEcran('restauration')`.
+- `src/styles.css` : bloc « Restauration (J6 Phase 3) » — `.barre-progression` + animation indéterminée.
+
+### Fait — Tests & docs
+- `tests/ipc-sauvegarde.test.ts` : « restaurer avec base ouverte → rejette » + « restaurer sans archive valide → échec propre (poste vierge) » ; 8 canaux inchangés.
+- `tests/sauvegarde.test.ts` : restaurer adapté aux nouveaux params (phrase, deballerDek), phrase manquante, mauvaise clé, archive sans recours.bin à côté.
+- `docs/procedure-restauration.md` (NOUVEAU) : guide pas à pas en français.
+- `docs/decisions-j0.md` : §2.13 « Restauration phrase seule ».
+- `AGENTS.md` : point « **Restauration phrase seule (28/08/2026)** » ajouté aux décisions définitives.
+
+### Vérifications — tout vert
+- `npm run typecheck` ✓ (node + web)
+- **`npm run verifier` : 53 fichiers / 1072 tests passés** ✓ (typecheck + lint + garde-domaine + vitest)
+
+### Bloqué / points d'attention
+- Rien de bloquant. Aucun commit/push/tag/fusion (conforme consigne). Pas de Phase 4.
+- Note : l'écran Restauration et le handler IPC étaient déjà partiellement rédigés en working tree (travail non commité) — cette session les a alignés sur le cahier des charges Phase 3, complété UI/barre de progression, docs et AGENTS/decisions.
+
+---
+
 ## Session : 02/09/2026 — Jalon 6 Phase 2 : paramétrage & sauvegardes automatiques (R7 + ordonnanceur) — complet et vérifié
 
 Phase 2 du Jalon 6 (branche `jalon-6-prep`) : **R7 écran Paramétrage + sauvegarde quotidienne automatique responsable avec ordonnanceur**. Aucun commit. Pas de Phase 3 (restauration) — hors périmètre, `egto-admin-reset` existant gère la restauration ; aucune migration SQL ; `FORMAT_VERSION`/chiffrement inchangés ; aucun SQL dans le renderer.

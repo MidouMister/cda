@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { utiliserSession } from './etat-session'
 import { Connexion } from './ecrans/Connexion'
 import { PremierDemarrage } from './ecrans/PremierDemarrage'
+import { Restauration } from './ecrans/Restauration'
 import { Shell } from './Shell'
 import { Clients } from './ecrans/Clients'
 import { FicheClient } from './ecrans/FicheClient'
@@ -51,6 +52,7 @@ function AppInterne() {
 
   if (ecran === 'premier_demarrage') return <PremierDemarrage />
   if (ecran === 'connexion') return <Connexion />
+  if (ecran === 'restauration') return <Restauration />
 
   return (
     <Shell>

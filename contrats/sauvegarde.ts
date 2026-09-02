@@ -18,10 +18,9 @@ export interface ResultatExportSauvegarde {
 }
 
 export interface RestaurerDonneesParams {
-  archive: string
-  motDePasse: string
-  dossierDestination: string
-  phraseRecuperation?: string
+  archive?: string
+  dossierDestination?: string
+  phraseRecuperation: string
 }
 
 export interface ResultatRestaurationSauvegarde {

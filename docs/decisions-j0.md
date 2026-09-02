@@ -117,6 +117,9 @@ Table `receptions` (une ligne par lot/tranche, §4.1.7bis) — sert de base à l
 ### 2.12 Intérêts moratoires : montant saisi, pas de taux
 Champ `factures.interets_moratoires_centimes` sur les ND (décision §1.16.3) ; aucun taux en base ni par affaire.
 
+### 2.13 Restauration phrase seule (28/08/2026)
+La restauration s'effectue avec la phrase de récupération seule. `recours.bin` est écrit à côté de l'archive lors de l'export (V3). `FORMAT_VERSION = 3`. Les archives V2 restent lisibles.
+
 ## 3. Points laissés ouverts (sans impact schéma)
 - Les points §16.2 (barème/declencheur du timbre), §16.4 (TAP), §16.5 (NIS) et les nouvelles décisions 15/08/2026 (§16.10–§16.12) sont **tranchés** — rien en attente côté timbre, TAP, NIS, rabais marché ou familles.
 - Traduction dans le PRD des divergences 2.1 (colonnes transversales) et 2.5 (suppression logique) — les décisions du timbre manuel et des encaissements (15/08/2026) sont traduites dans le PRD (§4.4.4-§4.4.6, §4.7.3, §4.5.1, §7.1, §16).

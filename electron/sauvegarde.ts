@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, basename, resolve, relative } from 'node:path'
+import { join, basename, resolve, relative, dirname } from 'node:path'
 import { createRequire } from 'node:module'
 import { randomBytes, createCipheriv, createDecipheriv, pbkdf2Sync } from 'node:crypto'
 import { hash as argon2Hash, argon2id } from 'argon2'
@@ -17,7 +17,7 @@ const archiver = require('archiver') as {
 }
 
 export const MAGIC = 'EGTO'
-export const FORMAT_VERSION = 2
+export const FORMAT_VERSION = 3
 export const FORMAT_VERSION_LEGACY = 1
 export const SALT_TAILLE = 32
 export const IV_TAILLE = 12
@@ -122,7 +122,7 @@ export async function dechiffrer(data: Buffer, motDePasse: string): Promise<Buff
   }
   const version = data.readUInt16BE(4)
 
-  if (version === FORMAT_VERSION) {
+  if (version === FORMAT_VERSION || version === 2) {
     const kdfAlgo = data.readUInt8(6)
     if (kdfAlgo !== KDF_ARGON2ID) {
       throw new Error(`Algorithme KDF inconnu : ${kdfAlgo}`)
@@ -239,6 +239,15 @@ export async function archiverDonnees(params: {
     const fichierChiffre = await chiffrer(zipBuffer, params.motDePasse)
     writeFileSync(params.destination, fichierChiffre)
 
+    const dossierParent = dirname(params.destination)
+    if (existsSync(dossierParent)) {
+      const cheminRecoursDest = join(dossierParent, NOM_ENVELOPPE_RECOURS)
+      if (existsSync(cheminRecoursDest)) {
+        try { unlinkSync(cheminRecoursDest) } catch { /* ignore */ }
+      }
+      copyFileSync(cheminRecours, cheminRecoursDest)
+    }
+
     return { succes: true, chemin: params.destination }
   } catch (err) {
     return { succes: false, erreur: String(err) }
@@ -247,14 +256,16 @@ export async function archiverDonnees(params: {
 
 export async function restaurerDonnees(params: {
   archive: string
-  motDePasse: string
   dossierDestination: string
-  deballerDekParPhrase?: (dossierUserData: string, phrase: string) => Promise<Buffer>
-  phraseRecuperation?: string
+  phraseRecuperation: string
+  deballerDekParPhrase: (dossierUserData: string, phrase: string) => Promise<Buffer>
 }): Promise<ResultatRestauration> {
   try {
     if (!existsSync(params.archive)) {
       return { succes: false, erreur: 'Fichier archive introuvable.' }
+    }
+    if (typeof params.phraseRecuperation !== 'string' || params.phraseRecuperation.trim().length === 0) {
+      return { succes: false, erreur: 'Phrase de récupération obligatoire.' }
     }
 
     if (!existsSync(params.dossierDestination)) {
@@ -267,9 +278,27 @@ export async function restaurerDonnees(params: {
     }
 
     const fichierChiffre = readFileSync(params.archive)
+
+    const cheminRecoursCoteArchive = join(dirname(params.archive), NOM_ENVELOPPE_RECOURS)
+    let motDePasse: string
+    if (existsSync(cheminRecoursCoteArchive)) {
+      let dek: Buffer
+      try {
+        dek = await params.deballerDekParPhrase(dirname(params.archive), params.phraseRecuperation.trim())
+      } catch {
+        return { succes: false, erreur: 'Phrase de récupération incorrecte.' }
+      }
+      if (!Buffer.isBuffer(dek) || dek.length !== 32) {
+        return { succes: false, erreur: 'Phrase de récupération incorrecte.' }
+      }
+      motDePasse = dek.toString('hex')
+    } else {
+      motDePasse = params.phraseRecuperation.trim()
+    }
+
     let zipBuffer: Buffer
     try {
-      zipBuffer = await dechiffrer(fichierChiffre, params.motDePasse)
+      zipBuffer = await dechiffrer(fichierChiffre, motDePasse)
     } catch {
       return { succes: false, erreur: 'Mot de passe incorrect ou fichier corrompu.' }
     }
@@ -315,17 +344,6 @@ export async function restaurerDonnees(params: {
 
       if (!existsSync(cheminBaseTemp)) {
         return { succes: false, erreur: 'Archive invalide : fichier de base manquant.' }
-      }
-
-      if (params.phraseRecuperation && params.deballerDekParPhrase) {
-        try {
-          const dek = await params.deballerDekParPhrase(dossierTemp, params.phraseRecuperation)
-          if (!Buffer.isBuffer(dek) || dek.length !== 32) {
-            return { succes: false, erreur: 'Phrase de récupération incorrecte.' }
-          }
-        } catch {
-          return { succes: false, erreur: 'Phrase de récupération incorrecte.' }
-        }
       }
 
       copyFileSync(cheminBaseTemp, join(params.dossierDestination, NOM_FICHIER_BASE))

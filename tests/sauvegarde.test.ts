@@ -12,6 +12,12 @@ import {
   KDF_ARGON2ID, PARAMETRES_ARGON2ID,
 } from '../electron/sauvegarde'
 
+const DEK_TEST = Buffer.alloc(32, 42)
+const MOT_DE_PASSE_ARCHIVE = DEK_TEST.toString('hex')
+const PHRASE_TEST = 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF'
+const deballerDekOk = async (): Promise<Buffer> => DEK_TEST
+const deballerDekEchec = async (): Promise<Buffer> => { throw new Error('Phrase incorrecte') }
+
 const creerZipManuel = async (entries: Array<{ name: string; data: Buffer }>): Promise<Buffer> => {
   const localHeaders: Buffer[] = []
   const centralHeaders: Buffer[] = []
@@ -288,7 +294,7 @@ describe('archiverDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination,
-      motDePasse: 'mdp123456',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
@@ -302,8 +308,9 @@ describe('archiverDonnees', () => {
 
     const resultat = await restaurerDonnees({
       archive: destination,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
     expect(resultat.succes).toBe(false)
   })
@@ -313,30 +320,57 @@ describe('restaurerDonnees', () => {
   it('echoue si archive inexistante', async () => {
     const resultat = await restaurerDonnees({
       archive: join(dossierTest, 'inexistant.zip'),
-      motDePasse: 'mdp',
       dossierDestination: join(dossierTest, 'dest'),
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/introuvable/)
   })
 
-  it('echoue si mauvais mot de passe', async () => {
+  it('phrase manquante → rejet', async () => {
     preparerSource(dossierTest)
     const archive = join(dossierSauvegardes, 'test.zip')
     await archiverDonnees({
       dossierSource: dossierTest,
       destination: archive,
-      motDePasse: 'bonMdp123',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
+      typeBackup: 'manuelle',
+    })
+
+    const dest = join(dossierTest, 'dest-sans-phrase')
+    mkdirSync(dest, { recursive: true })
+
+    const resultat = await restaurerDonnees({
+      archive,
+      dossierDestination: dest,
+      phraseRecuperation: '   ',
+      deballerDekParPhrase: deballerDekOk,
+    })
+    expect(resultat.succes).toBe(false)
+    expect(resultat.erreur).toMatch(/obligatoire/)
+  })
+
+  it('echoue si mauvaise cle derivée de la phrase', async () => {
+    preparerSource(dossierTest)
+    const archive = join(dossierSauvegardes, 'test.zip')
+    await archiverDonnees({
+      dossierSource: dossierTest,
+      destination: archive,
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
     const dest = join(dossierTest, 'dest-restauration')
     mkdirSync(dest, { recursive: true })
 
+    const mauvaiseCle = async (): Promise<Buffer> => Buffer.alloc(32, 99)
+
     const resultat = await restaurerDonnees({
       archive,
-      motDePasse: 'mauvaisMdp',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: mauvaiseCle,
     })
 
     expect(resultat.succes).toBe(false)
@@ -348,7 +382,7 @@ describe('restaurerDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination: archive,
-      motDePasse: 'mdpSecurise123',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
@@ -357,13 +391,41 @@ describe('restaurerDonnees', () => {
 
     const resultat = await restaurerDonnees({
       archive,
-      motDePasse: 'mdpSecurise123',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
 
     expect(resultat.succes).toBe(true)
     expect(existsSync(join(dest, NOM_FICHIER_BASE))).toBe(true)
     expect(existsSync(join(dest, NOM_DOSSIER_ENVELOPPES, NOM_ENVELOPPE_RECOURS))).toBe(true)
+  })
+
+  it('archive sans recours.bin à côté → phrase utilisée comme mot de passe', async () => {
+    preparerSource(dossierTest)
+    const archive = join(dossierSauvegardes, 'test.zip')
+    await archiverDonnees({
+      dossierSource: dossierTest,
+      destination: archive,
+      motDePasse: PHRASE_TEST,
+      typeBackup: 'manuelle',
+    })
+
+    const cheminRecoursACote = join(dossierSauvegardes, NOM_ENVELOPPE_RECOURS)
+    if (existsSync(cheminRecoursACote)) {
+      rmSync(cheminRecoursACote, { force: true })
+    }
+
+    const dest = join(dossierTest, 'dest-vierge')
+    mkdirSync(dest, { recursive: true })
+
+    const resultat = await restaurerDonnees({
+      archive,
+      dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
+    })
+    expect(resultat.succes).toBe(true)
   })
 
   it('echoue si destination non vide', async () => {
@@ -372,7 +434,7 @@ describe('restaurerDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination: archive,
-      motDePasse: 'mdp123456',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
@@ -382,8 +444,9 @@ describe('restaurerDonnees', () => {
 
     const resultat = await restaurerDonnees({
       archive,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
 
     expect(resultat.succes).toBe(false)
@@ -396,7 +459,7 @@ describe('restaurerDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination,
-      motDePasse: 'mdp123456',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
@@ -409,8 +472,9 @@ describe('restaurerDonnees', () => {
 
     const resultat = await restaurerDonnees({
       archive: destination,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
     expect(resultat.succes).toBe(false)
   })
@@ -432,7 +496,7 @@ describe('restaurerDonnees', () => {
     ])
 
     const destination = join(dossierSauvegardes, 'dangereux.zip')
-    const chiffre = await chiffrer(zipBuffer, 'mdp123456')
+    const chiffre = await chiffrer(zipBuffer, PHRASE_TEST)
     writeFileSync(destination, chiffre)
 
     const dest = join(dossierTest, 'dest-dangereux')
@@ -440,8 +504,9 @@ describe('restaurerDonnees', () => {
 
     const resultat = await restaurerDonnees({
       archive: destination,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/dangereux/)
@@ -453,34 +518,28 @@ describe('restaurerDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination: archive,
-      motDePasse: 'mdp123456',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
     const dest = join(dossierTest, 'dest-phrase')
     mkdirSync(dest, { recursive: true })
 
-    const deballerOk = async (): Promise<Buffer> => Buffer.alloc(32)
-
     const resultat1 = await restaurerDonnees({
       archive,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
-      deballerDekParPhrase: deballerOk,
-      phraseRecuperation: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF',
+      deballerDekParPhrase: deballerDekOk,
+      phraseRecuperation: PHRASE_TEST,
     })
     expect(resultat1.succes).toBe(true)
 
     const dest2 = join(dossierTest, 'dest-phrase-2')
     mkdirSync(dest2, { recursive: true })
 
-    const deballerFail = async (): Promise<Buffer> => { throw new Error('Phrase incorrecte') }
-
     const resultat2 = await restaurerDonnees({
       archive,
-      motDePasse: 'mdp123456',
       dossierDestination: dest2,
-      deballerDekParPhrase: deballerFail,
+      deballerDekParPhrase: deballerDekEchec,
       phraseRecuperation: 'MAUVAISE-PHRASE',
     })
     expect(resultat2.succes).toBe(false)
@@ -493,53 +552,21 @@ describe('restaurerDonnees', () => {
     await archiverDonnees({
       dossierSource: dossierTest,
       destination: archive,
-      motDePasse: 'mdp123456',
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
       typeBackup: 'manuelle',
     })
 
     const dest = join(dossierTest, 'dest-mauvaise-phrase')
     mkdirSync(dest, { recursive: true })
 
-    const deballerFail = async (): Promise<Buffer> => { throw new Error('Phrase incorrecte') }
-
     const resultat = await restaurerDonnees({
       archive,
-      motDePasse: 'mdp123456',
       dossierDestination: dest,
-      deballerDekParPhrase: deballerFail,
+      deballerDekParPhrase: deballerDekEchec,
       phraseRecuperation: 'XXXX-YYYY-ZZZZ-WWWW-VVVV-TTTT',
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/r.cup.ration/)
-  })
-
-  it('absence de phrase saute la validation dek', async () => {
-    preparerSource(dossierTest)
-    const archive = join(dossierSauvegardes, 'test.zip')
-    await archiverDonnees({
-      dossierSource: dossierTest,
-      destination: archive,
-      motDePasse: 'mdp123456',
-      typeBackup: 'manuelle',
-    })
-
-    const dest = join(dossierTest, 'dest-sans-phrase')
-    mkdirSync(dest, { recursive: true })
-
-    let appele = false
-    const deballerSpy = async (): Promise<Buffer> => {
-      appele = true
-      return Buffer.alloc(32)
-    }
-
-    const resultat = await restaurerDonnees({
-      archive,
-      motDePasse: 'mdp123456',
-      dossierDestination: dest,
-      deballerDekParPhrase: deballerSpy,
-    })
-    expect(resultat.succes).toBe(true)
-    expect(appele).toBe(false)
   })
 })
 

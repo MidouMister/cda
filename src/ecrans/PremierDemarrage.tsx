@@ -146,6 +146,23 @@ export function PremierDemarrage() {
           {enCours ? 'Création…' : 'Créer mon mot de passe'}
         </button>
       </form>
+      <p style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="bouton-link"
+          onClick={() => definirEcran('restauration')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent)',
+            cursor: 'pointer',
+            fontSize: 13,
+            textDecoration: 'underline',
+          }}
+        >
+          Restaurer une sauvegarde existante
+        </button>
+      </p>
     </div>
   )
 }

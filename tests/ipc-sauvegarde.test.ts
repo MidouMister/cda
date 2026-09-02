@@ -106,6 +106,21 @@ describe('Handlers IPC sauvegarde — verrouillage et enregistrement', () => {
     await expect(appeler(CANAUX.sauvegarde.etat)).rejects.toThrow(/Session verrouillée/)
     await expect(appeler(CANAUX.sauvegarde.choisirDestination)).rejects.toThrow(/Session verrouillée/)
   })
+
+  it('restaurer sans archive valide → échec propre (poste vierge)', async () => {
+    const dest = mkdtempSync(join(tmpdir(), 'egto-ipc-restaure-dest-'))
+    try {
+      const resultat = (await appeler(CANAUX.sauvegarde.restaurer, {
+        archive: join(dossierUserData, 'inexistant.zip'),
+        dossierDestination: dest,
+        phraseRecuperation: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF',
+      })) as { succes: boolean; erreur?: string }
+      expect(resultat.succes).toBe(false)
+      expect(resultat.erreur).toMatch(/introuvable/)
+    } finally {
+      rmSync(dest, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('Handlers IPC sauvegarde — base réelle ouverte', () => {
@@ -137,6 +152,16 @@ describe('Handlers IPC sauvegarde — base réelle ouverte', () => {
   it('nommer reste opérationnel', async () => {
     const nom = (await appeler(CANAUX.sauvegarde.nommer, 'quotidienne')) as string
     expect(nom).toMatch(/^egto-quotidienne-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/)
+  })
+
+  it('restaurer avec base ouverte → rejette', async () => {
+    await expect(
+      appeler(CANAUX.sauvegarde.restaurer, {
+        archive: join(dossierUserData, 'archive.zip'),
+        dossierDestination: destination,
+        phraseRecuperation: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF',
+      }),
+    ).rejects.toThrow(/restauration est interdite/)
   })
 
   it('configurer avec un horaire invalide → rejet', async () => {

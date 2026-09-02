@@ -45,6 +45,23 @@ export function Connexion() {
           {enCours ? 'Déverrouillage…' : 'Déverrouiller'}
         </button>
       </form>
+      <p style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="bouton-link"
+          onClick={() => definirEcran('restauration')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent)',
+            cursor: 'pointer',
+            fontSize: 13,
+            textDecoration: 'underline',
+          }}
+        >
+          Restaurer une sauvegarde ?
+        </button>
+      </p>
     </div>
   )
 }

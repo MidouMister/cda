@@ -46,6 +46,7 @@ Dernières versions stables, **aucune version figée**. Revue trimestrielle des 
 - **NIS à 15 chiffres** : `MOTIF_NIS = /^\d{15}$/` (zéros initiaux conservés, champ texte) — ni plus, ni moins.
 - **TAP supprimée** : définitivement supprimée (aucun remplacement TLS) — ne rien implémenter, ne pas réintroduire.
 - **Restauration & sauvegarde (28/08/2026)** : retour sur définition — la restauration s'appuie sur `egto-admin-reset` (objet autonome, exige la phrase de récupération, ne réinitialise rien sans elle) ; sauvegarde manuelle de secours `--recuperation` dans `main.ts` (ne reste un script autonome que si l'export est direct).
+- **Restauration phrase seule (28/08/2026)** : la restauration s'effectue avec la phrase de récupération seule. `recours.bin` écrit à côté de l'archive. `FORMAT_VERSION = 3`. Compatibilité V2 maintenue.
 
 #### Limites assumées
 

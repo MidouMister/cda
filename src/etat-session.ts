@@ -1,6 +1,6 @@
 ﻿import { create } from 'zustand'
 
-export type EcranSession = 'chargement' | 'premier_demarrage' | 'connexion' | 'phrase' | 'app'
+export type EcranSession = 'chargement' | 'premier_demarrage' | 'connexion' | 'phrase' | 'app' | 'restauration'
 
 interface EtatSession {
   ecran: EcranSession

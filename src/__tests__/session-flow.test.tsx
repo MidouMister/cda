@@ -95,7 +95,7 @@ describe('Ecran PremierDemarrage', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'court')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'court')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     expect(screen.getByText(/au moins 8 caract/)).toBeInTheDocument()
   })
@@ -107,7 +107,7 @@ describe('Ecran PremierDemarrage', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'monMotDePasse123')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'autreMotDePasse123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     expect(screen.getByText('Les mots de passe ne correspondent pas.')).toBeInTheDocument()
   })
@@ -121,7 +121,7 @@ describe('Ecran PremierDemarrage', () => {
     const mdp = 'monMotDePasse123'
     await user.type(screen.getByLabelText('Mot de passe'), mdp)
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), mdp)
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(mockSession.premierDemarrage).toHaveBeenCalledWith({ motDePasse: mdp })
@@ -136,7 +136,7 @@ describe('Ecran PremierDemarrage', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'monMotDePasse123')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'monMotDePasse123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /r.cup/ })).toBeInTheDocument()
@@ -153,7 +153,7 @@ describe('Ecran PremierDemarrage', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'monMotDePasse123')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'monMotDePasse123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(screen.getByText('Erreur interne')).toBeInTheDocument()
@@ -175,7 +175,7 @@ describe('Ecran Connexion', () => {
     await waitFor(() => screen.getByText(/Connectez-vous/))
 
     await user.type(screen.getByLabelText('Mot de passe'), 'mauvaisMdp123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(screen.getByText('Enveloppe invalide ou secret incorrect.')).toBeInTheDocument()
@@ -189,7 +189,7 @@ describe('Ecran Connexion', () => {
     await waitFor(() => screen.getByText(/Connectez-vous/))
 
     await user.type(screen.getByLabelText('Mot de passe'), 'bonMdp1234')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(mockSession.deverrouiller).toHaveBeenCalledWith({ motDePasse: 'bonMdp1234' })
@@ -207,7 +207,7 @@ describe('Regles de securite', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'monMotDePasse123')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'monMotDePasse123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /r.cup/ })).toBeInTheDocument()
@@ -225,7 +225,7 @@ describe('Regles de securite', () => {
 
     await user.type(screen.getByLabelText('Mot de passe'), 'monMotDePasse123')
     await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'monMotDePasse123')
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button', { name: /Créer mon mot de passe|Déverrouiller/ }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /r.cup/ })).toBeInTheDocument()

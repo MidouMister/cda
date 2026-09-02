@@ -57,6 +57,9 @@ export const enregistrerHandlersSauvegarde = (
   })
 
   enregistreur.handle(CANAUX.sauvegarde.restaurer, async (_evenement, donnees: unknown) => {
+    if (baseEstOuverte()) {
+      throw new Error('La restauration est interdite pendant une session active.')
+    }
     if (
       donnees === null ||
       donnees === undefined ||
@@ -65,20 +68,28 @@ export const enregistrerHandlersSauvegarde = (
       throw new TypeError('« donnees » doit être un objet valide.')
     }
     const d = donnees as Record<string, unknown>
-    if (typeof d.archive !== 'string') {
-      throw new TypeError('« archive » doit être une chaîne.')
+    if (typeof d.phraseRecuperation !== 'string' || d.phraseRecuperation.trim().length === 0) {
+      throw new TypeError('« phraseRecuperation » est obligatoire.')
     }
-    if (typeof d.motDePasse !== 'string') {
-      throw new TypeError('« motDePasse » doit être une chaîne.')
+    let archive = typeof d.archive === 'string' ? d.archive : ''
+    let dossierDestination = typeof d.dossierDestination === 'string' ? d.dossierDestination : ''
+    if (!archive) {
+      const resultat = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Archives EGTO', extensions: ['zip', 'enc'] }],
+      })
+      if (resultat.canceled || resultat.filePaths.length === 0) {
+        return { succes: false, erreur: 'Sélection annulée.' }
+      }
+      archive = resultat.filePaths[0]
     }
-    if (typeof d.dossierDestination !== 'string') {
-      throw new TypeError('« dossierDestination » doit être une chaîne.')
+    if (!dossierDestination) {
+      dossierDestination = obtenirDossierUserData()
     }
     return restaurerDonnees({
-      archive: d.archive,
-      motDePasse: d.motDePasse,
-      dossierDestination: d.dossierDestination,
-      phraseRecuperation: typeof d.phraseRecuperation === 'string' ? d.phraseRecuperation : undefined,
+      archive,
+      dossierDestination,
+      phraseRecuperation: d.phraseRecuperation.trim(),
       deballerDekParPhrase: (dossierUserData, phrase) => deballerDekParPhrase(dossierUserData, phrase),
     })
   })
