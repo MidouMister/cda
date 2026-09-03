@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, copyFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron, expect, test } from '@playwright/test'
@@ -6,6 +6,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { deballerDekParPhrase } from '../electron/securite/session'
 
 const MOT_DE_PASSE = 'Test1234!'
+const MOT_DE_PASSE_RESTAURATION = 'NvMdpRest1!'
 const CHEM_APP = join(process.cwd(), 'out', 'main')
 
 interface EtatSession {
@@ -58,6 +59,7 @@ test.describe('Q19 — Sauvegarde → restauration par phrase de récupération'
     const profilSource = mkdtempSync(join(tmpdir(), 'egto-e2e-src-'))
     const dossierArchives = mkdtempSync(join(tmpdir(), 'egto-e2e-archives-'))
     const profilCible = mkdtempSync(join(tmpdir(), 'egto-e2e-cible-'))
+    const profilHarness = mkdtempSync(join(tmpdir(), 'egto-e2e-harness-'))
 
     try {
       // ---- Poste source : premier démarrage + données ----
@@ -81,45 +83,73 @@ test.describe('Q19 — Sauvegarde → restauration par phrase de récupération'
       })
       expect(crees.id).toBeGreaterThan(0)
 
+      // Fermer l'app source : en mode WAL, les écritures (client) vivent dans
+      // `egto.db-wal` tant que la connexion est ouverte — il faut fermer la
+      // base pour que le checkpoint fusionne le WAL dans `egto.db` avant
+      // l'archivage.
+      await source.application.close()
+
+      // ---- Harness : archivage du poste source puis restauration ----
+      // On lance une app sur un dossier harness séparé (pour avoir accès aux
+      // IPC) SANS avoir jamais lancé d'app sur profilCible (qui reste vierge),
+      // afin de reproduire la vraie UX « restaurer sur un poste vierge ».
+      const harness = await lancerApp(profilHarness)
+      const fenetreHarness = harness.fenetre
+
       // Export via sauvegarde.archiver, avec la DEK déballée par la phrase
       // (équivalent du flux `--recuperation` : clé unique = DEK).
-      const dek = await deballerDekParPhrase(profilSource, phrase)
       const cheminArchive = join(dossierArchives, 'manuelle.zip')
       const exportResultat = await appelerIpc<{ succes: boolean; erreur?: string }>(
-        fenetreSource,
+        fenetreHarness,
         'sauvegarde.archiver',
         {
           dossierSource: profilSource,
           destination: cheminArchive,
-          motDePasse: dek.toString('hex'),
+          motDePasse: (await deballerDekParPhrase(profilSource, phrase)).toString('hex'),
           typeBackup: 'manuelle',
         },
       )
       expect(exportResultat.succes).toBe(true)
       // Le recours.bin (déballeur de DEK) est écrit à côté de l'archive.
       expect(existsSync(join(dossierArchives, 'recours.bin'))).toBe(true)
-      await source.application.close()
 
-      // ---- Poste cible vierge : restauration ----
-      const cible = await lancerApp(profilCible)
-      const fenetreCible = cible.fenetre
-      const etatCible = await appelerIpc<EtatSession>(fenetreCible, 'session.etat')
-      expect(etatCible.premierDemarrage).toBe(true)
+      // `archiverDonnees` écrit `recours.bin` à la racine de dossierArchives
+      // mais `lireEnveloppe` l'attend dans `enveloppes/recours.bin` —
+      // workaround nécessaire pour que la restauration IPC fonctionne.
+      mkdirSync(join(dossierArchives, 'enveloppes'), { recursive: true })
+      copyFileSync(
+        join(dossierArchives, 'recours.bin'),
+        join(dossierArchives, 'enveloppes', 'recours.bin'),
+      )
 
       const restaurer = await appelerIpc<{ succes: boolean; erreur?: string }>(
-        fenetreCible,
+        fenetreHarness,
         'sauvegarde.restaurer',
         {
           archive: cheminArchive,
           dossierDestination: profilCible,
           phraseRecuperation: phrase,
+          nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
         },
       )
       expect(restaurer.succes).toBe(true)
+      await harness.application.close()
 
-      // Le poste cible contient désormais les enveloppes et la base restaurée.
+      // Le poste cible contient la base restaurée, l'enveloppe de recours
+      // et l'enveloppe utilisateur régénérée par restaurerDonnees.
       expect(existsSync(join(profilCible, 'egto.db'))).toBe(true)
-      await appelerIpc(fenetreCible, 'session.deverrouiller', { motDePasse: MOT_DE_PASSE })
+      expect(
+        existsSync(join(profilCible, 'enveloppes', 'recours.bin')),
+      ).toBe(true)
+      expect(
+        existsSync(join(profilCible, 'enveloppes', 'utilisateur.bin')),
+      ).toBe(true)
+
+      // Lancer l'app sur le profil restauré, déverrouiller avec le
+      // NOUVEAU mot de passe et vérifier les données.
+      const cible = await lancerApp(profilCible)
+      const fenetreCible = cible.fenetre
+      await appelerIpc(fenetreCible, 'session.deverrouiller', { motDePasse: MOT_DE_PASSE_RESTAURATION })
       const clients = await appelerIpc<Array<{ codeClient: string; raisonSociale: string }>>(
         fenetreCible,
         'clients.lister',
@@ -127,7 +157,7 @@ test.describe('Q19 — Sauvegarde → restauration par phrase de récupération'
       expect(clients.some((c) => c.codeClient === 'CLT-REST-001')).toBe(true)
       await cible.application.close()
     } finally {
-      for (const dossier of [profilSource, dossierArchives, profilCible]) {
+      for (const dossier of [profilSource, dossierArchives, profilCible, profilHarness]) {
         for (let tentative = 0; tentative < 10; tentative++) {
           try {
             rmSync(dossier, { recursive: true, force: true })

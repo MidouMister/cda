@@ -64,6 +64,17 @@ export function GrilleDqe({ affaireId, onAjouter }: Props) {
     }
   }
 
+  const gererClavierEdition = (
+    e: React.KeyboardEvent,
+    poste: PosteDqeVue,
+    champ: string,
+  ) => {
+    if (e.key === 'Enter' && !posteEnEdition) {
+      e.preventDefault()
+      demarrerEdition(poste, champ)
+    }
+  }
+
   if (chargement) return <div className="ecran-chargement">Chargement…</div>
 
   const totalHt = postes.reduce((s, p) => s + p.montantHtCentimes, 0)
@@ -102,12 +113,15 @@ export function GrilleDqe({ affaireId, onAjouter }: Props) {
                   <td>{poste.numero}</td>
                   <td
                     className="editable"
+                    tabIndex={0}
                     onDoubleClick={() => demarrerEdition(poste, 'designation')}
+                    onKeyDown={(e) => gererClavierEdition(e, poste, 'designation')}
                   >
                     {posteEnEdition?.id === poste.id &&
                     posteEnEdition.champ === 'designation' ? (
                       <input
                         autoFocus
+                        aria-label="Désignation"
                         value={valeurTemp}
                         onChange={(e) => setValeurTemp(e.target.value)}
                         onBlur={() =>
@@ -123,12 +137,15 @@ export function GrilleDqe({ affaireId, onAjouter }: Props) {
                   </td>
                   <td
                     className="editable"
+                    tabIndex={0}
                     onDoubleClick={() => demarrerEdition(poste, 'unite')}
+                    onKeyDown={(e) => gererClavierEdition(e, poste, 'unite')}
                   >
                     {posteEnEdition?.id === poste.id &&
                     posteEnEdition.champ === 'unite' ? (
                       <input
                         autoFocus
+                        aria-label="Unité"
                         value={valeurTemp}
                         onChange={(e) => setValeurTemp(e.target.value)}
                         onBlur={() =>
@@ -142,15 +159,18 @@ export function GrilleDqe({ affaireId, onAjouter }: Props) {
                   </td>
                   <td
                     className="editable"
+                    tabIndex={0}
                     onDoubleClick={() =>
                       demarrerEdition(poste, 'quantiteMilliemes')
                     }
+                    onKeyDown={(e) => gererClavierEdition(e, poste, 'quantiteMilliemes')}
                   >
                     {posteEnEdition?.id === poste.id &&
                     posteEnEdition.champ === 'quantiteMilliemes' ? (
                       <input
                         autoFocus
                         type="number"
+                        aria-label="Quantité"
                         value={valeurTemp}
                         onChange={(e) => setValeurTemp(e.target.value)}
                         onBlur={() =>
@@ -170,15 +190,18 @@ export function GrilleDqe({ affaireId, onAjouter }: Props) {
                   </td>
                   <td
                     className="editable"
+                    tabIndex={0}
                     onDoubleClick={() =>
                       demarrerEdition(poste, 'puHtCentimes')
                     }
+                    onKeyDown={(e) => gererClavierEdition(e, poste, 'puHtCentimes')}
                   >
                     {posteEnEdition?.id === poste.id &&
                     posteEnEdition.champ === 'puHtCentimes' ? (
                       <input
                         autoFocus
                         type="number"
+                        aria-label="PU HT"
                         value={valeurTemp}
                         onChange={(e) => setValeurTemp(e.target.value)}
                         onBlur={() =>

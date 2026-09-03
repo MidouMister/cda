@@ -259,6 +259,8 @@ export async function restaurerDonnees(params: {
   dossierDestination: string
   phraseRecuperation: string
   deballerDekParPhrase: (dossierUserData: string, phrase: string) => Promise<Buffer>
+  nouveauMotDePasseApplicatif: string
+  reconstituerEnveloppeUtilisateur: (dossierUserData: string, nouveauMotDePasse: string, dek: Buffer) => Promise<void>
 }): Promise<ResultatRestauration> {
   try {
     if (!existsSync(params.archive)) {
@@ -266,6 +268,9 @@ export async function restaurerDonnees(params: {
     }
     if (typeof params.phraseRecuperation !== 'string' || params.phraseRecuperation.trim().length === 0) {
       return { succes: false, erreur: 'Phrase de récupération obligatoire.' }
+    }
+    if (typeof params.nouveauMotDePasseApplicatif !== 'string' || params.nouveauMotDePasseApplicatif.trim().length === 0) {
+      return { succes: false, erreur: 'Nouveau mot de passe applicatif obligatoire.' }
     }
 
     if (!existsSync(params.dossierDestination)) {
@@ -281,6 +286,7 @@ export async function restaurerDonnees(params: {
 
     const cheminRecoursCoteArchive = join(dirname(params.archive), NOM_ENVELOPPE_RECOURS)
     let motDePasse: string
+    let dekRestaure: Buffer | null = null
     if (existsSync(cheminRecoursCoteArchive)) {
       let dek: Buffer
       try {
@@ -291,6 +297,7 @@ export async function restaurerDonnees(params: {
       if (!Buffer.isBuffer(dek) || dek.length !== 32) {
         return { succes: false, erreur: 'Phrase de récupération incorrecte.' }
       }
+      dekRestaure = dek
       motDePasse = dek.toString('hex')
     } else {
       motDePasse = params.phraseRecuperation.trim()
@@ -354,6 +361,16 @@ export async function restaurerDonnees(params: {
       }
       if (existsSync(cheminRecoursTemp)) {
         copyFileSync(cheminRecoursTemp, join(dossierEnvDest, NOM_ENVELOPPE_RECOURS))
+      }
+
+      // Régénération utilisateur.bin uniquement dans le flux moderne (recours.bin présent / FORMAT_VERSION 3) :
+      // le cas legacy (V1/V2 sans recours.bin) n'a pas de DEK déballable et reste inchangé.
+      if (dekRestaure !== null) {
+        await params.reconstituerEnveloppeUtilisateur(
+          params.dossierDestination,
+          params.nouveauMotDePasseApplicatif.trim(),
+          dekRestaure,
+        )
       }
 
       return { succes: true }

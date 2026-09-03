@@ -3,6 +3,8 @@ import { utiliserSession } from '../etat-session'
 
 export function Restauration() {
   const [phraseRecuperation, setPhraseRecuperation] = useState('')
+  const [nouveauMotDePasse, setNouveauMotDePasse] = useState('')
+  const [confirmationMotDePasse, setConfirmationMotDePasse] = useState('')
   const [enCours, setEnCours] = useState(false)
   const [succes, setSucces] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -11,11 +13,20 @@ export function Restauration() {
   const restaurer = async (e: FormEvent) => {
     e.preventDefault()
     if (!phraseRecuperation.trim() || enCours) return
+    if (nouveauMotDePasse.trim().length < 8) {
+      setErreur('Le mot de passe doit contenir au moins 8 caractères.')
+      return
+    }
+    if (nouveauMotDePasse !== confirmationMotDePasse) {
+      setErreur('Les mots de passe ne correspondent pas.')
+      return
+    }
     setErreur(null)
     setEnCours(true)
     try {
       const resultat = await window.egto.sauvegarde.restaurer({
         phraseRecuperation: phraseRecuperation.trim(),
+        nouveauMotDePasseApplicatif: nouveauMotDePasse,
       })
       if (!resultat.succes) {
         setErreur(resultat.erreur ?? 'Échec de la restauration.')
@@ -40,7 +51,7 @@ export function Restauration() {
             Les données ont été restaurées avec succès.
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>
-            Vous pouvez maintenant vous connecter avec votre mot de passe.
+            Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
           </p>
           <button
             className="bouton"
@@ -59,7 +70,7 @@ export function Restauration() {
       <form className="carte-connexion" onSubmit={restaurer}>
         <h1>Restaurer une sauvegarde</h1>
         <p className="sous-titre">
-          Saisissez votre phrase de récupération, puis sélectionnez l&apos;archive.
+          Saisissez votre phrase de récupération, un nouveau mot de passe, puis sélectionnez l&apos;archive.
         </p>
         {enCours && <div className="barre-progression" style={{ marginBottom: 16 }} />}
         {erreur && <p className="erreur">{erreur}</p>}
@@ -72,6 +83,26 @@ export function Restauration() {
             placeholder="AAAA-BBBB-CCCC-DDDD-EEEE-FFFF"
             value={phraseRecuperation}
             onChange={(e) => setPhraseRecuperation(e.target.value)}
+          />
+        </div>
+        <div className="champ">
+          <label htmlFor="nouveau-mot-de-passe">Nouveau mot de passe</label>
+          <input
+            id="nouveau-mot-de-passe"
+            type="password"
+            autoComplete="new-password"
+            value={nouveauMotDePasse}
+            onChange={(e) => setNouveauMotDePasse(e.target.value)}
+          />
+        </div>
+        <div className="champ">
+          <label htmlFor="confirmation-mot-de-passe">Confirmer le mot de passe</label>
+          <input
+            id="confirmation-mot-de-passe"
+            type="password"
+            autoComplete="new-password"
+            value={confirmationMotDePasse}
+            onChange={(e) => setConfirmationMotDePasse(e.target.value)}
           />
         </div>
         <button

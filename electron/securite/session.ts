@@ -136,6 +136,21 @@ export const changerMotDePasse = async (
   ecrireEnveloppe(dossierUserData, NOM_ENVELOPPE_UTILISATEUR, nouveauBlob)
 }
 
+export const reconstituerEnveloppeUtilisateur = async (
+  dossierUserData: string,
+  nouveauMotDePasse: string,
+  dek: Buffer,
+): Promise<void> => {
+  validerMotDePasse(nouveauMotDePasse)
+  if (!Buffer.isBuffer(dek) || dek.length !== 32) {
+    throw new TypeError('reconstituerEnveloppeUtilisateur : la DEK doit être un Buffer de 32 octets.')
+  }
+  const sel = randomBytes(TAILLE_SEL_OCTETS)
+  const cle = await deriverCle(nouveauMotDePasse, sel)
+  const blob = envelopperDek(dek, cle, sel)
+  ecrireEnveloppe(dossierUserData, NOM_ENVELOPPE_UTILISATEUR, blob)
+}
+
 export const deballerDekParPhrase = async (
   dossierUserData: string,
   phrase: string,

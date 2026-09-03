@@ -172,7 +172,7 @@ export function BonsLivraison() {
         }
       />
       {modalFacture && (
-        <div className="modal-superposition">
+        <div className="modal-superposition" role="dialog" aria-modal="true" aria-label="Générer une facture">
           <div className="modal-contenu">
             <h3>
               Générer une facture ({selectionnes.length} BL sélectionnés)

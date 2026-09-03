@@ -114,6 +114,7 @@ describe('Handlers IPC sauvegarde — verrouillage et enregistrement', () => {
         archive: join(dossierUserData, 'inexistant.zip'),
         dossierDestination: dest,
         phraseRecuperation: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF',
+        nouveauMotDePasseApplicatif: 'NvMdpIpcTest1!',
       })) as { succes: boolean; erreur?: string }
       expect(resultat.succes).toBe(false)
       expect(resultat.erreur).toMatch(/introuvable/)
@@ -160,6 +161,7 @@ describe('Handlers IPC sauvegarde — base réelle ouverte', () => {
         archive: join(dossierUserData, 'archive.zip'),
         dossierDestination: destination,
         phraseRecuperation: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF',
+        nouveauMotDePasseApplicatif: 'NvMdpIpcTest1!',
       }),
     ).rejects.toThrow(/restauration est interdite/)
   })

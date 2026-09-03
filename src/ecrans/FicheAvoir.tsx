@@ -182,7 +182,7 @@ export function FicheAvoir() {
       </div>
 
       {erreur && (
-        <p style={{ color: '#b91c1c', marginTop: 0 }} role="alert">
+        <p style={{ color: 'var(--red)', marginTop: 0 }} role="alert">
           {erreur}
         </p>
       )}

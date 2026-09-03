@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -15,8 +15,10 @@ import {
 const DEK_TEST = Buffer.alloc(32, 42)
 const MOT_DE_PASSE_ARCHIVE = DEK_TEST.toString('hex')
 const PHRASE_TEST = 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF'
+const MOT_DE_PASSE_RESTAURATION = 'NvMdpRest1!'
 const deballerDekOk = async (): Promise<Buffer> => DEK_TEST
 const deballerDekEchec = async (): Promise<Buffer> => { throw new Error('Phrase incorrecte') }
+const creerReconstituer = () => vi.fn(async () => {})
 
 const creerZipManuel = async (entries: Array<{ name: string; data: Buffer }>): Promise<Buffer> => {
   const localHeaders: Buffer[] = []
@@ -311,6 +313,8 @@ describe('archiverDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
   })
@@ -323,6 +327,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: join(dossierTest, 'dest'),
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/introuvable/)
@@ -346,6 +352,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: '   ',
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/obligatoire/)
@@ -371,6 +379,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: mauvaiseCle,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
 
     expect(resultat.succes).toBe(false)
@@ -389,16 +399,29 @@ describe('restaurerDonnees', () => {
     const dest = join(dossierTest, 'dest-vierge')
     mkdirSync(dest, { recursive: true })
 
+    const reconstitue = creerReconstituer()
+
     const resultat = await restaurerDonnees({
       archive,
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: reconstitue,
     })
 
     expect(resultat.succes).toBe(true)
     expect(existsSync(join(dest, NOM_FICHIER_BASE))).toBe(true)
     expect(existsSync(join(dest, NOM_DOSSIER_ENVELOPPES, NOM_ENVELOPPE_RECOURS))).toBe(true)
+
+    expect(reconstitue).toHaveBeenCalledOnce()
+    const appels = reconstitue.mock.calls[0] as unknown[]
+    expect(appels[0]).toBe(dest)
+    expect(appels[1]).toBe(MOT_DE_PASSE_RESTAURATION)
+    const dekRecu = appels[2] as Buffer
+    expect(Buffer.isBuffer(dekRecu)).toBe(true)
+    expect(dekRecu.length).toBe(32)
+    expect(dekRecu.equals(DEK_TEST)).toBe(true)
   })
 
   it('archive sans recours.bin à côté → phrase utilisée comme mot de passe', async () => {
@@ -419,13 +442,18 @@ describe('restaurerDonnees', () => {
     const dest = join(dossierTest, 'dest-vierge')
     mkdirSync(dest, { recursive: true })
 
+    const reconstitue = creerReconstituer()
+
     const resultat = await restaurerDonnees({
       archive,
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: reconstitue,
     })
     expect(resultat.succes).toBe(true)
+    expect(reconstitue).not.toHaveBeenCalled()
   })
 
   it('echoue si destination non vide', async () => {
@@ -447,6 +475,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
 
     expect(resultat.succes).toBe(false)
@@ -475,6 +505,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
   })
@@ -507,6 +539,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       phraseRecuperation: PHRASE_TEST,
       deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/dangereux/)
@@ -530,6 +564,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       deballerDekParPhrase: deballerDekOk,
       phraseRecuperation: PHRASE_TEST,
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat1.succes).toBe(true)
 
@@ -541,6 +577,8 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest2,
       deballerDekParPhrase: deballerDekEchec,
       phraseRecuperation: 'MAUVAISE-PHRASE',
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat2.succes).toBe(false)
     expect(resultat2.erreur).toMatch(/r.cup.ration/)
@@ -564,9 +602,36 @@ describe('restaurerDonnees', () => {
       dossierDestination: dest,
       deballerDekParPhrase: deballerDekEchec,
       phraseRecuperation: 'XXXX-YYYY-ZZZZ-WWWW-VVVV-TTTT',
+      nouveauMotDePasseApplicatif: MOT_DE_PASSE_RESTAURATION,
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
     })
     expect(resultat.succes).toBe(false)
     expect(resultat.erreur).toMatch(/r.cup.ration/)
+  })
+
+  it('nouveau mot de passe applicatif vide est rejeté', async () => {
+    preparerSource(dossierTest)
+    const archive = join(dossierSauvegardes, 'test.zip')
+    await archiverDonnees({
+      dossierSource: dossierTest,
+      destination: archive,
+      motDePasse: MOT_DE_PASSE_ARCHIVE,
+      typeBackup: 'manuelle',
+    })
+
+    const dest = join(dossierTest, 'dest-mdp-vide')
+    mkdirSync(dest, { recursive: true })
+
+    const resultat = await restaurerDonnees({
+      archive,
+      dossierDestination: dest,
+      phraseRecuperation: PHRASE_TEST,
+      deballerDekParPhrase: deballerDekOk,
+      nouveauMotDePasseApplicatif: '   ',
+      reconstituerEnveloppeUtilisateur: creerReconstituer(),
+    })
+    expect(resultat.succes).toBe(false)
+    expect(resultat.erreur).toMatch(/nouveau mot de passe applicatif obligatoire/i)
   })
 })
 

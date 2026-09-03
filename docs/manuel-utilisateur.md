@@ -129,15 +129,35 @@ Chaque sauvegarde produit une **archive `.zip`** contenant vos données chiffré
 
 ## 7. Restauration
 
-Pour restaurer des données (après une perte, un changement de poste ou une réinstallation), reportez-vous au guide détaillé **`docs/procedure-restauration.md`**.
+La restauration permet de récupérer vos données à partir d'une archive de sauvegarde (après une perte, un changement de poste ou une réinstallation). Pour une procédure complète, reportez-vous au guide détaillé **`docs/procedure-restauration.md`**.
 
-Les points clés :
+### Principe
 
-- La restauration s'effectue avec la **phrase de récupération seule** — aucun mot de passe applicatif n'est nécessaire.
+- La restauration s'effectue avec la **phrase de récupération seule** — aucun mot de passe applicatif n'est nécessaire pour lancer l'opération.
 - Elle peut être réalisée sur un **poste vierge** (avant toute création de compte) : l'écran « Restauration » est accessible depuis le premier démarrage ou l'écran de connexion.
-- Une barre de progression s'affiche pendant l'opération : **ne fermez pas l'application**.
 - La restauration est **interdite pendant une session active** : la base doit être verrouillée.
-- À la fin, reconnectez-vous avec le mot de passe applicatif de l'archive restaurée.
+
+### Définir un nouveau mot de passe
+
+Lors de la restauration, l'écran vous demande de saisir :
+
+1. votre **phrase de récupération** (format `AAAA-BBBB-CCCC-DDDD-EEEE-FFFF`) ;
+2. un **nouveau mot de passe** (au moins **8 caractères**) ;
+3. la **confirmation** de ce nouveau mot de passe (les deux saisies doivent être identiques).
+
+> **Pourquoi un nouveau mot de passe ?** La phrase de récupération déchiffre la clé de chiffrement (DEK) de la base, mais le mot de passe applicatif d'origine n'est **pas conservé** dans l'archive. Il est donc impossible de réutiliser l'ancien mot de passe : vous devez en définir un nouveau.
+
+### Déroulement
+
+1. Cliquez sur **« Restaurer une sauvegarde ? »** (écran de connexion) ou **« Restaurer une sauvegarde existante »** (premier démarrage).
+2. Saisissez votre **phrase de récupération**, puis votre **nouveau mot de passe** et sa **confirmation**.
+3. Cliquez sur **« Sélectionner et restaurer »** et choisissez l'archive (`*.zip` ou `*.enc`) dans la fenêtre qui s'ouvre. L'archive et son fichier `recours.bin` doivent se trouver au même emplacement.
+4. **Ne fermez pas l'application** pendant la restauration : une barre de progression s'affiche.
+5. En cas de succès, cliquez sur **« Aller à la connexion »**.
+
+### Se connecter après la restauration
+
+Sur l'écran de connexion, saisissez votre **nouveau mot de passe** pour déverrouiller la base et accéder à vos données restaurées. La phrase de récupération reste nécessaire uniquement pour déverrouiller la clé lors de la restauration ; elle n'est pas utilisée pour la connexion quotidienne.
 
 ---
 

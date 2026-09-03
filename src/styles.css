@@ -12,7 +12,7 @@
 
   --text-primary: #1D1D1F;
   --text-secondary: #6E6E73;
-  --text-tertiary: #73737A;
+  --text-tertiary: #6E6E75;
 
   --separator: rgba(0,0,0,.09);
   --separator-strong: rgba(0,0,0,.14);
@@ -100,6 +100,24 @@ body {
 
 button { cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 500; }
 input { font-family: inherit; font-size: 13px; }
+
+/* ─── Focus visible (accessibilité clavier) ─── */
+button:focus-visible,
+a:focus-visible,
+.ligne-cliquable:focus-visible,
+select:focus-visible,
+.onglet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.liste-recherche:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.grille-dqe-tableau td.editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 .ecran-chargement {
   display: flex;

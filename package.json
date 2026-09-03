@@ -21,7 +21,8 @@
     "manuel:pdf": "md-to-pdf docs/manuel-utilisateur.md",
     "garde": "node scripts/garde-domaine.mjs",
     "verifier": "npm run typecheck && npm run lint && npm run garde && npm test",
-    "admin-reset": "electron out/main/egto-admin-reset.js"
+    "admin-reset": "electron out/main/egto-admin-reset.js",
+    "icone:generer": "node scripts/generer-icone.mjs"
   },
   "dependencies": {
     "@ag-grid-community/styles": "^32.3.9",

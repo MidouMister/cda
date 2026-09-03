@@ -21,6 +21,7 @@ export interface RestaurerDonneesParams {
   archive?: string
   dossierDestination?: string
   phraseRecuperation: string
+  nouveauMotDePasseApplicatif: string
 }
 
 export interface ResultatRestaurationSauvegarde {

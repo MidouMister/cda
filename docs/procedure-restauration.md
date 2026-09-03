@@ -1,6 +1,6 @@
 # Procédure de restauration d'une sauvegarde
 
-Guide pas à pas pour restaurer les données EGTO à partir d'une archive, y compris sur un poste vierge (avant toute session). La restauration s'effectue avec la **phrase de récupération seule** — aucun mot de passe applicatif n'est requis.
+Guide pas à pas pour restaurer les données EGTO à partir d'une archive, y compris sur un poste vierge (avant toute session). La restauration se fait avec la **phrase de récupération**, puis l'utilisateur définit un **nouveau mot de passe applicatif** (le mot de passe d'origine de l'archive n'est pas récupérable).
 
 ## Prérequis
 
@@ -20,9 +20,11 @@ Démarrez l'application EGTO. Vous arrivez sur l'écran de bienvenue (premier d�
 
 Cliquez sur le lien **« Restaurer une sauvegarde existante »** (écran de premier démarrage) ou **« Restaurer une sauvegarde ? »** (écran de connexion).
 
-### 3. Saisir la phrase de récupération
+### 3. Saisir la phrase de récupération et le nouveau mot de passe
 
-Dans l'écran « Restaurer une sauvegarde », saisissez votre **phrase de récupération** dans le champ prévu.
+Dans l'écran « Restaurer une sauvegarde », saisissez votre **phrase de récupération** dans le champ prévu, puis définissez un **nouveau mot de passe** (minimum 8 caractères) avec sa **confirmation** (les deux mots doivent être identiques).
+
+> **Pourquoi un nouveau mot de passe ?** La phrase de récupération déchiffre la clé (DEK) de la base, mais le mot de passe applicatif d'origine n'est pas conservé dans l'archive — il est donc impossible de réutiliser l'ancien.
 
 ### 4. Sélectionner l'archive
 
@@ -40,7 +42,7 @@ En cas de succès, l'écran « Restauration réussie » s'affiche. Cliquez sur *
 
 ### 7. Se connecter
 
-Sur l'écran de connexion, saisissez le **mot de passe applicatif** de l'archive restaurée pour déverrouiller votre base et accéder à vos données.
+Sur l'écran de connexion, saisissez le **nouveau mot de passe** défini lors de la restauration pour déverrouiller votre base et accéder à vos données.
 
 ## En cas d'erreur
 
@@ -49,4 +51,6 @@ Sur l'écran de connexion, saisissez le **mot de passe applicatif** de l'archive
 | Phrase de récupération incorrecte. | Phrase erronée ou `recours.bin` absent/illisible. Vérifiez la phrase et la présence du `recours.bin`. |
 | Le dossier de destination n'est pas vide. | Des données existent déjà. La restauration n'écrase pas une base existante. |
 | Archive invalide : manifeste manquant. | Fichier non reconnu comme archive EGTO valide. |
+| Le mot de passe doit contenir au moins 8 caractères. | Nouveau mot de passe trop court. Choisissez au moins 8 caractères. |
+| Les mots de passe ne correspondent pas. | La confirmation diffère du nouveau mot de passe. Ressaisissez les deux champs à l'identique. |
 | Mot de passe incorrect ou fichier corrompu. | Archive endommagée ou clé incohérente. |

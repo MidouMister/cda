@@ -322,7 +322,7 @@ test.describe('Cohérence — avoir ni encaissable ni archivable', () => {
     } catch (erreur) {
       messageErreur = erreur instanceof Error ? erreur.message : String(erreur)
     }
-    expect(messageErreur).toContain('Encaissement interdit')
+    expect(messageErreur).toContain('Un avoir ne peut pas être encaissé')
 
     const encaissements = await appelerIpc<unknown[]>(
       fenetre,

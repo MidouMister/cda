@@ -1,3 +1,118 @@
+## Session : 03/09/2026 — Jalon 6 final : restauration avec nouveau mot de passe, accessibilité et packaging — PRÊT POUR PUSH FINAL
+
+Clôture du Jalon 6 (branche `jalon-6-prep`). Option A du flux de restauration implémentée, Phase 5 finalisée.
+
+### Décision produit (point à arbitrer tranché)
+- Décision 03/09/2026 : à la restauration, l'utilisateur doit **définir un nouveau mot de passe applicatif** (+ confirmation). Le mot de passe applicatif d'origine N'EST PAS récupérable (seule la phrase de récupération déchiffre la DEK via `recours.bin`). `utilisateur.bin` est régénéré automatiquement pendant la restauration. Aucun bump de `FORMAT_VERSION` (l'archive n'est pas modifiée ; seule l'enveloppe `utilisateur.bin` côté destination est recréée).
+
+### Implémentation Option A
+- `electron/sauvegarde.ts` : `restaurerDonnees` a 2 NOUVEAUX paramètres — `nouveauMotDePasseApplicatif: string` (obligatoire) et `reconstituerEnveloppeUtilisateur` (callback injecté pour garder le module découplé de `session`). Après avoir déballé la DEK par phrase (flux FORMAT_VERSION 3 avec `recours.bin`) et copié `egto.db` + `recours.bin`, il appelle le callback pour régénérer `utilisateur.bin` (uniquement si DEK valide déballée ; le cas legacy V1/V2 sans recours.bin reste inchangé).
+- `electron/securite/session.ts` : nouvelle fonction `reconstituerEnveloppeUtilisateur(dossierUserData, nouveauMotDePasse, dek)` — valide mdp ≥ 8, dérive la clé du nouveau mot de passe, enveloppe la DEK, écrit `utilisateur.bin`.
+- `electron/ipc/ipc-sauvegarde.ts` (handler `sauvegarde.restaurer`) : valide `nouveauMotDePasseApplicatif` (obligatoire), le transmet, et injecte le callback `reconstituerEnveloppeUtilisateur`.
+- `contrats/sauvegarde.ts` : `RestaurerDonneesParams` + `nouveauMotDePasseApplicatif: string`.
+- `src/ecrans/Restauration.tsx` : ajoute les champs « Nouveau mot de passe » et « Confirmer le mot de passe » (`type=password`, `autoComplete=new-password`, `htmlFor`/`id` corrects), validation (≥ 8 caractères ; confirmation identique) avec messages clairs, passe `nouveauMotDePasseApplicatif` à l'IPC ; texte de succès « connectez-vous avec votre nouveau mot de passe ».
+
+### Documentation
+- `docs/manuel-utilisateur.md` : section Restauration réécrite (définir un nouveau mot de passe, pourquoi, se connecter avec le nouveau mot de passe). PDF `docs/manuel-utilisateur.pdf` régénéré via `npm run manuel:pdf`.
+- `docs/procedure-restauration.md` : intro, étapes 3 et 7 et tableau d'erreurs alignés (phrase + nouveau mot de passe min 8, confirmation ; « se connecter avec le nouveau mot de passe »).
+
+### Tests (mis à jour)
+- `tests/sauvegarde.test.ts` : 12 appels adaptés à la nouvelle signature ; tests enrichis (callback appelé exactement 1× avec dossierDestination + mdp trimé + DEK 32 octets ; cas legacy n'appelle PAS le callback ; nouveau test « nouveau mot de passe applicatif vide est rejeté ») — 34 tests.
+- `tests/ipc-sauvegarde.test.ts` : 2 appels `sauvegarde.restaurer` complétés avec `nouveauMotDePasseApplicatif` — 12 tests.
+- `e2e/parcours-restauration.spec.ts` : contournement manuel (reconstitution d'`utilisateur.bin` via deballerDek/envelopperDek/ecrireEnveloppe) SUPPRIMÉ — désormais `restaurerDonnees` s'en charge ; le test passe `nouveauMotDePasseApplicatif= 'NvMdpRest1!'`, déverrouille le poste restauré avec CE nouveau mot de passe, et vérifie que `enveloppes/utilisateur.bin` existe après restauration.
+
+### Vérifications finales (toutes vertes)
+- **`npm run verifier`** : 53 fichiers / **1073 tests passés** ✓ (typecheck node+web, lint, garde-domaine, vitest).
+- **`npx playwright test`** : **21/21 passés** ✓ (dont test de restauration Q19).
+- **Build NSIS régénéré** : `release/EGTO - Gestion Commerciale Setup 0.1.0.exe` (installeur à jour avec le nouveau flux) ; AC-1 confirmé (`egto-admin-reset.js` + chunk `recuperation-*.js` hors asar) ; PO-1 (icône) confirmé. La restauration complète est couverte par le test e2e réel (même code embarqué).
+
+### Commit final prévu (à effectuer après cette mise à jour)
+- Message : `Jalon 6 final : Restauration avec nouveau mot de passe, accessibilité et packaging`
+- Puis push `jalon-6-prep` → `origin/jalon-6-prep` (autorisé explicitement par l'utilisateur).
+
+---
+
+## Session : 03/09/2026 — Jalon 6 Phase 5 : accessibilité + packaging + non-régression finale — COMPLETE (NON COMMITTÉE)
+
+Phase 5 du Jalon 6 (branche `jalon-6-prep`, **aucun commit**) : accessibilité (Q27), packaging (icône PO-1 + AC-1), tests e2e PremierDémarrage/Connexion, correction tests e2e en échec, non-régression finale. Aucune migration SQL.
+
+### Accessibilité (Q27) — correctifs renderer
+- **`src/composants/Liste.tsx`** : `aria-label` sur checkboxes de sélection (header « Sélectionner toutes les lignes de cette page », cellule « Sélectionner la ligne N »), champ recherche (`aria-label="Rechercher"`), 4 boutons pagination unicode (« Première page », « Page précédente », « Page suivante », « Dernière page »), lignes cliquables rendues accessibles au clavier (`tabIndex={0}` + `onKeyDown` Entrée/Espace, sans `role="button"` pour préserver les tests `getByRole('row')`).
+- **`src/composants/GrilleDqe.tsx`** : `aria-label` sur les 4 inputs inline (« Désignation », « Unité », « Quantité », « PU HT ») ; alternative clavier au double-clic : fonction `gererClavierEdition` (Entrée sur cellule éditable démarre l'édition) + `tabIndex={0}` sur les `<td class="editable">` ; `onDoubleClick` préservé.
+- **`src/ecrans/BonsLivraison.tsx`** : modal enrichie `role="dialog"`, `aria-modal="true"`, `aria-label="Générer une facture"` (labels de formulaire déjà corrects).
+- **`src/ecrans/FicheAvoir.tsx`** : couleur en dur `#b91c1c` → `var(--red)` (thème clair/sombre).
+- **`src/styles.css`** : `--text-tertiary` assombri (`#73737A`→`#6E6E75`, ~4.7:1, passe WCAG AA) ; règles globales `:focus-visible` (outline 2px accent + offset) sur boutons, liens, lignes cliquables, selects, onglets, champ recherche, cellules DQE éditable. Aucun texte visible modifié.
+
+### Tests e2e — nouveaux écrans Premier démarrage + Connexion (non-régression)
+- **`e2e/parcours-premier-demarrage.spec.ts`** (NOUVEAU, 5 tests) : création compte + phrase de récupération, mot de passe trop court, mots de passe non identiques, case « Charger les données de démonstration » (window.confirm + message de succès), accessibilité (labels).
+- **`e2e/parcours-connexion.spec.ts`** (NOUVEAU, 3 tests) : mauvais mot de passe, bon mot de passe (déverrouillage), lien « Restaurer une sauvegarde ? » → écran restauration.
+- Isolation du profil vierge pour PremierDémarrage via fonction locale (ne touche pas `e2e/helpers/fixture.ts`).
+
+### Correction des 2 tests e2e en échec
+- **`e2e/cohérence.spec.ts`** : l'assertion d'encaissement d'avoir attendait l'ancien libellé « Encaissement interdit » → corrigée vers le message métier RÉEL « Un avoir ne peut pas être encaissé » (validé par tests unitaires) ; l'app n'a pas été modifiée.
+- **`e2e/parcours-restauration.spec.ts`** : le test lançait Electron sur le dossier cible AVANT restauration (le dossier devenait non vide → restauration refusée volontairement). Réécrit pour refléter l'UX réelle « restaurer sur un poste vierge » : fermeture du poste source (checkpoint WAL), archivage via un profil harness séparé, restauration vers un dossier cible vierge, puis reconstitution de `utilisateur.bin` (équivalent flux `egto-admin-reset` : déballe la DEK par phrase + réenveloppe avec le mot de passe source).
+
+### Packaging — icône (PO-1) + AC-1 + installeur
+- **`assets/icon.ico`** (NOUVEAU) généré par script déterministe `scripts/generer-icone.mjs` (`npm run icone:generer`) : ICO multi-tailles 16/32/48/256 px en 32 bits, header `00 00 01 00 04 00`, ~285 Ko, logo EGTO/BTP (bleu #0071E3). Script npm `icone:generer` ajouté.
+- **`electron-builder.yml`** : `win.icon: assets/icon.ico` activé (PO-1) ; `asarUnpack` + `out/main/chunks/**/*` (AC-1 : chunk de `egto-admin-reset.js` dépaqueté) ; suppression `publisherName` (propriété obsolète/invalide en electron-builder 26, rejetée au schéma) ; ajout `npmRebuild: false` (modules natifs pré-compilés via postinstall, évite node-gyp/VS). Raccourcis NSIS conservés (Bureau + Menu Démarrer).
+- **Build NSIS complet réussi** : installeur `release/EGTO - Gestion Commerciale Setup 0.1.0.exe` (≈123,8 Mo) + `win-unpacked/`.
+- **Smoke test** : AC-1 levé — `egto-admin-reset.js` et `chunks/recuperation-*.js` présents hors asar dans `app.asar.unpacked/out/main/`, chargement sans erreur `MODULE_NOT_FOUND` ; PO-1 confirmé — build sans erreur d'icône, icône embarquée dans l'exécutable. extraResources vérifiés (db/schema.sql, db/migrations, assets/fonts, docs/manuel-utilisateur.pdf).
+- **`docs/procedure-packaging.md`** (NOUVEAU) : procédure complète (build, icône, NSIS, structure sorties, smoke test).
+- `release/` ajouté au `.gitignore` (artefacts non versionnés).
+
+### Non-régression et vérifications
+- **`npm run verifier` : 53 fichiers / 1072 tests passés** ✓ (typecheck node+web, lint, garde-domaine, vitest).
+
+### Points à arbitrer / à signaler (Phase 5)
+1. **`utilisateur.bin` après restauration** : `restaurerDonnees` ne restaure JAMAIS `utilisateur.bin` (volontairement absent de l'archive). Après restauration, le poste ne peut pas se déverrouiller directement avec le mot de passe applicatif source — il faut passer par `egto-admin-reset` (reconstitution de `utilisateur.bin` à partir de la phrase). Ceci contredit potentiellement le manuel (`docs/manuel-utilisateur.md` §7) et l'écran Restauration. À ARBITRER produit/technique. NON tranché en Phase 5.
+2. **`publisherName` supprimé** de `electron-builder.yml` (propriété invalide en v26) — l'identité éditeur reste dans `productName`/`copyright`. À noter pour le rapport final.
+3. **`npmRebuild: false`** ajouté (modules natifs pré-compilés via postinstall) — nécessaire sur les postes sans Visual Studio Build Tools.
+4. **Icône non vérifiable visuellement à l'installé** sans installeur NSIS installé sur un poste (mode `--dir` utilisé pour le smoke test structurel) — à confirmer visuellement au recettage.
+
+---
+
+## Session : 03/09/2026 — Jalon 6 Phase 5 : correctifs d'accessibilité renderer — NON COMMITTÉE
+
+Phase 5 du Jalon 6 (branche `jalon-6-prep`, **aucun commit**) : correctifs d'accessibilité du renderer conformément à la revue d'accessibilité (Q27). Aucun calcul financier modifié, aucun fichier hors portée touché.
+
+### Fait — Liste.tsx (PROBLÈME MAJEUR)
+- **Checkboxes de sélection** : `aria-label` ajouté — checkbox header = « Sélectionner toutes les lignes de cette page », checkbox cellule = `Sélectionner la ligne ${row.index + 1}`.
+- **Champ de recherche** : `aria-label="Rechercher"` ajouté (le placeholder ne suffit pas).
+- **Boutons de pagination** : `aria-label` ajouté sur les 4 boutons « « ‹ › » » : « Première page », « Page précédente », « Page suivante », « Dernière page ».
+- **Lignes cliquables** : `tabIndex={0}` + `onKeyDown` gérant `Enter`/`Espace` ajouté. Pas de `role="button"` (conserve le rôle `row` natif, compatible avec `getAllByRole('row')` dans les tests existants).
+
+### Fait — GrilleDqe.tsx (PROBLÈME MODÉRÉ)
+- **Inputs inline** : `aria-label` ajouté sur les 4 inputs : « Désignation », « Unité », « Quantité », « PU HT ».
+- **Alternative clavier double-clic** : nouvelle fonction `gererClavierEdition` (Enter sur cellule non en édition → démarre l'édition) + `tabIndex={0}` sur chaque `<td class="editable">` + `onKeyDown` deleguant. Le double-clic (`onDoubleClick`) est préservé.
+
+### Fait — BonsLivraison.tsx (PROBLÈME MODÉRÉ)
+- **Modal** : `role="dialog"`, `aria-modal="true"`, `aria-label="Générer une facture"` ajoutés.
+- **Labels du formulaire** : les `<label>` wrappent déjà leurs `<input>` (association implicite conforme WCAG). Aucun `htmlFor`/`id` manquant.
+
+### Fait — FicheAvoir.tsx (Contraste)
+- `style={{ color: '#b91c1c' }}` remplacé par `style={{ color: 'var(--red)' }}` — utilise la variable de thème existante (thème clair : `#D70015`, thème sombre : `#FF453A`).
+
+### Fait — styles.css (Focus visible + contraste)
+- `:focus-visible` global ajouté pour : `button`, `a`, `.ligne-cliquable`, `select`, `.onglet` (outline 2px accent, offset 2px) ; `.liste-recherche` (offset 0) ; `.grille-dqe-tableau td.editable` (offset -2px).
+- `--text-tertiary` clair assombri de `#73737A` → `#6E6E75` (~4.7:1 vs ~4.38:1, passe WCAG AA pour petit texte).
+
+### Vérifications — tout vert
+- **`npm run typecheck`** ✓
+- **`npm run lint`** : 0 erreur sur les fichiers modifiés (2 erreurs pré-existantes dans `scripts/generer-icone.mjs`, hors portée)
+- **`npm run garde`** ✓
+- **`npm test`** : **53 fichiers / 1072 tests passés** ✓
+
+### Confirmations
+- Aucun texte visible modifié
+- Aucun fichier hors portée touché (strictement les 5 fichiers listés)
+- Aucun commit/push effectué
+- Aucun fichier de Phase 5 hors accessibilité créé
+
+### Point non traité
+- **Contraste `--text-tertiary` sombre** (`#8E8E93` sur `#1C1C1E`) : déjà ~6.6:1, largement conforme WCAG AA → pas de modification nécessaire.
+
+---
+
 ## Session : 03/09/2026 — Jalon 6 Phase 4 : manuel utilisateur PDF + données de démonstration — COMMITTÉE 36d892a
 
 Phase 4 du Jalon 6 (branche `jalon-6-prep`, **COMMITTÉE - aucun push**) : manuel utilisateur généré en PDF embarqué dans l'installeur + jeu de données de démonstration chargeable au premier démarrage. **Commit `36d892a`** « Jalon 6 Phase 4 : Manuel utilisateur PDF et données de démonstration » (11 fichiers, +2330/-54). Worktree propre. Pas de migration SQL, pas de Phase 5.

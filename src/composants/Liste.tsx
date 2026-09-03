@@ -42,6 +42,7 @@ export function Liste<T>({
           type="checkbox"
           checked={table.getIsAllPageRowsSelected()}
           onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
+          aria-label="Sélectionner toutes les lignes de cette page"
         />
       ),
       cell: ({ row }) => (
@@ -49,6 +50,7 @@ export function Liste<T>({
           type="checkbox"
           checked={row.getIsSelected()}
           onChange={(e) => row.toggleSelected(e.target.checked)}
+          aria-label={`Sélectionner la ligne ${row.index + 1}`}
         />
       ),
       size: 36,
@@ -92,6 +94,7 @@ export function Liste<T>({
           className="liste-recherche"
           type="text"
           placeholder="Rechercher…"
+          aria-label="Rechercher"
           value={filtre}
           onChange={(e) => {
             setFiltre(e.target.value)
@@ -145,6 +148,13 @@ export function Liste<T>({
                   style={{ height: hauteurLigne }}
                   className={onLigneClique ? 'ligne-cliquable' : undefined}
                   onClick={onLigneClique ? () => onLigneClique(ligne.original) : undefined}
+                  tabIndex={onLigneClique ? 0 : undefined}
+                  onKeyDown={onLigneClique ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onLigneClique(ligne.original)
+                    }
+                  } : undefined}
                 >
                   {ligne.getVisibleCells().map((cell) => (
                     <td key={cell.id} style={{ height: hauteurLigne }}>
@@ -168,6 +178,7 @@ export function Liste<T>({
               className="bouton-pagination"
               disabled={page === 0}
               onClick={() => setPage(0)}
+              aria-label="Première page"
             >
               «
             </button>
@@ -175,6 +186,7 @@ export function Liste<T>({
               className="bouton-pagination"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
+              aria-label="Page précédente"
             >
               ‹
             </button>
@@ -182,6 +194,7 @@ export function Liste<T>({
               className="bouton-pagination"
               disabled={page >= pageCourant - 1}
               onClick={() => setPage(page + 1)}
+              aria-label="Page suivante"
             >
               ›
             </button>
@@ -189,6 +202,7 @@ export function Liste<T>({
               className="bouton-pagination"
               disabled={page >= pageCourant - 1}
               onClick={() => setPage(pageCourant - 1)}
+              aria-label="Dernière page"
             >
               »
             </button>

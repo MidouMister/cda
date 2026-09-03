@@ -1,6 +1,7 @@
 appId: com.egto.gestion-commerciale
 productName: "EGTO - Gestion Commerciale"
 copyright: "© 2026 E.G.T.O - Entreprise des Grands Travaux de l'Ouest"
+npmRebuild: false
 directories:
   buildResources: build
   output: release
@@ -11,6 +12,7 @@ asarUnpack:
   - node_modules/better-sqlite3-multiple-ciphers/**/*
   - node_modules/argon2/**/*
   - out/main/egto-admin-reset.js
+  - out/main/chunks/**/*
 extraResources:
   - from: "./electron/db/schema.sql"
     to: "db/schema.sql"
@@ -24,11 +26,10 @@ win:
   target:
     - target: nsis
       arch: x64
-  publisherName: "E.G.T.O"
+  icon: assets/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: "EGTO Gestion Commerciale"
-# icon: assets/icon.ico (PO-1 — icône en attente)

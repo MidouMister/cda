@@ -16,7 +16,7 @@ import {
   RETENTION_MENSUELLE,
   DOSSIER_SAUVEGARDES_DEFAUT,
 } from '../sauvegarde'
-import { deballerDekParPhrase } from '../securite/session'
+import { deballerDekParPhrase, reconstituerEnveloppeUtilisateur } from '../securite/session'
 
 const ERREUR_SESSION_VERROUILLEE = 'Session verrouillée : la base n\'est pas ouverte.'
 
@@ -71,6 +71,9 @@ export const enregistrerHandlersSauvegarde = (
     if (typeof d.phraseRecuperation !== 'string' || d.phraseRecuperation.trim().length === 0) {
       throw new TypeError('« phraseRecuperation » est obligatoire.')
     }
+    if (typeof d.nouveauMotDePasseApplicatif !== 'string' || d.nouveauMotDePasseApplicatif.trim().length === 0) {
+      throw new TypeError('« nouveauMotDePasseApplicatif » est obligatoire.')
+    }
     let archive = typeof d.archive === 'string' ? d.archive : ''
     let dossierDestination = typeof d.dossierDestination === 'string' ? d.dossierDestination : ''
     if (!archive) {
@@ -91,6 +94,9 @@ export const enregistrerHandlersSauvegarde = (
       dossierDestination,
       phraseRecuperation: d.phraseRecuperation.trim(),
       deballerDekParPhrase: (dossierUserData, phrase) => deballerDekParPhrase(dossierUserData, phrase),
+      nouveauMotDePasseApplicatif: d.nouveauMotDePasseApplicatif as string,
+      reconstituerEnveloppeUtilisateur: (dossierUserData, nouveauMotDePasse, dek) =>
+        reconstituerEnveloppeUtilisateur(dossierUserData, nouveauMotDePasse, dek),
     })
   })
 
