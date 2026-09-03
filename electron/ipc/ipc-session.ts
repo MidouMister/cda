@@ -41,8 +41,13 @@ export const enregistrerHandlersSession = (
     ) {
       throw new TypeError('« motDePasse » doit être une chaîne.')
     }
-    const { motDePasse } = donnees as { motDePasse: string }
-    const phrase = await premierDemarrage(obtenirDossierUserData(), motDePasse, deps)
+    const { motDePasse, chargerDemo } = donnees as {
+      motDePasse: string
+      chargerDemo?: boolean
+    }
+    const phrase = await premierDemarrage(obtenirDossierUserData(), motDePasse, deps, {
+      chargerDemo: chargerDemo === true,
+    })
     return { phrase }
   })
 

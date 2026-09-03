@@ -199,6 +199,32 @@ input { font-family: inherit; font-size: 13px; }
 .carte-premier input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .carte-premier .erreur { margin: 0 0 12px; color: var(--red); font-size: 12px; }
 
+.carte-premier .option-demo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--separator-strong);
+  border-radius: var(--radius-ctl);
+  text-align: left;
+  cursor: pointer;
+}
+.carte-premier .option-demo input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.carte-premier .option-demo span { font-size: 12px; font-weight: 400; color: var(--text-primary); }
+
+.confirmation-demo {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--succes-soft, transparent);
+  border: 1px solid var(--succes, #2e7d32);
+  border-radius: var(--radius-ctl);
+  color: var(--succes, #2e7d32);
+  font-size: 12px;
+  text-align: left;
+}
+
 .carte-premier .bouton {
   width: 100%;
   padding: 10px 16px;

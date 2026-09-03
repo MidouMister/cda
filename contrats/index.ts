@@ -118,7 +118,7 @@ export interface ApiEgto {
   }
   session: {
     etat: () => Promise<{ verrouillee: boolean; premierDemarrage: boolean }>
-    premierDemarrage: (d: { motDePasse: string }) => Promise<{ phrase: string }>
+    premierDemarrage: (d: { motDePasse: string; chargerDemo?: boolean }) => Promise<{ phrase: string }>
     deverrouiller: (d: { motDePasse: string }) => Promise<void>
     verrouiller: () => Promise<void>
     changerMotDePasse: (d: { ancienMotDePasse: string; nouveauMotDePasse: string }) => Promise<void>

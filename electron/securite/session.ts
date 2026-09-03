@@ -14,6 +14,7 @@ import {
   ecrireEnveloppe,
   lireEnveloppe,
 } from './gestionnaire-enveloppes'
+import { insererSeedsDemo } from '../db/seeds-demo'
 
 export type DepsSession = {
   ouvrirBase: (chemin: string, cle: string) => { close: () => void }
@@ -40,9 +41,9 @@ const validerMotDePasse = (motDePasse: string): void => {
 export const premierDemarrage = async (
   dossierUserData: string,
   motDePasse: string,
-  _deps: DepsSession,
+  deps: DepsSession,
+  options?: { chargerDemo?: boolean },
 ): Promise<string> => {
-  void _deps
   validerMotDePasse(motDePasse)
   const dek = genererDek()
   const phrase = genererPhraseRecuperation()
@@ -58,6 +59,17 @@ export const premierDemarrage = async (
 
   ecrireEnveloppe(dossierUserData, NOM_ENVELOPPE_UTILISATEUR, blobUser)
   ecrireEnveloppe(dossierUserData, NOM_ENVELOPPE_RECOURS, blobRecours)
+
+  if (options?.chargerDemo === true) {
+    const base = deps.ouvrirBase(`${dossierUserData}/egto.db`, dek.toString('hex'))
+    try {
+      deps.appliquerMigrations(base)
+      deps.insererSeeds(base)
+      insererSeedsDemo(base as Parameters<typeof insererSeedsDemo>[0])
+    } finally {
+      base.close()
+    }
+  }
 
   return phrase
 }

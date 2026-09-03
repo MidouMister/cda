@@ -11,6 +11,8 @@ export function PremierDemarrage() {
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [confirmationPhrase, setConfirmationPhrase] = useState(false)
+  const [chargerDemo, setChargerDemo] = useState(false)
+  const [demoChargee, setDemoChargee] = useState(false)
   const { definirEcran } = utiliserSession()
 
   const validerMdp = (e: FormEvent) => {
@@ -25,14 +27,27 @@ export function PremierDemarrage() {
       setErreur('Les mots de passe ne correspondent pas.')
       return
     }
+    if (chargerDemo) {
+      const confirme = window.confirm(
+        'Cette action charge des données de démonstration et est irréversible. Continuer ?',
+      )
+      if (!confirme) {
+        return
+      }
+    }
     creerCompte()
   }
 
   const creerCompte = async () => {
     setEnCours(true)
     try {
-      const resultat = await window.egto.session.premierDemarrage({ motDePasse })
+      const resultat = await window.egto.session.premierDemarrage(
+        chargerDemo
+          ? { motDePasse, chargerDemo: true }
+          : { motDePasse },
+      )
       setPhrase(resultat.phrase)
+      setDemoChargee(chargerDemo)
       setMotDePasse('')
       setConfirmation('')
       setEtape('phrase')
@@ -74,6 +89,11 @@ export function PremierDemarrage() {
               conservez-la en lieu sûr, hors de ce poste.
             </span>
           </div>
+          {demoChargee && (
+            <p className="confirmation-demo">
+              Les données de démonstration ont été chargées avec succès.
+            </p>
+          )}
           <div className="phrase-a-imprimer">
             <div className="carte-phrase">
               <div className="groupes-phrase">
@@ -138,6 +158,14 @@ export function PremierDemarrage() {
             onChange={(e) => setConfirmation(e.target.value)}
           />
         </div>
+        <label className="option-demo">
+          <input
+            type="checkbox"
+            checked={chargerDemo}
+            onChange={(e) => setChargerDemo(e.target.checked)}
+          />
+          <span>Charger les données de démonstration</span>
+        </label>
         <button
           className="bouton"
           type="submit"

@@ -18,6 +18,8 @@ extraResources:
     to: "db/migrations"
   - from: "./assets/fonts"
     to: "assets/fonts"
+  - from: "./docs/manuel-utilisateur.pdf"
+    to: "docs/manuel-utilisateur.pdf"
 win:
   target:
     - target: nsis
