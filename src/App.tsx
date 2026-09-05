@@ -32,7 +32,7 @@ function AppInterne() {
       .etat()
       .then((etat) => {
         if (!actif) return
-        if (!etat.premierDemarrage) {
+        if (etat.premierDemarrage) {
           definirEcran('premier_demarrage')
         } else {
           definirEcran('connexion')

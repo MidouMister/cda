@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { _electron, expect, test } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 
-const MOT_DE_PASSE = 'Test1234!'
 const CHEM_APP = join(process.cwd(), 'out', 'main')
 
 const lancerApp = async (dossierUserData: string): Promise<{ application: ElectronApplication; fenetre: Page }> => {
@@ -18,41 +17,6 @@ const lancerApp = async (dossierUserData: string): Promise<{ application: Electr
   })
   const fenetre = await application.firstWindow()
   await fenetre.waitForLoadState('domcontentloaded')
-  return { application, fenetre }
-}
-
-const appelerIpc = async <T>(
-  fenetre: Page,
-  canal: string,
-  ...argumentsAppel: unknown[]
-): Promise<T> =>
-  fenetre.evaluate(
-    async ({ canal, argumentsAppel }) => {
-      const hote = window as unknown as { egto?: Record<string, unknown> }
-      if (!hote.egto) {
-        throw new Error('window.egto est indisponible — le preload n\'a pas été chargé.')
-      }
-      let cible: unknown = hote.egto
-      for (const segment of canal.split('.')) {
-        if (cible === null || typeof cible !== 'object' || !(segment in cible)) {
-          throw new Error(`Canal introuvable : « ${canal} »`)
-        }
-        cible = (cible as Record<string, unknown>)[segment]
-      }
-      if (typeof cible !== 'function') {
-        throw new Error(`« ${canal} » n'est pas une fonction IPC.`)
-      }
-      return (await (cible as (...a: unknown[]) => Promise<unknown>)(...argumentsAppel)) as T
-    },
-    { canal, argumentsAppel },
-  )
-
-const creerCompteEtRelancer = async (dossier: string): Promise<{ application: ElectronApplication; fenetre: Page }> => {
-  const { application: app1, fenetre: fen1 } = await lancerApp(dossier)
-  await appelerIpc(fen1, 'session.premierDemarrage', { motDePasse: MOT_DE_PASSE })
-  await app1.close()
-
-  const { application, fenetre } = await lancerApp(dossier)
   return { application, fenetre }
 }
 
@@ -71,7 +35,7 @@ test.describe('Parcours Premier démarrage — écran de création de compte', (
   test('crée un compte avec mot de passe valide et affiche la phrase de récupération', async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'egto-e2e-pd-'))
     try {
-      const { application, fenetre } = await creerCompteEtRelancer(dossier)
+      const { application, fenetre } = await lancerApp(dossier)
 
       await expect(fenetre.locator('h1')).toHaveText('Bienvenue dans EGTO', { timeout: 15_000 })
 
@@ -91,7 +55,7 @@ test.describe('Parcours Premier démarrage — écran de création de compte', (
   test('affiche une erreur pour mot de passe trop court', async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'egto-e2e-pd-'))
     try {
-      const { application, fenetre } = await creerCompteEtRelancer(dossier)
+      const { application, fenetre } = await lancerApp(dossier)
 
       await fenetre.locator('h1').waitFor({ timeout: 15_000 })
 
@@ -110,7 +74,7 @@ test.describe('Parcours Premier démarrage — écran de création de compte', (
   test('affiche une erreur pour mots de passe non identiques', async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'egto-e2e-pd-'))
     try {
-      const { application, fenetre } = await creerCompteEtRelancer(dossier)
+      const { application, fenetre } = await lancerApp(dossier)
 
       await fenetre.locator('h1').waitFor({ timeout: 15_000 })
 
@@ -129,7 +93,7 @@ test.describe('Parcours Premier démarrage — écran de création de compte', (
   test('charge les données de démonstration via case à cocher', async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'egto-e2e-pd-'))
     try {
-      const { application, fenetre } = await creerCompteEtRelancer(dossier)
+      const { application, fenetre } = await lancerApp(dossier)
 
       await fenetre.locator('h1').waitFor({ timeout: 15_000 })
 
@@ -155,7 +119,7 @@ test.describe('Parcours Premier démarrage — écran de création de compte', (
   test('l\'écran premier démarrage est accessible', async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'egto-e2e-pd-'))
     try {
-      const { application, fenetre } = await creerCompteEtRelancer(dossier)
+      const { application, fenetre } = await lancerApp(dossier)
 
       await fenetre.locator('h1').waitFor({ timeout: 15_000 })
 

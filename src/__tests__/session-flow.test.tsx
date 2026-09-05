@@ -51,8 +51,8 @@ afterEach(() => {
   cleanup()
 })
 
-const APRES_CHARGEMENT = { verrouillee: true, premierDemarrage: true }
-const PREMIER_DMARRAGE = { verrouillee: true, premierDemarrage: false }
+const ETAT_SANS_ENVELOPPE = { verrouillee: true, premierDemarrage: true }
+const ETAT_PROFIL_EXISTANT = { verrouillee: true, premierDemarrage: false }
 
 async function afficherApp() {
   const { App } = await import('../App')
@@ -67,7 +67,7 @@ describe('Flux de session - ecran initial', () => {
   })
 
   it('affiche PremierDemarrage si aucune enveloppe', async () => {
-    mockSession.etat.mockResolvedValue(PREMIER_DMARRAGE)
+    mockSession.etat.mockResolvedValue(ETAT_SANS_ENVELOPPE)
     await afficherApp()
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Bienvenue dans EGTO' })).toBeInTheDocument()
@@ -75,7 +75,7 @@ describe('Flux de session - ecran initial', () => {
   })
 
   it('affiche Connexion si enveloppes existent', async () => {
-    mockSession.etat.mockResolvedValue(APRES_CHARGEMENT)
+    mockSession.etat.mockResolvedValue(ETAT_PROFIL_EXISTANT)
     await afficherApp()
     await waitFor(() => {
       expect(screen.getByText(/Connectez-vous/)).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('Flux de session - ecran initial', () => {
 
 describe('Ecran PremierDemarrage', () => {
   beforeEach(() => {
-    mockSession.etat.mockResolvedValue(PREMIER_DMARRAGE)
+    mockSession.etat.mockResolvedValue(ETAT_SANS_ENVELOPPE)
   })
 
   it('affiche erreur si mot de passe trop court', async () => {
@@ -163,7 +163,7 @@ describe('Ecran PremierDemarrage', () => {
 
 describe('Ecran Connexion', () => {
   beforeEach(() => {
-    mockSession.etat.mockResolvedValue(APRES_CHARGEMENT)
+    mockSession.etat.mockResolvedValue(ETAT_PROFIL_EXISTANT)
   })
 
   it('affiche erreur du backend si deverrouiller echoue', async () => {
@@ -199,7 +199,7 @@ describe('Ecran Connexion', () => {
 
 describe('Regles de securite', () => {
   it('aucun stockage persistant utilise pour la phrase ou le mdp', async () => {
-    mockSession.etat.mockResolvedValue(PREMIER_DMARRAGE)
+    mockSession.etat.mockResolvedValue(ETAT_SANS_ENVELOPPE)
     mockSession.premierDemarrage.mockResolvedValue({ phrase: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF' })
     const user = userEvent.setup()
     await afficherApp()
@@ -217,7 +217,7 @@ describe('Regles de securite', () => {
   })
 
   it('la phrase disparait apres confirmation', async () => {
-    mockSession.etat.mockResolvedValue(PREMIER_DMARRAGE)
+    mockSession.etat.mockResolvedValue(ETAT_SANS_ENVELOPPE)
     mockSession.premierDemarrage.mockResolvedValue({ phrase: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF' })
     const user = userEvent.setup()
     await afficherApp()

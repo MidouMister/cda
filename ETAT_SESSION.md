@@ -1,3 +1,31 @@
+## Session : 04/09/2026 — Correction bug écran premier démarrage (inversion sémantique `premierDemarrage`)
+
+Correction du bug d'écran au premier démarrage : `premierDemarrage: true` (aucune enveloppe, vrai premier démarrage à faire) affichait « Connexion » au lieu de « Bienvenue ». La source IPC (`electron/ipc/ipc-session.ts:31`) est correcte (`!enveloppesExistent`) ; l'inversion était dans `App.tsx` ET dans les constantes de test.
+
+### Fait
+- **`src/App.tsx` (l.35)** : suppression du `!` devant `etat.premierDemarrage` → `premierDemarrage: true` → `premier_demarrage` (Bienvenue), `false` → `connexion`.
+- **`src/__tests__/session-flow.test.tsx`** : constantes renommées et valeurs corrigées → `ETAT_SANS_ENVELOPPE = { premierDemarrage: true }`, `ETAT_PROFIL_EXISTANT = { premierDemarrage: false }`. 8 références mises à jour.
+- **`e2e/parcours-premier-demarrage.spec.ts`** : réécrit — chaque test lance l'app sur dossier vierge ; l'écran « Bienvenue dans EGTO » s'affiche **directement** (sans pré-création IPC). `creerCompteEtRelancer` supprimée. 5 tests.
+- **`e2e/parcours-connexion.spec.ts`** : `preparerProfilAvecCompte` réécrite — crée le compte via IPC, **ferme et relance** l'app sur même dossier pour obtenir l'écran Connexion. 3 tests.
+- **`e2e/helpers/fixture.ts`** : réécrit — si `premierDemarrage: true`, crée le profil via IPC, ferme, relance, puis déverrouille via l'UI. Sinon déverrouille directement. Les specs métier (smoke, cohérence, facturation, BL, import, restauration) restent verts.
+
+### Vérifications
+- `npx tsc --noEmit -p tsconfig.web.json` ✓
+- `npx tsc --noEmit -p tsconfig.node.json` ✓
+- `npx vitest run src/__tests__/session-flow.test.tsx` → **12/12 passés** ✓
+- `npx playwright test` → **21/21 passés** ✓
+
+### Fichiers modifiés (5 fichiers, aucun hors périmètre)
+1. `src/App.tsx` — suppression d'un `!` (1 ligne)
+2. `src/__tests__/session-flow.test.tsx` — constantes + références (8 lignes)
+3. `e2e/parcours-premier-demarrage.spec.ts` — réécriture complète
+4. `e2e/parcours-connexion.spec.ts` — réécriture `preparerProfilAvecCompte`
+5. `e2e/helpers/fixture.ts` — réécriture avec relance
+
+Aucun commit/push effectué.
+
+---
+
 ## Session : 03/09/2026 — Jalon 6 final : restauration avec nouveau mot de passe, accessibilité et packaging — PRÊT POUR PUSH FINAL
 
 Clôture du Jalon 6 (branche `jalon-6-prep`). Option A du flux de restauration implémentée, Phase 5 finalisée.

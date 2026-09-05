@@ -17,6 +17,48 @@ export interface FenetreEgto {
   dossierTemporaire: string
 }
 
+const CHEM_APP = join(process.cwd(), 'out', 'main')
+
+const lancerApplication = async (dossierUserData: string): Promise<{ application: ElectronApplication; fenetre: Page }> => {
+  const application = await _electron.launch({
+    args: [CHEM_APP],
+    env: {
+      ...process.env,
+      EGTO_E2E: '1',
+      EGTO_E2E_USER_DATA_DIR: dossierUserData,
+    },
+  })
+  const fenetre = await application.firstWindow()
+  await fenetre.waitForLoadState('domcontentloaded')
+  return { application, fenetre }
+}
+
+const appelerIpc = async <T>(
+  fenetre: Page,
+  canal: string,
+  ...argumentsAppel: unknown[]
+): Promise<T> =>
+  fenetre.evaluate(
+    async ({ canal, argumentsAppel }) => {
+      const hote = window as unknown as { egto?: Record<string, unknown> }
+      if (!hote.egto) {
+        throw new Error('window.egto est indisponible — le preload n\'a pas été chargé.')
+      }
+      let cible: unknown = hote.egto
+      for (const segment of canal.split('.')) {
+        if (cible === null || typeof cible !== 'object' || !(segment in cible)) {
+          throw new Error(`Canal introuvable : « ${canal} »`)
+        }
+        cible = (cible as Record<string, unknown>)[segment]
+      }
+      if (typeof cible !== 'function') {
+        throw new Error(`« ${canal} » n'est pas une fonction IPC.`)
+      }
+      return (await (cible as (...a: unknown[]) => Promise<unknown>)(...argumentsAppel)) as T
+    },
+    { canal, argumentsAppel },
+  )
+
 const attendreInterfacePrincipale = async (fenetre: Page): Promise<void> => {
   await expect(fenetre.locator('.sidebar')).toBeVisible({ timeout: 20_000 })
   await expect(fenetre.getByRole('link', { name: 'Clients' })).toBeVisible()
@@ -26,68 +68,42 @@ export const test = base.extend<{ fenetreEgto: FenetreEgto }>({
   fenetreEgto: [
     async ({}, utiliser) => {
       const dossierTemporaire = mkdtempSync(join(tmpdir(), 'egto-e2e-'))
-      const cheminApplication = join(process.cwd(), 'out', 'main')
 
-      const applicationElectron = await _electron.launch({
-        args: [cheminApplication],
-        env: {
-          ...process.env,
-          EGTO_E2E: '1',
-          EGTO_E2E_USER_DATA_DIR: dossierTemporaire,
-        },
-      })
+      const { application: app1, fenetre: fen1 } = await lancerApplication(dossierTemporaire)
 
-      const fenetre = await applicationElectron.firstWindow()
-      await fenetre.waitForLoadState('domcontentloaded')
-
-      const etatInitial = await fenetre.evaluate(async () => {
-        const hote = window as unknown as {
-          egto?: { session: { etat: () => Promise<{ verrouillee: boolean; premierDemarrage: boolean }> } }
-        }
-        if (!hote.egto) {
-          throw new Error('window.egto est indisponible — le preload n’a pas été chargé.')
-        }
-        return hote.egto.session.etat()
-      })
+      const etatInitial = await appelerIpc<{ verrouillee: boolean; premierDemarrage: boolean }>(
+        fen1,
+        'session.etat',
+      )
 
       if (etatInitial.premierDemarrage) {
-        await fenetre.evaluate(async (motDePasse) => {
-          const hote = window as unknown as {
-            egto: {
-              session: {
-                premierDemarrage: (d: { motDePasse: string }) => Promise<{ phrase: string }>
-              }
-            }
-          }
-          await hote.egto.session.premierDemarrage({ motDePasse })
-        }, MOT_DE_PASSE_E2E)
-      }
+        await appelerIpc(fen1, 'session.premierDemarrage', { motDePasse: MOT_DE_PASSE_E2E })
+        await app1.close()
 
-      const champMotDePasse = fenetre.locator('#mdp-connexion')
-      const formulaireConnexionPresent = await champMotDePasse
-        .waitFor({ state: 'visible', timeout: 10_000 })
-        .then(() => true)
-        .catch(() => false)
+        const { application: app2, fenetre: fen2 } = await lancerApplication(dossierTemporaire)
 
-      if (formulaireConnexionPresent) {
+        const champMotDePasse = fen2.locator('#mdp-connexion')
+        await champMotDePasse.waitFor({ state: 'visible', timeout: 15_000 })
         await champMotDePasse.fill(MOT_DE_PASSE_E2E)
-        await fenetre.getByRole('button', { name: 'Déverrouiller' }).click()
-      } else if (etatInitial.verrouillee) {
-        await fenetre.evaluate(async (motDePasse) => {
-          const hote = window as unknown as {
-            egto: {
-              session: { deverrouiller: (d: { motDePasse: string }) => Promise<void> }
-            }
-          }
-          await hote.egto.session.deverrouiller({ motDePasse })
-        }, MOT_DE_PASSE_E2E)
+        await fen2.getByRole('button', { name: 'Déverrouiller' }).click()
+
+        await attendreInterfacePrincipale(fen2)
+
+        await utiliser({ applicationElectron: app2, fenetre: fen2, dossierTemporaire })
+
+        await app2.close()
+      } else {
+        const champMotDePasse = fen1.locator('#mdp-connexion')
+        await champMotDePasse.fill(MOT_DE_PASSE_E2E)
+        await fen1.getByRole('button', { name: 'Déverrouiller' }).click()
+
+        await attendreInterfacePrincipale(fen1)
+
+        await utiliser({ applicationElectron: app1, fenetre: fen1, dossierTemporaire })
+
+        await app1.close()
       }
 
-      await attendreInterfacePrincipale(fenetre)
-
-      await utiliser({ applicationElectron, fenetre, dossierTemporaire })
-
-      await applicationElectron.close()
       rmSync(dossierTemporaire, { recursive: true, force: true })
     },
     { scope: 'test' },

@@ -55,12 +55,14 @@ const appelerIpc = async <T>(
 const preparerProfilAvecCompte = async (
   dossier: string,
 ): Promise<{ application: ElectronApplication; fenetre: Page }> => {
-  const { application, fenetre } = await lancerApp(dossier)
-  const etat = await appelerIpc<EtatSession>(fenetre, 'session.etat')
+  const { application: app1, fenetre: fen1 } = await lancerApp(dossier)
+  const etat = await appelerIpc<EtatSession>(fen1, 'session.etat')
   expect(etat.premierDemarrage).toBe(true)
 
-  await appelerIpc(fenetre, 'session.premierDemarrage', { motDePasse: MOT_DE_PASSE })
+  await appelerIpc(fen1, 'session.premierDemarrage', { motDePasse: MOT_DE_PASSE })
+  await app1.close()
 
+  const { application, fenetre } = await lancerApp(dossier)
   const champMdp = fenetre.locator('#mdp-connexion')
   await champMdp.waitFor({ state: 'visible', timeout: 15_000 })
 
